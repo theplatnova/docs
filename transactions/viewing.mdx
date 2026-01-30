@@ -1,0 +1,79 @@
+---
+title: "Viewing Transactions"
+slug: "transactions/viewing"
+---
+
+Call `GET /v1/transactions` to list transactions. Use query params to page, sort, narrow by customer, or export.
+
+## Basic request
+
+```bash
+curl -X GET "https://api.platnova.com/v1/transactions" \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Pagination
+
+Results are paginated. Use:
+
+- **page** — Page number (0-based). Default `0`.
+- **size** — Items per page. Default `20`.
+
+Example: `?page=0&size=50`
+
+## Filtering and sorting
+
+- **customer_id** — Restrict to one customer (UUID).
+- **sort** — Sort field and direction (e.g. newest first).
+- **filters** — Filter expression for type, status, date range, etc. See the [List transactions](/api-reference/transactions/list) reference for the exact filter format.
+
+## Export
+
+Pass the **export** query parameter to get results as CSV instead of JSON.
+
+## Response shape
+
+The response wraps everything in `data`:
+
+- **data.items** — Array of transactions (id, ref, amount, fee, type, status, entry, message, created_at, plus wallet and payment_transfer when relevant).
+- **data.page**, **data.size**, **data.max_page**, **data.total_pages**, **data.total**, **data.last**, **data.first**, **data.visible** — Pagination info.
+
+Example:
+
+```json
+{
+  "status": true,
+  "data": {
+    "items": [
+      {
+        "id": "trx_43a2b75e-5c59-429e-872a-2a54c7b17e34",
+        "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+        "amount": "100.50",
+        "fee": "10.00",
+        "type": "transfer",
+        "status": "success",
+        "entry": "debit",
+        "message": "Bank transfer to John Doe",
+        "created_at": "2026-01-30T14:22:00Z",
+        "wallet": {},
+        "payment_transfer": {}
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "max_page": 5,
+    "total_pages": 6,
+    "total": 112,
+    "last": false,
+    "first": true,
+    "visible": 20
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+## Next
+
+- [Generate a receipt](/api-reference/transactions/receipt) for a transaction by ID.
+- [List transactions](/api-reference/transactions/list) in the API reference for full request/response details.

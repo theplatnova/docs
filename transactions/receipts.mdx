@@ -1,0 +1,42 @@
+---
+title: "Receipts"
+slug: "transactions/receipts"
+---
+
+You can generate a receipt for any transaction. The API returns a receipt as base64-encoded data (typically a PDF), which you can decode, save, or send to your customer.
+
+## How it works
+
+Call `GET /v1/transactions/{id}/receipt` with the transaction ID (the same `id` you get when listing transactions). The response is JSON: the `data` field contains the receipt as a base64 string. Decode it to get the PDF (or other format) and store or email it as needed.
+
+## Request
+
+```bash
+curl -X GET "https://api.platnova.com/v1/transactions/trx_43a2b75e-5c59-429e-872a-2a54c7b17e34/receipt" \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+Use the transaction UID from your [transaction list](/transactions/viewing)—for example `trx_43a2b75e-5c59-429e-872a-2a54c7b17e34`.
+
+## Response
+
+The response body is standard API envelope: `status`, `data`, `error`, `message`. The receipt content is in `data` as a base64-encoded string (e.g. a PDF). Decode it in your app to save or display the file.
+
+```json
+{
+  "status": true,
+  "data": "JVBERi0xLjQKJeLjz9MK...",
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+If the transaction is not found or the ID is invalid, you get a 400 with an error message.
+
+## When to use it
+
+- **Customer records** — Generate a receipt after a successful payment and email or show it to the payer.
+- **Accounting** — Decode and store receipts in your system for reconciliation and audits.
+- **Disputes** — Use the receipt as proof of transaction details when handling chargebacks or support.
+
+For full request/response details, see the [Generate receipt](/api-reference/transactions/receipt) API reference.
