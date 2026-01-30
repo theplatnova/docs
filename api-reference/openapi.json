@@ -3389,7 +3389,7 @@
         "/v1/payments/send": {
             "post": {
                 "summary": "Send payment",
-                "description": "Initiate a payment transfer. Supports instant, scheduled, and recurring payments. Required: from_amount, from_wallet_id, to_currency, payment_method, and info (recipient details; fields depend on payment method). For TAG_TRANSFER, info must include tag_id.",
+                "description": "Initiate a payment transfer. Supports instant, scheduled, and recurring payments",
                 "operationId": "sendPayment",
                 "tags": [
                     "Payment"
@@ -3884,7 +3884,7 @@
         "/v1/links": {
             "post": {
                 "summary": "Create payment link",
-                "description": "Create a shareable payment link. Requires title, currency, customer (e.g. can_set_price), and payment (payment_methods with id and value). Amount is required when customer cannot set price. Requires Link feature.",
+                "description": "Create a shareable payment link",
                 "operationId": "createLink",
                 "tags": [
                     "Payment Link"
