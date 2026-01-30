@@ -1,0 +1,100 @@
+---
+title: "Quickstart"
+slug: "card/quickstart"
+---
+
+Get started with virtual cards in just a few minutes. This guide will walk you through creating your first card, funding it, and making a purchase.
+
+## Prerequisites
+
+- A Platnova account ([sign up here](https://business.platnova.com))
+- An API key (see [Authentication](/authentication))
+- A customer created in your system
+
+## Step 1: Create a Customer
+
+Before creating a card, you need to have a customer in your system:
+
+```bash
+curl -X POST https://api.platnova.com/v1/customers \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "country_code": "US"
+  }'
+```
+
+## Step 2: Create a Card
+
+Create a virtual card for your customer:
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "customer_id_from_step_1",
+    "currency": "USD",
+    "brand": "mastercard",
+    "amount": "100.00"
+  }'
+```
+
+## Step 3: Fund the Card
+
+Add funds to your card from your wallet:
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards/{card_id}/deposit \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "500.00"
+  }'
+```
+
+## Step 4: View Card Details
+
+Retrieve card information including card number and CVV:
+
+```bash
+curl -X GET https://api.platnova.com/v1/cards/{card_id}/reveal \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Step 5: Monitor Card Activity
+
+View all transactions and events for your card:
+
+```bash
+curl -X GET https://api.platnova.com/v1/cards/{card_id}/events \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Example Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "id": "card_123",
+    "customer_id": "customer_456",
+    "currency": "USD",
+    "balance": "500.00",
+    "status": "active",
+    "brand": "mastercard",
+    "created_at": "2025-01-30T10:00:00Z"
+  },
+  "message": "Card created successfully"
+}
+```
+
+## Next Steps
+
+- Learn about [Card Management](/card/management) for freezing and unfreezing cards
+- Explore [Funding & Withdrawals](/card/funding) for managing card balances
+- Check out the [Cards API Reference](/api-reference/cards/create) for detailed documentation

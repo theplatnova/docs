@@ -1,0 +1,118 @@
+---
+title: "Funding & Withdrawals"
+slug: "card/funding"
+---
+
+Manage card balances by depositing funds from your wallet or withdrawing funds back to your wallet. These operations help you control spending and manage card balances effectively.
+
+## Funding Cards
+
+Add funds to a card from your business wallet. Deposits are processed instantly and the card balance is updated immediately.
+
+### Depositing Funds
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards/{card_id}/deposit \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "250.00"
+  }'
+```
+
+### Deposit Requirements
+
+- Funds must be available in your wallet
+- Wallet currency must match card currency
+- Minimum deposit amounts may apply depending on currency
+
+### Deposit Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "transaction_id": "txn_123",
+    "card_id": "card_456",
+    "amount": "250.00",
+    "currency": "USD",
+    "previous_balance": "100.00",
+    "new_balance": "350.00",
+    "status": "success"
+  },
+  "message": "Deposit successful"
+}
+```
+
+## Withdrawing Funds
+
+Retrieve funds from a card back to your business wallet. Withdrawals reduce the card balance accordingly.
+
+### Withdrawing Funds
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards/{card_id}/withdraw \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "150.00"
+  }'
+```
+
+### Withdrawal Requirements
+
+- Card must have sufficient balance
+- Card must be in active status (not frozen or cancelled)
+- Minimum withdrawal amounts may apply
+
+### Withdrawal Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "transaction_id": "txn_789",
+    "card_id": "card_456",
+    "amount": "150.00",
+    "currency": "USD",
+    "previous_balance": "350.00",
+    "new_balance": "200.00",
+    "status": "success"
+  },
+  "message": "Withdrawal successful"
+}
+```
+
+## Checking Card Balance
+
+View the current balance of a card:
+
+```bash
+curl -X GET https://api.platnova.com/v1/cards/{card_id} \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+The response includes the current balance in the card's currency.
+
+## Transaction History
+
+View all deposit and withdrawal transactions for a card:
+
+```bash
+curl -X GET https://api.platnova.com/v1/cards/{card_id}/events \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+This returns all card events including deposits, withdrawals, and purchases.
+
+## Best Practices
+
+- Monitor card balances regularly
+- Set appropriate funding limits based on expected usage
+- Withdraw unused funds to optimize cash flow
+- Keep track of all deposit and withdrawal transactions
+
+## Next Steps
+
+- Learn about [Card Management](/card/management) for freezing and unfreezing cards
+- Explore the [Cards API Reference](/api-reference/cards/deposit) for detailed documentation

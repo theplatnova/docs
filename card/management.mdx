@@ -1,0 +1,86 @@
+---
+title: "Card Management"
+slug: "card/management"
+---
+
+Manage your cards effectively with freeze, unfreeze, and status controls. These features help you maintain security and control over card usage.
+
+## Freezing Cards
+
+Freeze a card to temporarily disable it. Frozen cards cannot be used for purchases until they are unfrozen.
+
+### When to Freeze a Card
+
+- Suspected unauthorized activity
+- Employee termination or leave
+- Lost or stolen card reports
+- Temporary spending restrictions needed
+
+### Freezing a Card
+
+```bash
+curl -X PUT https://api.platnova.com/v1/cards/{card_id}/freeze \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+The card status will change to "frozen" and all attempts to use it will be declined.
+
+## Unfreezing Cards
+
+Unfreeze a card to restore its functionality. The card can be used immediately after unfreezing.
+
+### Unfreezing a Card
+
+```bash
+curl -X PUT https://api.platnova.com/v1/cards/{card_id}/unfreeze \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+The card status will change back to "active" and normal usage can resume.
+
+## Checking Card Status
+
+Retrieve the current status of a card:
+
+```bash
+curl -X GET https://api.platnova.com/v1/cards/{card_id} \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+### Card Statuses
+
+- **active** - Card is active and can be used
+- **frozen** - Card is frozen and cannot be used
+- **cancelled** - Card has been cancelled permanently
+
+## Card Information
+
+View complete card details including masked card number, expiration date, and balance:
+
+```bash
+curl -X GET https://api.platnova.com/v1/cards/{card_id} \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Revealing Card Details
+
+For security, card numbers and CVVs are masked by default. Use the reveal endpoint to get the full card details:
+
+```bash
+curl -X GET https://api.platnova.com/v1/cards/{card_id}/reveal \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+**Note:** The reveal endpoint is rate-limited to prevent abuse. Use it only when necessary.
+
+## Best Practices
+
+- Freeze cards immediately if suspicious activity is detected
+- Regularly review card status and balances
+- Use unfreeze only when you're certain the card should be active
+- Keep card details secure and never expose CVVs unnecessarily
+
+## Next Steps
+
+- Learn about [Funding & Withdrawals](/card/funding) for managing card balances
+- Explore the [Cards API Reference](/api-reference/cards/freeze) for detailed documentation

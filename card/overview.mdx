@@ -1,0 +1,79 @@
+---
+title: "Overview"
+slug: "card/overview"
+---
+
+Virtual cards allow you to issue cards to your customers, employees, or vendors with spending controls and real-time transaction monitoring. Cards can be created instantly and managed programmatically through our API.
+
+## What Are Virtual Cards?
+
+Virtual cards are digital payment cards that can be used for online and in-store purchases. Each card is linked to a customer and can be funded from your business wallet. Cards support multiple currencies and can be frozen, unfrozen, or have funds withdrawn as needed.
+
+## Key Features
+
+### Instant Card Creation
+
+Create cards instantly for your customers with a simple API call. Cards are provisioned immediately and can be used right away for online purchases.
+
+### Multi-Currency Support
+
+Issue cards in multiple currencies including USD, NGN, and other supported currencies. Each card operates in a single currency, but you can create multiple cards for different currencies.
+
+### Spending Controls
+
+Manage card spending through various controls including balance limits, transaction limits, and merchant restrictions. Cards can be frozen instantly to prevent unauthorized use.
+
+### Real-Time Monitoring
+
+Track all card activity in real-time including purchases, deposits, withdrawals, and card events. Get detailed transaction history with merchant information and categorization.
+
+### Card Management
+
+Full lifecycle management including card creation, funding, withdrawal, freezing, and unfreezing. Cards can be updated with new spending limits or restrictions as needed.
+
+## Card Lifecycle
+
+### Creating Cards
+
+When you create a card, you specify the currency, brand (Mastercard or Visa), initial funding amount, and the customer it's assigned to. The card is created instantly and can be used immediately.
+
+### Funding Cards
+
+Add funds to cards from your business wallet at any time. Deposits are processed instantly and the card balance is updated immediately.
+
+### Card Usage
+
+Cards can be used for online purchases, in-store payments, and other transactions. All transactions are tracked and reported in real-time.
+
+### Withdrawing Funds
+
+Retrieve funds from cards back to your business wallet when needed. Withdrawals reduce the card balance accordingly.
+
+### Freezing and Unfreezing
+
+Temporarily disable cards by freezing them. Frozen cards cannot be used until they are unfrozen. This is useful for security purposes or when you need to temporarily disable a card.
+
+## Card Information
+
+Each card includes detailed information such as:
+
+- Card number (masked for security)
+- Expiration date
+- CVV (available through reveal endpoint)
+- Cardholder name
+- Billing address
+- Card status (active, frozen, cancelled)
+
+## Security
+
+### Sensitive Data Protection
+
+Card numbers and CVVs are protected and only revealed through a secure, rate-limited endpoint. The reveal endpoint is rate limited to prevent abuse.
+
+### Transaction Monitoring
+
+All card transactions are monitored and logged. Unusual activity can trigger alerts and automatic card freezing.
+
+## Getting Started
+
+Ready to start issuing cards? Check out our [API Reference](/api-reference/cards/create) for detailed endpoint documentation, or see our [Quick Start Guide](/card/quickstart) to create your first card in minutes.
