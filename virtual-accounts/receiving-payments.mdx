@@ -1,0 +1,110 @@
+---
+title: "Receiving Payments"
+slug: "virtual-accounts/receiving-payments"
+---
+
+Virtual accounts can receive payments from any source. This guide explains how payments work and how to track incoming payments.
+
+## How Payments Work
+
+When a payment is sent to a virtual account:
+
+1. The payer uses the account details (account number, bank name, routing numbers)
+2. The payment is processed through the banking network
+3. Funds are automatically credited to your business wallet
+4. You receive a notification of the payment
+
+## Account Details for Payers
+
+Share these account details with payers:
+
+- **Account Number** - The bank account number
+- **Account Name** - Name on the account
+- **Bank Name** - Name of the bank
+- **Routing Numbers** - For ACH, RTP, or Wire transfers (USD accounts)
+- **SWIFT Code** - For international transfers
+
+## Payment Methods
+
+Payments can be sent using various methods:
+
+### Domestic Transfers
+
+- **Bank Transfer** - Standard bank-to-bank transfer
+- **ACH Transfer** - Automated Clearing House (USD)
+- **RTP Transfer** - Real-Time Payments (USD)
+
+### International Transfers
+
+- **Wire Transfer** - International wire transfer using SWIFT code
+- **International ACH** - Cross-border ACH transfers
+
+## Payment Processing
+
+### Payment Flow
+
+1. Payer initiates transfer using account details
+2. Payment is processed by the banking network
+3. Funds arrive in the virtual account
+4. Funds are automatically credited to your business wallet
+5. Transaction appears in your transaction history
+
+### Processing Times
+
+- **RTP** - Real-time (instant)
+- **ACH** - 1-3 business days
+- **Wire** - Same day or next business day
+- **Bank Transfer** - Varies by country and method
+
+## Tracking Payments
+
+Monitor incoming payments through the Transactions API:
+
+```bash
+curl -X GET https://api.platnova.com/v1/transactions \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -G \
+  -d "type=deposit" \
+  -d "virtual_account_id=va_123"
+```
+
+## Payment Notifications
+
+Set up webhooks to receive real-time notifications when payments are received:
+
+```json
+{
+  "event": "payment.received",
+  "data": {
+    "transaction_id": "txn_123",
+    "virtual_account_id": "va_456",
+    "amount": "1000.00",
+    "currency": "USD",
+    "payer_name": "Jane Smith",
+    "reference": "PAY123456",
+    "timestamp": "2025-01-30T10:00:00Z"
+  }
+}
+```
+
+## Payment Limits
+
+Payment limits may apply depending on:
+
+- Account type
+- Currency
+- Payer's bank
+- Regulatory requirements
+
+## Best Practices
+
+- Share account details securely with payers
+- Include payment references for tracking
+- Monitor transactions regularly
+- Set up webhooks for real-time notifications
+- Keep account information up to date
+
+## Next Steps
+
+- Learn about [Creating Accounts](/virtual-accounts/creating-accounts) for account setup
+- Explore the [Transactions API Reference](/api-reference/transactions/list) for transaction tracking

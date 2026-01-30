@@ -1,0 +1,115 @@
+---
+title: "Creating Accounts"
+slug: "virtual-accounts/creating-accounts"
+---
+
+Create virtual bank accounts instantly for your customers. This guide covers the account creation process and how to retrieve account details.
+
+## Creating a Virtual Account
+
+Create a virtual account for a customer:
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "customer_123",
+    "currency": "USD"
+  }'
+```
+
+## Account Creation Parameters
+
+### Required Fields
+
+- **Customer ID** - The ID of the customer who will own the account
+- **Currency** - The currency for the account (USD, NGN, etc.)
+
+### Optional Fields
+
+- **Account Type** - Current or savings account (defaults based on currency)
+- **Account Name** - Custom account name (defaults to customer name)
+
+## Account Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "id": "va_123",
+    "customer_id": "customer_456",
+    "account_number": "1234567890",
+    "account_name": "John Doe",
+    "bank_name": "Platnova Bank",
+    "bank_code": "123",
+    "currency": "USD",
+    "routing_numbers": {
+      "ach": "123456789",
+      "rtp": "987654321",
+      "wire": "111222333"
+    },
+    "swift_code": "PLATUS33",
+    "status": "active",
+    "created_at": "2025-01-30T10:00:00Z"
+  },
+  "message": "Virtual account created successfully"
+}
+```
+
+## Account Details
+
+Each virtual account includes complete bank account information:
+
+### Account Information
+
+- **Account Number** - The bank account number for receiving payments
+- **Account Name** - Name associated with the account
+- **Bank Name** - Name of the bank
+- **Bank Code** - Bank identification code
+
+### Routing Information (USD Accounts)
+
+- **ACH Routing Number** - For ACH transfers
+- **RTP Routing Number** - For real-time payments
+- **Wire Routing Number** - For wire transfers
+
+### International Transfers
+
+- **SWIFT Code** - For international wire transfers
+
+## Account Types
+
+Virtual accounts support different account types depending on the currency:
+
+- **Current Account** - Standard checking account
+- **Savings Account** - Interest-bearing account
+
+The account type is determined automatically based on currency and provider capabilities.
+
+## Multiple Accounts
+
+Customers can have multiple virtual accounts in different currencies. Each account operates independently with its own account number and routing information.
+
+## Listing Accounts
+
+View all virtual accounts:
+
+```bash
+curl -X GET https://api.platnova.com/v1/virtual-accounts \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+Filter by customer or currency as needed.
+
+## Best Practices
+
+- Create accounts in the currencies your customers need
+- Store account details securely
+- Share account information with customers securely
+- Monitor account activity regularly
+
+## Next Steps
+
+- Learn about [Receiving Payments](/virtual-accounts/receiving-payments) for payment collection
+- Explore the [Virtual Accounts API Reference](/api-reference/virtual-accounts/create) for detailed documentation
