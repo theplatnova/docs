@@ -1,0 +1,108 @@
+---
+title: "Customer Onboarding"
+slug: "customers/onboarding"
+---
+
+Onboard customers quickly and efficiently with our streamlined customer creation process. This guide covers the essential steps for creating customer profiles and preparing them for service.
+
+## Creating a Customer
+
+Create a new customer with basic information:
+
+```bash
+curl -X POST https://api.platnova.com/v1/customers \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "country_code": "US"
+  }'
+```
+
+## Required Information
+
+### Basic Details
+
+- **First Name** - Customer's first name
+- **Last Name** - Customer's last name
+- **Email** - Valid email address
+- **Phone** - Phone number with country code
+- **Country Code** - ISO country code (e.g., US, NG, GB)
+
+### Optional Information
+
+- **Date of Birth** - For age verification
+- **Address** - Billing or residential address
+- **Metadata** - Custom data for your records
+
+## Customer Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "id": "customer_123",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "country_code": "US",
+    "status": "approval_pending",
+    "created_at": "2025-01-30T10:00:00Z"
+  },
+  "message": "Customer created successfully"
+}
+```
+
+## Customer Status
+
+After creation, customers typically start with "approval_pending" status. This means they're created but may need KYC verification before they can receive services.
+
+### Status Flow
+
+1. **Approval Pending** - Customer created, awaiting verification
+2. **Active** - Customer verified and can receive services
+3. **Locked** - Customer account is locked
+4. **Restricted** - Customer has restrictions on their account
+
+## Next Steps After Creation
+
+Once a customer is created, you can:
+
+- Issue cards to the customer
+- Create virtual accounts for the customer
+- Send payments to the customer
+- Track customer transactions
+
+## Retrieving Customer Information
+
+Get customer details at any time:
+
+```bash
+curl -X GET https://api.platnova.com/v1/customers/{customer_id} \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Listing Customers
+
+View all your customers:
+
+```bash
+curl -X GET https://api.platnova.com/v1/customers \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Best Practices
+
+- Collect all required information during onboarding
+- Verify email addresses and phone numbers
+- Keep customer data up to date
+- Monitor customer status for compliance
+
+## Next Steps
+
+- Learn about [KYC & Verification](/customers/kyc) for compliance requirements
+- Explore the [Customers API Reference](/api-reference/customers/create) for detailed documentation

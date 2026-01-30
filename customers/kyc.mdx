@@ -1,0 +1,95 @@
+---
+title: "KYC & Verification"
+slug: "customers/kyc"
+---
+
+Know Your Customer (KYC) verification ensures compliance with financial regulations and helps prevent fraud. This guide covers the KYC process and how to manage customer verification.
+
+## What is KYC?
+
+KYC (Know Your Customer) is a process that verifies the identity of customers before they can use financial services. It helps ensure compliance with anti-money laundering (AML) regulations and prevents fraud.
+
+## KYC Requirements
+
+KYC verification typically requires:
+
+- **Identity Verification** - Government-issued ID (passport, driver's license, national ID)
+- **Address Verification** - Proof of address (utility bill, bank statement)
+- **Biometric Verification** - In some cases, biometric data may be required
+
+## Customer Status and KYC
+
+Customer status reflects their KYC verification state:
+
+- **Approval Pending** - Customer created but KYC not yet verified
+- **Active** - KYC verified, customer can use services
+- **Locked** - KYC verification failed or account locked
+- **Restricted** - Customer has restrictions due to KYC issues
+
+## Checking Customer Status
+
+Monitor customer KYC status:
+
+```bash
+curl -X GET https://api.platnova.com/v1/customers/{customer_id} \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+The response includes the customer's current status and any KYC-related information.
+
+## KYC Verification Process
+
+### Step 1: Customer Creation
+
+Create the customer with basic information:
+
+```bash
+curl -X POST https://api.platnova.com/v1/customers \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "country_code": "US"
+  }'
+```
+
+### Step 2: Submit KYC Documents
+
+Submit required KYC documents through your dashboard or via API. Documents are verified automatically or manually depending on your configuration.
+
+### Step 3: Verification Complete
+
+Once verified, the customer status changes to "active" and they can receive cards, virtual accounts, and other services.
+
+## KYC Compliance
+
+### Why KYC Matters
+
+- **Regulatory Compliance** - Required by financial regulations
+- **Fraud Prevention** - Helps prevent identity theft and fraud
+- **Risk Management** - Reduces risk of money laundering and other illegal activities
+
+### Best Practices
+
+- Collect all required KYC information during onboarding
+- Verify documents promptly to avoid delays
+- Keep KYC documents secure and confidential
+- Monitor customer status regularly
+- Update KYC information when customer details change
+
+## Handling KYC Failures
+
+If KYC verification fails:
+
+1. Customer status may change to "locked" or "restricted"
+2. Review the reason for failure
+3. Request additional documentation if needed
+4. Resubmit for verification
+
+## Next Steps
+
+- Learn about [Customer Onboarding](/customers/onboarding) for creating customers
+- Explore the [Customers API Reference](/api-reference/customers/get) for detailed documentation

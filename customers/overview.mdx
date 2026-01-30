@@ -1,0 +1,66 @@
+---
+title: "Overview"
+slug: "customers/overview"
+---
+
+Customers are the individuals or businesses that use your services. The Customers API allows you to onboard customers, manage their profiles, and handle KYC (Know Your Customer) or KYB (Know Your Business) compliance requirements.
+
+## What Are Customers?
+
+Customers are the end users of your platform who receive cards, virtual accounts, or other services. Each customer has a profile with identification information, contact details, and compliance data required for financial services.
+
+## Key Features
+
+### Customer Onboarding
+
+Create customer profiles with necessary identification and contact information. Customer creation includes KYC data collection for compliance purposes.
+
+### Profile Management
+
+Manage customer profiles including personal information, contact details, and status. Update customer information as needed and track customer status.
+
+### KYC Compliance
+
+Collect and manage KYC information including identification documents, addresses, and compliance data. Customer status reflects KYC verification progress.
+
+### Customer Status
+
+Track customer status including approval pending, active, locked, and restricted states. Status indicates the customer's current state in your system.
+
+## Customer Lifecycle
+
+### Creating Customers
+
+When you create a customer, you provide basic information including name, email, phone, and country code. Additional KYC information can be provided during creation or updated later.
+
+### KYC Verification
+
+Customers go through KYC verification after creation. The verification process includes document verification, address verification, and other compliance checks.
+
+### Customer Activation
+
+Once KYC verification is complete, customers are activated and can receive cards, virtual accounts, and other services. Active customers can use all available features.
+
+## Customer Information
+
+Each customer includes:
+
+- Customer ID
+- Personal information (name, email, phone)
+- Country and dial code
+- Customer status
+- KYC information (documents, address, compliance data)
+- Creation and update timestamps
+
+## Customer Status
+
+Customers can have different statuses:
+
+- Approval Pending - Customer is awaiting KYC verification
+- Active - Customer is verified and active
+- Locked - Customer account is locked
+- Restricted - Customer has restrictions on their account
+
+## Getting Started
+
+Ready to start managing customers? Check out our [API Reference](/api-reference/customers/create) for detailed endpoint documentation.
