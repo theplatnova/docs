@@ -1,0 +1,124 @@
+---
+title: "Wallet Management"
+slug: "wallets/management"
+---
+
+Manage your wallets effectively to support your financial operations. This guide covers wallet operations, balance tracking, and best practices.
+
+## Viewing Wallets
+
+List all wallets:
+
+```bash
+curl -X GET https://api.platnova.com/v1/wallets \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Wallet Information
+
+Each wallet includes:
+
+- **ID** - Unique wallet identifier
+- **Currency** - Wallet currency
+- **Balance** - Current balance
+- **Status** - Wallet status (active, locked, etc.)
+- **Created At** - Wallet creation timestamp
+
+## Wallet Status
+
+Wallets can have different statuses:
+
+- **Active** - Wallet is active and can be used
+- **Locked** - Wallet is locked and cannot be used
+- **Restricted** - Wallet has restrictions
+
+## Balance Management
+
+### Checking Balances
+
+Monitor wallet balances regularly:
+
+```bash
+curl -X GET https://api.platnova.com/v1/wallets \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+### Balance Updates
+
+Balances update automatically when:
+
+- Funds are received
+- Payments are sent
+- Cards are funded
+- Withdrawals are made
+- Transactions are processed
+
+## Funding Wallets
+
+Fund wallets through:
+
+- Bank transfers
+- Card deposits
+- Payment receipts
+- Virtual account deposits
+- Other payment methods
+
+## Using Wallets
+
+Wallets are used as the source of funds for:
+
+### Card Operations
+
+- Creating cards
+- Funding cards
+- Card-related transactions
+
+### Payments
+
+- Sending payments
+- Processing transfers
+- Payment operations
+
+### Other Operations
+
+- Various financial operations
+- Transaction processing
+
+## Transaction History
+
+View wallet transactions through the Transactions API:
+
+```bash
+curl -X GET https://api.platnova.com/v1/transactions \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -G \
+  -d "wallet_id=wallet_123"
+```
+
+## Best Practices
+
+### Balance Management
+
+- Keep sufficient balances for operations
+- Monitor balances regularly
+- Set up balance alerts
+- Plan for expected transactions
+
+### Security
+
+- Protect wallet access
+- Use secure API keys
+- Monitor transactions
+- Review wallet activity
+
+### Operations
+
+- Use appropriate wallets for operations
+- Match wallet currency to operation currency
+- Track wallet usage
+- Optimize wallet utilization
+
+## Next Steps
+
+- Learn about [Multi-Currency Wallets](/wallets/multi-currency) for multi-currency operations
+- Explore the [Wallets API Reference](/api-reference/wallets/list) for detailed documentation
