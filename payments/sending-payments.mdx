@@ -1,0 +1,136 @@
+---
+title: "Sending Payments"
+slug: "payments/sending-payments"
+---
+
+Send money transfers using multiple payment methods. This guide covers how to send payments and track their status.
+
+## Sending a Payment
+
+Send a payment by specifying the payment method and recipient details in `info`. Example for a bank transfer:
+
+```bash
+curl -X POST https://api.platnova.com/v1/payments/send \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from_amount": 500.00,
+    "from_wallet_id": "wl_your_wallet_id",
+    "to_currency": "NGN",
+    "payment_method": "bank_transfer",
+    "info": {
+      "account_number": "0123456789",
+      "bank_code": "058",
+      "account_name": "Jane Smith"
+    },
+    "reference": "PAY001",
+    "payment_type": { "type": "instant" }
+  }'
+```
+
+## Payment Parameters
+
+### Required Fields
+
+- **from_amount** – Amount to send (source currency)
+- **from_wallet_id** – Wallet ID to debit from
+- **to_currency** – Destination currency (e.g. NGN, USD)
+- **payment_method** – One of: `bank_transfer`, `card`, `mobile_money`, `wallet`, `tag_transfer`, `defi`, `revolut`, `paypal`, `cashapp`, `zelle`
+- **info** – Recipient details; required fields depend on `payment_method` (e.g. for `bank_transfer`: `account_number`, `bank_code`, `account_name`; for `tag_transfer`: `tag_id`)
+
+### Optional Fields
+
+- **reference** – Your payment reference for idempotency or tracking
+- **payment_type** – `instant`, `scheduled`, or `recurring` (default: instant)
+- **is_save_to_beneficiary** – Save recipient as beneficiary
+
+## Payment Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "transaction_id": "txn_123",
+    "payment_reference": "PAY001",
+    "amount": "500.00",
+    "currency": "USD",
+    "recipient_account_number": "1234567890",
+    "recipient_name": "Jane Smith",
+    "status": "processing",
+    "created_at": "2025-01-30T10:00:00Z"
+  },
+  "message": "Payment initiated successfully"
+}
+```
+
+## Payment Status
+
+Payments are processed asynchronously. Status can be:
+
+- **Processing** - Payment is being processed
+- **Success** - Payment completed successfully
+- **Failed** - Payment failed (check error details)
+
+## Verifying Payment Status
+
+Check payment status using the transaction reference returned from send:
+
+```bash
+curl -X POST https://api.platnova.com/v1/payments/verify \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ref": "UTR_xxxx"
+  }'
+```
+
+## Payment Methods
+
+The API supports multiple payment methods; pass `payment_method` and the matching `info` shape:
+
+| Method | Description | Example info fields |
+|--------|-------------|---------------------|
+| **bank_transfer** | Bank transfers (NGN, USD, etc.); ACH, RTP, wire for USD | `account_number`, `bank_code`, `account_name` |
+| **card** | Card payments | Card-specific recipient details |
+| **mobile_money** | Mobile money (e.g. Ghana) | Phone, provider, etc. |
+| **tag_transfer** | Wallet-to-wallet transfer | `tag_id` |
+| **wallet** | Wallet payments | Wallet identifier |
+| **defi** | DeFi | Asset, network, address, etc. |
+| **revolut** | Revolut | Revolut recipient details |
+| **paypal** | PayPal | PayPal identifier |
+| **ussd** | USSD | USSD channel details |
+| **cashapp** | Cash App | Cash App identifier |
+| **zelle** | Zelle | Zelle recipient details |
+
+Availability depends on currency and region. See the [Send Payment API](/api-reference/payments/send) for the exact `info` fields per method.
+
+## Payment Limits
+
+Payment limits may apply based on:
+
+- Account tier
+- Currency
+- Payment method
+- Regulatory requirements
+
+## Payment Fees
+
+Fees may apply depending on:
+
+- Payment amount
+- Currency
+- Payment method
+- Destination country
+
+## Best Practices
+
+- Verify recipient account details before sending
+- Include payment references for easy tracking
+- Monitor payment status regularly
+- Keep sufficient wallet balance
+- Handle failed payments appropriately
+
+## Next Steps
+
+- Learn about [Payment Verification](/payments/verification) for checking payment status
+- Explore the [Payments API Reference](/api-reference/payments/send) for detailed documentation

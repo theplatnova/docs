@@ -1,0 +1,141 @@
+---
+title: "Payment Verification"
+slug: "payments/verification"
+---
+
+Verify payment status and track payment processing. This guide covers how to check payment status and handle payment verification.
+
+## Verifying Payment Status
+
+Check the status of a payment using its reference:
+
+```bash
+curl -X POST https://api.platnova.com/v1/payments/verify \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reference": "PAY001"
+  }'
+```
+
+## Verification Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "transaction_id": "txn_123",
+    "payment_reference": "PAY001",
+    "amount": "500.00",
+    "currency": "USD",
+    "recipient_account_number": "1234567890",
+    "recipient_name": "Jane Smith",
+    "status": "success",
+    "processed_at": "2025-01-30T10:05:00Z",
+    "created_at": "2025-01-30T10:00:00Z"
+  },
+  "message": "Payment verified successfully"
+}
+```
+
+## Payment Statuses
+
+### Processing
+
+Payment has been initiated and is being processed. This is the initial status for most payments.
+
+```json
+{
+  "status": "processing",
+  "message": "Payment is being processed"
+}
+```
+
+### Success
+
+Payment completed successfully. Funds have been transferred to the recipient.
+
+```json
+{
+  "status": "success",
+  "processed_at": "2025-01-30T10:05:00Z"
+}
+```
+
+### Failed
+
+Payment failed. Check error details for the reason.
+
+```json
+{
+  "status": "failed",
+  "error": "Insufficient funds",
+  "error_code": "INSUFFICIENT_FUNDS"
+}
+```
+
+## Common Failure Reasons
+
+- **Insufficient Funds** - Not enough balance in source wallet
+- **Invalid Account** - Recipient account number or bank code invalid
+- **Account Mismatch** - Account name doesn't match account number
+- **Bank Rejection** - Recipient bank rejected the payment
+- **Network Error** - Temporary network or processing error
+
+## Verification Best Practices
+
+### When to Verify
+
+- After sending a payment
+- Periodically for pending payments
+- Before showing payment confirmation to users
+- When handling payment webhooks
+
+### Verification Frequency
+
+- Check immediately after sending
+- Retry failed verifications after a delay
+- Don't poll too frequently (respect rate limits)
+- Use webhooks for real-time updates when possible
+
+## Handling Payment Status
+
+### Processing Payments
+
+- Show "processing" status to users
+- Set up retry logic for status checks
+- Don't mark as complete until status is "success"
+
+### Successful Payments
+
+- Update your records
+- Send confirmation to users
+- Generate receipts if needed
+
+### Failed Payments
+
+- Log error details
+- Notify users of failure
+- Provide retry options if appropriate
+- Handle refunds if needed
+
+## Webhook Integration
+
+Set up webhooks to receive real-time payment status updates:
+
+```json
+{
+  "event": "payment.status.updated",
+  "data": {
+    "transaction_id": "txn_123",
+    "payment_reference": "PAY001",
+    "status": "success",
+    "processed_at": "2025-01-30T10:05:00Z"
+  }
+}
+```
+
+## Next Steps
+
+- Learn about [Sending Payments](/payments/sending-payments) for initiating transfers
+- Explore the [Payments API Reference](/api-reference/payments/verify) for detailed documentation

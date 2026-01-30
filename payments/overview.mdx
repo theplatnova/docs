@@ -1,0 +1,69 @@
+---
+title: "Overview"
+slug: "payments/overview"
+---
+
+The Payments API allows you to send money transfers to bank accounts, wallets, mobile money, cards, and other destinations; verify payment status; and manage payment operations. Payments can be sent domestically and internationally with support for multiple currencies and payment methods.
+
+## What Are Payments?
+
+Payments are money transfers sent from your business wallet to external recipients—including bank accounts, wallets (tag transfer), mobile money, cards, Revolut, PayPal, Cash App, Zelle, and other supported methods. You can verify the status of payments in real-time.
+
+
+### Payment Verification
+
+Verify payment status using payment references. Check whether payments have been processed, are pending, or have failed.
+
+### Multi-Currency Support
+
+Send payments in multiple currencies. Currency conversion is handled automatically when needed.
+
+### Payment Methods
+
+Support for multiple payment methods including bank transfer, card, mobile money, tag transfer (wallet-to-wallet), DeFi, Revolut, PayPal, Cash App, and Zelle. The method and recipient details (`info`) depend on the chosen `payment_method`.
+
+## Payment Lifecycle
+
+### Sending Payments
+
+When you send a payment, you specify the amount, currency, recipient bank account details, and source wallet. The payment is processed and a transaction reference is returned.
+
+### Payment Processing
+
+Payments are processed asynchronously. The initial response indicates that the payment has been initiated, and the status will update as processing completes.
+
+### Payment Verification
+
+Use the payment reference to check the status of a payment. Status can be "processing", "success", or "failed".
+
+## Payment Information
+
+Each payment includes:
+
+- Transaction reference
+- Amount and currency
+- Recipient bank account details
+- Payment status
+- Processing timestamp
+
+## Supported Payment Methods
+
+Payments support multiple methods; required fields in `info` depend on the method:
+
+- **bank_transfer** – Bank transfers (NGN, USD, and other currencies); ACH, RTP, wire for USD
+- **card** – Card payments
+- **mobile_money** – Mobile money (e.g. Ghana)
+- **tag_transfer** – Wallet-to-wallet transfer (use `tag_id` in `info`)
+- **wallet** – Wallet payments
+- **defi** – DeFi payments
+- **revolut** – Revolut transfers
+- **paypal** – PayPal
+- **ussd** – USSD
+- **cashapp** – Cash App
+- **zelle** – Zelle
+
+Availability varies by currency and region. Use the [Send Payment](/api-reference/payments/send) endpoint with the appropriate `payment_method` and `info` payload.
+
+## Getting Started
+
+Ready to start sending payments? Check out our [API Reference](/api-reference/payments/send) for detailed endpoint documentation.
