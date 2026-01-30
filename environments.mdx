@@ -1,0 +1,94 @@
+---
+title: "Environments"
+slug: "environments"
+---
+
+Platnova provides two distinct environments to support your development workflow: a sandbox environment for testing and a live environment for production use.
+
+## Environment Comparison
+
+| Feature | Sandbox Environment | Live Environment |
+|---------|-------------------|------------------|
+| **Base URL** | `https://sandbox.api.platnova.co` | `https://api.platnova.com` |
+| **Purpose** | Development, testing, and integration | Production use with real transactions |
+| **Data Type** | Test data (simulated) | Real data (actual money and accounts) |
+| **Approval** | No approval needed | Production approval required |
+
+<Tip>
+Always test your integration thoroughly in the sandbox environment before moving to production.
+</Tip>
+
+<Warning>
+Only use the live environment after thorough testing in sandbox and receiving approval from our compliance team.
+</Warning>
+
+<Tabs>
+<Tab title="Sandbox">
+```bash
+# Sandbox API calls
+curl -X POST https://sandbox.api.platnova.co/v1/cards \
+  -H "Authorization: Bearer YOUR_SANDBOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "test_user_123", "spending_limit": 1000}'
+```
+</Tab>
+
+<Tab title="Live">
+```bash
+# Live API calls
+curl -X POST https://api.platnova.com/v1/cards \
+  -H "Authorization: Bearer YOUR_LIVE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "user_123", "spending_limit": 1000}'
+```
+</Tab>
+</Tabs>
+
+## API Keys
+
+Each environment requires separate API keys. Your sandbox and live API keys are managed independently in your dashboard.
+
+<Info>
+Sandbox API keys are clearly marked and cannot be used in the live environment. Similarly, live API keys cannot be used in sandbox.
+</Info>
+
+## Webhooks
+
+Both environments support Webhooks.
+
+<Check>
+Configure webhooks for both environments to ensure your integration works seamlessly when moving to production.
+</Check>
+
+## Rate Limits
+
+Rate limits are more generous in the sandbox environment to support development and testing:
+
+- **Sandbox**: Higher limits for testing and development
+- **Live**: Standard production limits based on your plan
+
+## Getting Started
+
+<Steps>
+<Step title="Contact Support">
+Reach out to [support@platnova.com](mailto:support@platnova.com) to begin your onboarding process and get access to both environments.
+</Step>
+
+<Step title="Sandbox Testing">
+Start with the sandbox environment to test your integration and verify all functionality works as expected.
+</Step>
+
+<Step title="Compliance Review">
+Complete all compliance requirements and receive approval for live environment access.
+</Step>
+
+<Step title="Production Deployment">
+Once approved, deploy your integration using the live environment for real transactions.
+</Step>
+</Steps>
+
+## Need Help?
+
+- **Environment Setup**: Contact [support@platnova.com](mailto:support@platnova.com) for environment access
+- **Testing Support**: Get help with sandbox testing and integration verification
+- **Production Approval**: Work with our compliance team for live environment access

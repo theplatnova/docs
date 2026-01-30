@@ -1,0 +1,60 @@
+---
+title: "Authentication"
+slug: "authentication"
+---
+
+Start using Platnova's Business API by working with our support and compliance team. We'll help you get set up with the right plan and ensure all compliance requirements are met.
+
+## Getting Started
+
+Our onboarding process is handled by our dedicated support and compliance team to ensure proper verification and setup. Contact us to begin your integration journey.
+
+<Info>
+All new accounts go through our compliance verification process to ensure secure and compliant financial operations.
+</Info>
+
+## Set Up Your Workspace
+
+Once your account is created by our team, you'll have access to your workspace where you can manage your API keys, view usage analytics, and configure your integration settings.
+
+<Info>
+For business accounts and enterprise integrations, our team provides dedicated onboarding support to ensure a smooth setup process.
+</Info>
+
+## Get Your API Key
+
+Create an API key for your workspace. You can find it in the [API Keys section](https://business.platnova.com/settings/developer) of your dashboard.
+
+<Tip>
+Contact our support team at [support@platnova.com](mailto:support@platnova.com) for personalized onboarding assistance, especially if you're integrating with high transaction volumes or need custom configurations.
+</Tip>
+
+### Using Your API Key
+
+Include your API key in the `Authorization` header of your requests:
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "user_123", "spending_limit": 1000}'
+```
+
+## Security Best Practices
+
+- **Keep your API key secure** - Never expose it in client-side code or public repositories
+- **Use environment variables** - Store your API key in secure environment variables
+- **Rotate keys regularly** - Generate new keys periodically for enhanced security
+- **Monitor usage** - Check your dashboard regularly for unusual activity
+- **Use webhooks securely** - Validate webhook signatures to ensure data integrity
+
+## Rate Limits
+
+Account creation is free. Paid plans include higher limits and priority processing. Check your current plan in the [dashboard](https://business.platnova.com/settings/billing).
+
+## Need Help?
+
+- **Onboarding**: Contact [support@platnova.com](mailto:support@platnova.com) to start your account setup and compliance verification
+- **Documentation**: Explore our [API reference](./api-reference) for detailed examples
+- **Support**: Reach out to [support@platnova.com](mailto:support@platnova.com) for technical assistance and integration help
+- **Community**: Join our [Slack](https://slack.platnova.com) for developer discussions

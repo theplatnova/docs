@@ -1,0 +1,87 @@
+---
+title: "Error Handling"
+slug: "errors"
+---
+
+Platnova uses conventional HTTP response codes to indicate the success or failure of an API request. In general: Codes in the 2xx range indicate success. Codes in the 4xx range indicate an error that failed given the information provided (e.g., a required parameter was omitted, a request failed, etc.). Codes in the 5xx range indicate an error with Platnova's servers (these are rare).
+
+| Code                                   | Description                                                                                                 |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **200 - OK**                           | Everything worked as expected.                                                                              |
+| **400 - Bad Request**                  | The request was unacceptable, often due to missing a required parameter.                                    |
+| **401 - Unauthorized**                 | No valid API key was provided.                                                                              |
+| **402 - Request Failed**               | The parameters were valid but the request failed.                                                           |
+| **403 - Forbidden**                    | The API key doesn't have permission to perform the request.                                                 |
+| **404 - Not Found**                    | The requested resource doesn't exist.                                                                       |
+| **409 - Conflict**                     | The request conflicts with another request.                                                                 |
+| **429 - Too Many Requests**            | Too many requests hit the API too quickly. We recommend an exponential backoff of your requests.            |
+| **500, 502, 503, 504 - Server Errors** | Something went wrong on Platnova's end. These are rare and if they happen, please contact us immediately. |
+
+## Error Response Format
+
+Platnova uses two types of error response formats:
+
+### Field Validation Errors
+
+When validation fails for specific fields:
+
+```json
+{
+    "error": {
+        "field_name": [
+            "This field is required"
+        ]
+    }
+}
+```
+
+### General Errors
+
+For authentication and other general errors:
+
+```json
+{
+    "error": "Unauthorized access"
+}
+```
+
+## Common Error Scenarios
+
+### Missing Required Field
+
+```json
+{
+    "error": {
+        "field_name": [
+            "This field is required"
+        ]
+    }
+}
+```
+
+### Unauthorized Access
+
+```json
+{
+    "error": "Unauthorized access"
+}
+```
+
+### Invalid API Key
+
+```json
+{
+    "error": "Invalid API key"
+}
+```
+
+## Best Practices
+
+- **Handle 429 errors gracefully** - Implement exponential backoff when you receive rate limit errors
+- **Validate input data** - Check your request parameters before sending to avoid 400 errors
+- **Keep API keys secure** - Ensure your API key is valid and has the necessary permissions
+- **Monitor for 5xx errors** - Contact support immediately if you encounter server errors
+
+## Need Help?
+
+If you're encountering persistent errors or need assistance with error handling, please contact our support team at [support@platnova.com](mailto:support@platnova.com) with your request details and error responses.
