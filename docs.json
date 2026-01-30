@@ -1,13 +1,13 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Platnova Docs",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#000",
+    "light": "#fff",
+    "dark": "#000"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.ico",
   "navigation": {
     "tabs": [
       {
@@ -17,19 +17,80 @@
             "group": "Get Started",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "authentication",
+              "environments",
+              "errors"
             ]
           },
           {
-            "group": "Essentials",
+            "group": "Customers",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
+              "customers/overview",
+              "customers/onboarding",
+              "customers/kyc"
+            ]
+          },
+          {
+            "group": "Cards",
+            "pages": [
+              "card/overview",
+              "card/quickstart",
+              "card/management",
+              "card/funding"
+            ]
+          },
+          {
+            "group": "Virtual Accounts",
+            "pages": [
+              "virtual-accounts/overview",
+              "virtual-accounts/creating-accounts",
+              "virtual-accounts/receiving-payments"
+            ]
+          },
+          {
+            "group": "Payments",
+            "pages": [
+              "payments/overview",
+              "payments/sending-payments",
+              "payments/verification"
+            ]
+          },
+          {
+            "group": "Payment Links",
+            "pages": [
+              "payment-links/overview",
+              "payment-links/creating-links",
+              "payment-links/analytics"
+            ]
+          },
+          {
+            "group": "Invoices",
+            "pages": [
+              "invoices/overview",
+              "invoices/creating",
+              "invoices/management"
+            ]
+          },
+          {
+            "group": "Transactions",
+            "pages": [
+              "transactions/overview",
+              "transactions/viewing",
+              "transactions/receipts"
+            ]
+          },
+          {
+            "group": "Wallets",
+            "pages": [
+              "wallets/overview",
+              "wallets/multi-currency",
+              "wallets/management"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "webhooks/overview"
             ]
           }
         ]
@@ -44,59 +105,100 @@
             ]
           },
           {
-            "group": "Endpoint Examples",
+            "group": "Customers",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/customers/create",
+              "api-reference/customers/get",
+              "api-reference/customers/list"
+            ]
+          },
+          {
+            "group": "Cards",
+            "pages": [
+              "api-reference/cards/create",
+              "api-reference/cards/get",
+              "api-reference/cards/list",
+              "api-reference/cards/deposit",
+              "api-reference/cards/withdraw",
+              "api-reference/cards/freeze",
+              "api-reference/cards/unfreeze",
+              "api-reference/cards/reveal",
+              "api-reference/cards/events"
+            ]
+          },
+          {
+            "group": "Virtual Accounts",
+            "pages": [
+              "api-reference/virtual-accounts/create",
+              "api-reference/virtual-accounts/list"
+            ]
+          },
+          {
+            "group": "Payments",
+            "pages": [
+              "api-reference/payments/send",
+              "api-reference/payments/verify"
+            ]
+          },
+          {
+            "group": "Transactions",
+            "pages": [
+              "api-reference/transactions/list",
+              "api-reference/transactions/receipt"
+            ]
+          },
+          {
+            "group": "Payment Links",
+            "pages": [
+              "api-reference/links/create",
+              "api-reference/links/get",
+              "api-reference/links/list"
+            ]
+          },
+          {
+            "group": "Invoices",
+            "pages": [
+              "api-reference/invoices/create",
+              "api-reference/invoices/get",
+              "api-reference/invoices/list",
+              "api-reference/invoices/update-status"
+            ]
+          },
+          {
+            "group": "Wallets",
+            "pages": [
+              "api-reference/wallets/list"
             ]
           }
         ]
       }
     ],
     "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
+      "anchors": []
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
   },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:support@platnova.com"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "href": "https://business.platnova.com"
     }
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/getplatnova",
+      "github": "https://github.com/theplatnova",
+      "linkedin": "https://linkedin.com/company/platnova"
     }
   }
 }

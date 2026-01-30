@@ -1,71 +1,44 @@
 ---
-title: Introduction
-description: "Welcome to the home of your new documentation"
+title: "Introduction"
 ---
 
-<img
-  className="block dark:hidden"
-  src="/images/hero-light.png"
-  alt="Hero Light"
-/>
-<img
-  className="hidden dark:block"
-  src="/images/hero-dark.png"
-  alt="Hero Dark"
-/>
+Platnova's Business API empowers businesses to streamline their financial operations through a comprehensive suite of financial services. Our platform provides virtual accounts, cards, digital wallets, payment processing, and user management capabilities to help you build and scale your financial infrastructure.
 
-## Setting up
+We've built a powerful financial platform that enables businesses to create, manage, and monitor virtual accounts, cards, wallets, and payment systems programmatically. Whether you're looking to issue cards for expense management, create virtual accounts for vendors, process payments globally, or manage digital wallets, our API provides the flexibility and security you need to scale your financial operations.
 
-The first step to world-class documentation is setting up your editing environments.
+You can start integrating with our API once you have [signed up](https://business.platnova.com) on our dashboard.
 
 <CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
-  </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
-  </Card>
+<Card title="Card" icon="credit-card" color="gray" href="./api-reference/cards/create">
+Create and manage virtual cards with spending limits, real-time tracking, and multi-currency support.
+</Card>
+
+<Card title="Virtual Account" icon="building" color="gray" href="./api-reference/virtual-accounts/create">
+Create virtual bank accounts for users to receive payments and facilitate transfers seamlessly.
+</Card>
+
+<Card title="Customer" icon="user" color="gray" href="./api-reference/customers/create">
+Manage customer onboarding, profiles, and identity verification with comprehensive compliance features.
+</Card>
+
+<Card title="Payments" icon="dollar-sign" color="gray" href="./api-reference/payments/send">
+Process domestic and international money transfers with currency conversion capabilities.
+</Card>
+
+<Card title="Wallets" icon="wallet" color="gray" href="./api-reference/wallets/list">
+Create digital wallets supporting multiple currencies with balance tracking and management.
+</Card>
+
+<Card title="Webhooks" icon="webhook" color="gray" href="./webhooks/overview">
+Configure webhooks to receive real-time notifications for transactions, account updates, and system events.
+</Card>
 </CardGroup>
 
-## Make it yours
+## API Reference
 
-Update your docs to your brand and add valuable content for the best user conversion.
+In addition to the documentation, we also provide a detailed API reference to help you integrate. Every endpoint is accompanied by a description as well as descriptive request and response examples.
 
-<CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
-  </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
-  </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/content/components/accordions"
-  >
-    Build interactive features and designs to guide your users
-  </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
-  </Card>
-</CardGroup>
+The API reference also covers general information such as [authentication](./api-reference/introduction#authentication), [error handling](./api-reference/introduction#error-handling), and [rate limits](./api-reference/introduction#rate-limits).
+
+
+---
