@@ -1,33 +1,146 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "Introduction"
+slug: "api-reference/introduction"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+Welcome to the Platnova Business API Reference. Our RESTful API provides programmatic access to virtual accounts, cards, payments, and other financial services, allowing you to integrate Platnova's capabilities into your business applications.
 
-## Welcome
+## Base URL
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+All API requests should be made to:
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+**Production:**
+```
+https://api.platnova.com/v1
+```
+
+**Sandbox:**
+```
+https://sandbox.api.platnova.co/v1
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API requests require authentication using your API key. You can include it either in the request headers or as a query parameter.
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+### Header Authentication (Recommended)
+```bash
+X-API-KEY: YOUR_API_KEY
 ```
+
+### Query Parameter Authentication
+```bash
+?api-key=YOUR_API_KEY
+```
+
+Some endpoints require JWT authentication in addition to API key authentication. See our [Authentication guide](../authentication) for details on obtaining and using your API key.
+
+## Request Format
+
+All requests should include the following headers:
+- `Content-Type: application/json`
+- `X-API-KEY: YOUR_API_KEY` (or include as query parameter)
+
+## Response Format
+
+All API responses are returned in JSON format with the following structure:
+
+### Success Response
+```json
+{
+    "status": true,
+    "data": {
+        // Response data here
+    },
+    "error": [],
+    "message": "operation was successful"
+}
+```
+
+### Error Response
+```json
+{
+    "status": false,
+    "data": {},
+    "error": [],
+    "message": "Error message here"
+}
+```
+
+### Validation Error Response
+```json
+{
+    "status": "error",
+    "message": "Validation failed",
+    "errors": {
+        "field_name": [
+            "This field is required"
+        ]
+    }
+}
+```
+
+## Rate Limits
+
+Rate limits vary by endpoint and are indicated in response headers:
+- `X-Ratelimit-Limit`: Maximum requests per window
+- `X-Ratelimit-Remaining`: Remaining requests in current window
+- `X-Ratelimit-Reset`: Time when the rate limit resets (Unix timestamp)
+
+Some endpoints have specific rate limits:
+- Card creation: 4 requests per window
+- Card reveal: 10 requests per window
+- Virtual account creation: 2 requests per window
+
+## Error Handling
+
+The API uses standard HTTP status codes:
+
+- `200` - Success
+- `400` - Bad Request (invalid parameters or resource not found)
+- `401` - Unauthorized (invalid API key)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found
+- `422` - Unprocessable Entity (validation errors)
+- `429` - Too Many Requests (rate limit exceeded)
+- `500` - Internal Server Error
+
+See our [Error Handling guide](../errors) for detailed error information.
+
+## Pagination
+
+List endpoints support pagination using query parameters:
+
+- `page`: 0-indexed page number (default: 0)
+- `size`: Number of items per page (default: 10)
+- `sort`: Sort order (optional)
+- `filters`: Filter criteria (optional)
+
+Response includes pagination metadata:
+```json
+{
+    "page": 0,
+    "size": 10,
+    "max_page": 5,
+    "total_pages": 6,
+    "total": 60,
+    "last": false,
+    "first": true,
+    "visible": 10
+}
+```
+
+## Getting Started
+
+1. **Get your API key** from the [dashboard](https://business.platnova.com/settings/developer)
+2. **Create a customer** using the [Customers API](./customers/create)
+3. **Issue a virtual account** using the [Virtual Accounts API](./virtual-accounts/create)
+4. **Create a card** using the [Cards API](./cards/create)
+5. **Explore the endpoints** to understand all available features
+
+## Support
+
+Need help with the API? Check out our:
+- [Authentication Guide](../authentication)
+- [Error Handling](../errors) documentation
+- [Support](mailto:support@platnova.com) team
