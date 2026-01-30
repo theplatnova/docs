@@ -1,0 +1,443 @@
+---
+title: "Overview"
+slug: "webhooks-overview"
+---
+
+Receive real-time notifications for card activity, virtual account funding, and payment transfers by configuring webhooks in your [dashboard](https://business.platnova.com). Events are sent as **POST** requests to the URL you configure.
+
+## How Webhooks Work
+
+1. **Configure your endpoint** – In the dashboard, set the URL that will receive webhook events.
+2. **Set your secret** – Provide a secret value used to sign each request. Use it to verify that events come from Platnova.
+3. **Receive events** – We send a POST request to your URL for each subscribed event. Your endpoint must respond with **HTTP 200** to acknowledge receipt.
+4. **Retries** – If your endpoint does not return 200, we retry the delivery up to **5 times** at intermittent intervals until successful.
+
+<Warning>
+Your endpoint must return HTTP 200 for the request to be considered delivered. Non-2xx responses (including 4xx and 5xx) trigger retries.
+</Warning>
+
+## Request Details
+
+| Property | Description |
+|----------|-------------|
+| **Method** | `POST` |
+| **URL** | The endpoint URL you configure in the dashboard |
+| **Headers** | `X-WEBHOOK-SECRET`: the secret value you provided when configuring the webhook |
+| **Body** | JSON payload (see event payloads below) |
+
+Always validate the `X-WEBHOOK-SECRET` header in your handler to ensure the request is from Platnova and has not been tampered with.
+
+## Supported Events
+
+You can subscribe to specific events or patterns when configuring your webhook:
+
+| Event ID | Label |
+|----------|-------|
+| `*` | All |
+| `card.*` | All Card Events |
+| `card.created` | Card Created |
+| `card.terminated` | Card Terminated |
+| `card.withdrawal` | Card Withdrawal |
+| `card.charged` | Card Charged |
+| `card.refund` | Card Refund |
+| `card.funded` | Card Funded |
+| `card.declined` | Card Declined |
+| `account.funded` | Account Funded |
+| `transfer.success` | Transfer Success |
+| `transfer.failed` | Transfer Failed |
+
+## Event Payloads
+
+Every webhook payload includes top-level fields:
+
+- **event** – Event type (e.g. `card.created`, `transfer.success`).
+- **timestamp** – ISO 8601 timestamp when the event occurred.
+- **customer_id** – Customer ID associated with the event (may be empty for entity-level events).
+- **data** – Event-specific payload (see below).
+
+### card.created
+
+Sent when a new card is created.
+
+```json
+{
+  "event": "card.created",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "USD",
+    "amount": 0.00,
+    "card_info": {
+      "masked_pan": "**** **** **** 1234",
+      "last4": "1234",
+      "expiry_month": "12",
+      "expiry_year": "2025",
+      "type": "virtual",
+      "brand": "visa",
+      "name_on_card": "John Doe",
+      "address": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zip_code": "10001"
+    },
+    "transaction_ref": "TXN123456",
+    "metadata": {
+      "merchant": {
+        "name": "Merchant Name",
+        "category": "retail"
+      },
+      "terminal": {
+        "id": "terminal_id",
+        "location": "Location"
+      },
+      "channel": "online",
+      "narration": "Card creation",
+      "charge_amount": "0.00"
+    }
+  }
+}
+```
+
+### card.terminated
+
+Sent when a card is terminated.
+
+```json
+{
+  "event": "card.terminated",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "terminated",
+    "currency": "USD",
+    "amount": 0.00,
+    "card_info": {
+      "masked_pan": "**** **** **** 1234",
+      "last4": "1234",
+      "expiry_month": "12",
+      "expiry_year": "2025",
+      "type": "virtual",
+      "brand": "visa",
+      "name_on_card": "John Doe",
+      "address": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zip_code": "10001"
+    },
+    "transaction_ref": "TXN123456",
+    "metadata": {
+      "merchant": null,
+      "terminal": null,
+      "channel": "online",
+      "narration": "Card termination",
+      "charge_amount": "0.00"
+    }
+  }
+}
+```
+
+### card.withdrawal
+
+Sent when funds are withdrawn from a card.
+
+```json
+{
+  "event": "card.withdrawal",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "USD",
+    "amount": 100.00,
+    "fee": 2.50,
+    "transaction_ref": "TXN123456",
+    "metadata": {
+      "merchant": {
+        "name": "ATM",
+        "category": "atm"
+      },
+      "terminal": {
+        "id": "terminal_id",
+        "location": "ATM Location"
+      },
+      "channel": "atm",
+      "narration": "ATM withdrawal",
+      "charge_amount": "100.00"
+    }
+  }
+}
+```
+
+### card.charged
+
+Sent when a card is charged (purchase).
+
+```json
+{
+  "event": "card.charged",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "USD",
+    "amount": 50.00,
+    "fee": 1.50,
+    "transaction_ref": "TXN123456",
+    "description": "Purchase at Store",
+    "metadata": {
+      "merchant": {
+        "name": "Store Name",
+        "category": "retail"
+      },
+      "terminal": {
+        "id": "terminal_id",
+        "location": "Store Location"
+      },
+      "channel": "pos",
+      "narration": "Purchase",
+      "charge_amount": "50.00"
+    }
+  }
+}
+```
+
+### card.refund
+
+Sent when a card charge is refunded.
+
+```json
+{
+  "event": "card.refund",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "USD",
+    "amount": 50.00,
+    "fee": 0.00,
+    "original_transaction_ref": "TXN123456",
+    "refund_transaction_ref": "TXN789012",
+    "metadata": {
+      "merchant": {
+        "name": "Store Name",
+        "category": "retail"
+      },
+      "terminal": {
+        "id": "terminal_id",
+        "location": "Store Location"
+      },
+      "channel": "pos",
+      "narration": "Refund",
+      "charge_amount": "50.00"
+    }
+  }
+}
+```
+
+### card.funded
+
+Sent when a card is funded (deposit).
+
+```json
+{
+  "event": "card.funded",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "USD",
+    "amount": 200.00,
+    "fee": 0.00,
+    "transaction_ref": "TR_N123456"
+  }
+}
+```
+
+### card.declined
+
+Sent when a card transaction is declined.
+
+```json
+{
+  "event": "card.declined",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "USD",
+    "amount": 50.00,
+    "fee": 0.00,
+    "transaction_ref": "TXN123456",
+    "description": "Insufficient funds",
+    "metadata": {
+      "merchant": {
+        "name": "Store Name",
+        "category": "retail"
+      },
+      "terminal": {
+        "id": "terminal_id",
+        "location": "Store Location"
+      },
+      "channel": "pos",
+      "narration": "Declined transaction",
+      "charge_amount": "50.00"
+    }
+  }
+}
+```
+
+### account.funded
+
+Sent when a virtual account receives funds.
+
+```json
+{
+  "event": "account.funded",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "virtual_account_id": "va_uid",
+    "amount": 495.00,
+    "paid_amount": 500.00,
+    "fee": 5.00,
+    "currency": "USD",
+    "transaction_ref": "TXN123456",
+    "description": "Deposit to virtual account"
+  }
+}
+```
+
+### transfer.success
+
+Sent when a transfer completes successfully.
+
+```json
+{
+  "event": "transfer.success",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "",
+  "data": {
+    "reference": "TXN123456",
+    "amount": 1000.00,
+    "currency": "USD",
+    "fee": 5.00,
+    "status": "success",
+    "metadata": {
+      "account_number": "1234567890",
+      "phone_number": "+1234567890",
+      "bank_code": "001",
+      "bank_name": "Bank Name",
+      "account_name": "John Doe",
+      "beneficiary_name": "Jane Doe",
+      "beneficiary_country": "US",
+      "routing_number": "123456789",
+      "swift_code": "SWIFT123",
+      "branch_code": "001",
+      "country_code": "US",
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "postal_code": "10001",
+      "receiver": "receiver_id",
+      "sender_username": "sender_username",
+      "iban": "GB82WEST12345698765432",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "recipient_address": "123 Main St, New York, NY 10001",
+      "mobile_number": "+1234567890",
+      "address": "123 Main St",
+      "asset": "BTC",
+      "network": "bitcoin",
+      "transit_number": "12345",
+      "institution_number": "001",
+      "bsb_code": "123456",
+      "revtag": "@username",
+      "zelle_id": "zelle@example.com",
+      "cashapp_id": "$cashapp",
+      "paypal_id": "paypal@example.com",
+      "note": "Payment for services"
+    }
+  }
+}
+```
+
+### transfer.failed
+
+Sent when a transfer fails.
+
+```json
+{
+  "event": "transfer.failed",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "",
+  "data": {
+    "reference": "TXN123456",
+    "amount": 1000.00,
+    "currency": "USD",
+    "fee": 5.00,
+    "status": "failed",
+    "reason": "Insufficient funds",
+    "metadata": {
+      "account_number": "1234567890",
+      "phone_number": "+1234567890",
+      "bank_code": "001",
+      "bank_name": "Bank Name",
+      "account_name": "John Doe",
+      "beneficiary_name": "Jane Doe",
+      "beneficiary_country": "US",
+      "routing_number": "123456789",
+      "swift_code": "SWIFT123",
+      "branch_code": "001",
+      "country_code": "US",
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "postal_code": "10001",
+      "receiver": "receiver_id",
+      "sender_username": "sender_username",
+      "iban": "GB82WEST12345698765432",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "recipient_address": "123 Main St, New York, NY 10001",
+      "mobile_number": "+1234567890",
+      "address": "123 Main St",
+      "asset": "BTC",
+      "network": "bitcoin",
+      "transit_number": "12345",
+      "institution_number": "001",
+      "bsb_code": "123456",
+      "revtag": "@username",
+      "zelle_id": "zelle@example.com",
+      "cashapp_id": "$cashapp",
+      "paypal_id": "paypal@example.com",
+      "note": "Payment for services"
+    }
+  }
+}
+```
+
+## Best Practices
+
+- **Verify the secret** – Always check `X-WEBHOOK-SECRET` against your configured value before processing.
+- **Respond quickly** – Return 200 as soon as you have received and validated the payload; process asynchronously if needed.
+- **Handle duplicates** – Use `transaction_ref` or event idempotency keys to avoid processing the same event more than once.
+- **Log for debugging** – Log incoming webhook requests and responses to troubleshoot delivery or retry issues.
+
+For API endpoints to create or manage webhook configurations programmatically, see the [Webhooks API reference](/api-reference/endpoint/webhook).
