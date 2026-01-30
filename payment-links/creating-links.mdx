@@ -1,0 +1,68 @@
+---
+title: "Creating Links"
+slug: "payment-links/creating-links"
+---
+
+You create a payment link with `POST /v1/links`. The request needs a title, currency, and payment configuration (which methods are allowed). You can set a fixed amount, let the payer choose the amount, and optionally set an expiry.
+
+## Required fields
+
+- **title** — Short label for the link (e.g. "Invoice #1001").
+- **currency** — Currency code (e.g. NGN, USD).
+- **payment** — Object with **payment_methods**: an array of `{ "id": "bank_transfer", "value": "058" }` (or other method + value, e.g. bank code). This defines how the payer can pay.
+
+If the payer is not allowed to set the amount, you must also send **amount** (number). If you set **customer.can_set_price** to `true`, the payer can choose the amount and **amount** can be omitted.
+
+## Example request
+
+```bash
+curl -X POST https://api.platnova.com/v1/links \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Invoice #1001",
+    "description": "Payment for services",
+    "amount": 50000,
+    "currency": "NGN",
+    "expires_at": "2026-02-28T23:59:59Z",
+    "customer": {
+      "can_set_price": false
+    },
+    "payment": {
+      "limit": 1,
+      "payment_methods": [
+        { "id": "bank_transfer", "value": "058" }
+      ]
+    }
+  }'
+```
+
+- **description** — Optional text shown to the payer.
+- **expires_at** — Optional ISO 8601 datetime; after this the link won’t accept new payments.
+- **customer.can_set_price** — `false`: you must provide **amount**. `true`: payer can enter the amount; **amount** can be omitted.
+- **payment.limit** — Optional; max number of payments per link.
+
+## Response
+
+The response includes the new link in **data**: **id**, **title**, **url** (the shareable URL), **amount**, **currency**, **status**, **expires_at**, **created_at**, **updated_at**. Share the **url** with the payer.
+
+```json
+{
+  "status": true,
+  "data": {
+    "id": "lnk_43a2b75e5c59429e872a",
+    "title": "Invoice #1001",
+    "url": "/link/lnk_43a2b75e5c59429e872a",
+    "amount": 50000,
+    "currency": "NGN",
+    "status": 1,
+    "expires_at": "2026-02-28T23:59:59Z",
+    "created_at": "2026-01-30T12:00:00Z",
+    "updated_at": "2026-01-30T12:00:00Z"
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+Build the full URL for the payer using your payment-host base URL + **data.url**. If you need stats (revenue, transaction count, views), use [Get payment link with stats](/payment-links/analytics). Full schema and errors are in the [Create payment link](/api-reference/links/create) API reference.

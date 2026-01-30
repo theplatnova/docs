@@ -1,0 +1,27 @@
+---
+title: "Overview"
+slug: "payment-links/overview"
+---
+
+Payment links are shareable URLs you create so someone can pay you without signing up or going through your checkout. You get a link; you send it (email, SMS, chat); the payer opens it and pays with the methods you allow. Good for one-off payments, donations, fees, or anything where you want a simple “pay this amount” flow.
+
+## What you get
+
+When you create a link, the API returns a unique URL. Share that URL with whoever should pay. You choose the amount (or let the payer choose), the currency, and which payment methods are allowed (e.g. bank transfer for a given bank code). You can set an expiry so the link stops accepting payments after a date.
+
+Each link has a status and, when you fetch it with stats, you get totals: revenue, number of transactions, number of payers, and views. That lets you see how a link is performing without building a dashboard yourself.
+
+## How it fits together
+
+1. **Create a link** — You send title, currency, payment methods, and optionally a fixed amount and expiry. If you allow the payer to set the amount, you omit the amount.
+2. **Share the URL** — You get back a URL; share it however you like.
+3. **Payer pays** — They open the link and pay with one of the methods you enabled.
+4. **Track results** — Use the same link UID to get stats (revenue, transactions, users, views) and payment details.
+
+## When to use payment links
+
+- One-time payments (invoices, fees, donations).
+- Simple “pay me” flows where you don’t need a full checkout.
+- Sharing a single URL by email or message and tracking how much was paid.
+
+To create a link and see the exact request body, go to [Creating links](/payment-links/creating-links). For the API spec, see [Create payment link](/api-reference/links/create).

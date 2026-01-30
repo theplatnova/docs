@@ -1,0 +1,39 @@
+---
+title: "Link Analytics"
+slug: "payment-links/analytics"
+---
+
+To see how a payment link is doing, call `GET /v1/links/{uid}/stats`. You get the link details plus stats: total revenue, number of transactions, number of unique payers, and view count. Use the link **uid** you got when creating the link (e.g. from the **id** or **url** in the create response).
+
+## Get link with stats
+
+```bash
+curl -X GET "https://api.platnova.com/v1/links/lnk_43a2b75e5c59429e872a/stats" \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+Replace `lnk_43a2b75e5c59429e872a` with your link UID.
+
+## What you get back
+
+The response **data** includes the link (id, title, description, amount, url, status, expires_at, created_at, updated_at) and:
+
+- **total_revenue** — Sum of amounts paid through this link.
+- **total_transactions** — Number of successful payments.
+- **total_users** — Number of unique payers.
+- **total_views** — How many times the link was viewed.
+- **payment_details** — Extra payment-related data (structure may vary).
+
+So you can answer: how much was collected, how many payments, how many people paid, and how many times the link was opened.
+
+## Listing all links
+
+To list your payment links with pagination and optional filters, use `GET /v1/links` with query params **page**, **size**, **sort**, and **filters**. The response is a paginated list of links (without per-link stats). For per-link stats, call the stats endpoint above for each link UID.
+
+## Using the numbers
+
+- **total_revenue** and **total_transactions** — Track how much a link has collected and how many payments.
+- **total_views** — Gauge interest; if views are high but payments low, the amount or copy might need adjusting.
+- **total_users** — See whether one person paid multiple times or many people paid once.
+
+For full request/response details, see the [Get payment link (with stats)](/api-reference/links/get) API reference.
