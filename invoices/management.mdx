@@ -1,0 +1,46 @@
+---
+title: "Invoice Management"
+slug: "invoices/management"
+---
+
+You can view an invoice by its number, list all invoices with pagination and filters, and update an invoice’s status (e.g. mark it paid or cancel it). The invoice number is what you share with the customer; the invoice **uid** is what you use for the status update.
+
+## View an invoice by number
+
+Anyone with the invoice number can load the invoice (e.g. for a “view/pay” page). No auth required for the customer; you may expose this endpoint behind your own UX.
+
+```bash
+curl -X GET "https://api.platnova.com/v1/invoices/view/INV20260130001"
+```
+
+Replace `INV20260130001` with the **invoice_number** from the create response. The response **data** includes the invoice (id, invoice_number, items, subtotal, total, charges, note, status, payment_schedule, created_at) and, when relevant, **payment_details** (e.g. account_name, account_number, bank_name, currency, swift_code) so the customer can pay by transfer.
+
+## List invoices
+
+To list your entity’s invoices with pagination and optional filters:
+
+```bash
+curl -X GET "https://api.platnova.com/v1/invoices?page=0&size=20" \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+Use **page**, **size**, **sort**, and **filters** as needed. The response is a standard paginated list: **data.items**, **data.page**, **data.size**, **data.total**, etc. Each item has the same shape as a single invoice (id, invoice_number, items, subtotal, total, status, payment_schedule, created_at, etc.).
+
+## Update invoice status
+
+To change an invoice’s status (e.g. mark paid or cancel), use the invoice **uid** (the **id** from create or list), not the invoice number:
+
+```bash
+curl -X PATCH "https://api.platnova.com/v1/invoices/inv_43a2b75e5c59429e872a/status" \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "status": "paid" }'
+```
+
+Allowed **status** values are **pending**, **paid**, and **cancelled**. Use this when you record payment outside the platform or when you cancel an invoice. If payments are recorded automatically when the customer pays, status may be updated for you.
+
+## Tracking payments
+
+Invoice payments show up in your [transactions](/transactions/viewing). List transactions and filter (e.g. by type or reference) to see which payments correspond to which invoices. You can also use the invoice **id** or invoice_number in your own records to match payments to invoices.
+
+For full request/response details, see the [Get invoice by number](/api-reference/invoices/get), [List invoices](/api-reference/invoices/list), and [Update invoice status](/api-reference/invoices/update-status) API reference.

@@ -1,0 +1,73 @@
+---
+title: "Creating Invoices"
+slug: "invoices/creating"
+---
+
+Create an invoice with `POST /v1/invoices`. You must send the customer’s **email** (a user in your entity), at least one **items** entry, and a **payment_schedule** (due date, send date, payment methods, optional reminders). You can add **charges** (tax, discount, fee, shipping) and a **note**.
+
+## Required fields
+
+- **email** — Email of the user you’re invoicing (they must exist in your entity).
+- **items** — Array of line items. Each has **name**, **unit_price**, **quantity**, **currency**, **total** (usually unit_price × quantity).
+- **payment_schedule** — Object with:
+  - **type** — `"one_time"` or `"re_occurring"`.
+  - **due_date** — When payment is due (ISO date-time).
+  - **send_date** — When the invoice is considered sent (ISO date-time).
+  - **payment_methods** — Array of `{ "id": "bank_transfer", "value": "058" }` (or other method + value).
+  - Optionally **reminders** (boolean) and **reminder_timing** (e.g. `{ "type": "before_due_date", "days": 3 }`).
+  - For re_occurring: **repeat**, **interval** (daily, weekly, monthly, yearly), **end**.
+
+## Example request
+
+```bash
+curl -X POST https://api.platnova.com/v1/invoices \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "customer@example.com",
+    "note": "Thank you for your business",
+    "items": [
+      {
+        "name": "Consulting",
+        "unit_price": 150,
+        "quantity": 2,
+        "currency": "NGN",
+        "total": 300
+      },
+      {
+        "name": "Setup fee",
+        "unit_price": 50,
+        "quantity": 1,
+        "currency": "NGN",
+        "total": 50
+      }
+    ],
+    "charges": {
+      "discount": { "amount": "0", "type": "flat", "enabled": false },
+      "tax": { "amount": "7.5", "type": "percentage", "enabled": true },
+      "fee": { "amount": "0", "type": "flat", "enabled": false },
+      "shipping": { "amount": "0", "type": "flat", "enabled": false }
+    },
+    "payment_schedule": {
+      "type": "one_time",
+      "due_date": "2026-02-15T23:59:59Z",
+      "send_date": "2026-01-30T00:00:00Z",
+      "payment_methods": [
+        { "id": "bank_transfer", "value": "058" }
+      ],
+      "reminders": true,
+      "reminder_timing": { "type": "before_due_date", "days": 3 }
+    }
+  }'
+```
+
+## Response
+
+The response **data** includes **id** (invoice UID), **invoice_number** (e.g. INV20260130001), **items**, **subtotal**, **total**, **charges**, **note**, **status** (e.g. pending, paid, cancelled), **payment_schedule**, and **created_at**. Share the **invoice_number** with the customer so they can view and pay (e.g. GET `/v1/invoices/view/INV20260130001`).
+
+## Line items and charges
+
+- **items** — Each item needs name, unit_price, quantity, currency, and total. Subtotal/total can be derived from these; the API may apply **charges** (tax, discount, etc.) when configured.
+- **charges** — Optional. Each charge has **amount**, **type** (flat or percentage), and **enabled**. Use this for tax, discount, fee, or shipping.
+
+For full schema and validation errors, see the [Create invoice](/api-reference/invoices/create) API reference. To list invoices or update status, see [Invoice management](/invoices/management).

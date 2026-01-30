@@ -1,0 +1,25 @@
+---
+title: "Overview"
+slug: "invoices/overview"
+---
+
+Invoices let you bill a customer by email with line items, due date, and payment methods. You create an invoice (who to bill, what for, when it’s due, how they can pay); we generate an invoice number; the customer can view the invoice by that number and pay using the methods you configured. Status (pending, paid, cancelled) can be updated via the API or automatically when payment is received.
+
+## What an invoice is
+
+An invoice is a bill you send to a user in your entity—identified by **email**. It has **items** (name, quantity, unit price, currency, total), optional **charges** (tax, discount, fee, shipping), and a **payment_schedule**: when it’s due, when it’s sent, which payment methods are allowed, and optional reminders. Each invoice gets a unique **invoice_number** (e.g. INV20260130001) that the customer uses to view and pay.
+
+## Lifecycle
+
+1. **Create** — You send email, items, and payment_schedule (and optionally charges, note). The API returns the invoice with id, invoice_number, and status (e.g. pending).
+2. **Customer views** — They open the invoice by number (e.g. GET `/v1/invoices/view/INV20260130001`) and see line items, total, and payment instructions.
+3. **Payment** — They pay using one of the methods you set; when payment is received, status can move to paid (depending on your setup).
+4. **Manage** — You can list invoices, get one by number, and update status (e.g. mark paid or cancel) with PATCH `/v1/invoices/{uid}/status`.
+
+## What you need to create one
+
+- **email** — The user (customer) in your entity to invoice.
+- **items** — At least one line item: name, unit_price, quantity, currency, total.
+- **payment_schedule** — type (one_time or re_occurring), due_date, send_date, payment_methods (e.g. bank_transfer + bank code), and optionally reminders and reminder_timing.
+
+Optional: **charges** (tax, discount, fee, shipping with amount, type, enabled) and **note**. For full request shape, see [Creating invoices](/invoices/creating) and the [Create invoice](/api-reference/invoices/create) API reference.
