@@ -33,14 +33,15 @@ curl -X POST https://api.platnova.com/v1/customers \
 Create a virtual card for your customer:
 
 ```bash
-curl -X POST https://api.platnova.com/v1/cards \
+curl -X POST https://api.platnova.com/v1/cards/create \
   -H "X-API-KEY: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "customer_id": "customer_id_from_step_1",
     "currency": "USD",
     "brand": "mastercard",
-    "amount": "100.00"
+    "wallet_id": "defaults_to_currency_funding_wallet",
+    "amount": "100.00" // optional
   }'
 ```
 
