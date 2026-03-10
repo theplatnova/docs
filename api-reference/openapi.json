@@ -1236,7 +1236,7 @@
                 }
             }
         },
-        "/v1/cards": {
+        "/v1/cards/create": {
             "post": {
                 "summary": "Create card",
                 "description": "Create a virtual card for a customer with optional initial funding.",
@@ -1349,6 +1349,9 @@
                                                 },
                                                 "card_currency": {
                                                     "type": "string"
+                                                },
+                                                "amount_debited": {
+                                                    "type": "number"
                                                 }
                                             }
                                         },
