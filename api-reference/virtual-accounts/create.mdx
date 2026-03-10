@@ -5,4 +5,4 @@ openapi: "POST /v1/virtual-accounts/create"
 
 ## Overview
 
-Create a virtual account for a customer. Virtual accounts allow customers to receive payments directly into their account. This endpoint creates a bank account that can be used for receiving funds. The beneficiary_account_id is the wallet ID of your business account that will be linked to the virtual account being created. This is typically your funding account which can be found on the dashboard.
+Create a virtual account for a customer. Virtual accounts allow customers to receive payments directly into their account. This endpoint creates a bank account that can be used for receiving funds.  To generate USD virtual accounts, ensure a default USD settlement wallet is set on your [dashboard settings](https://business.platnova.com/settings?section=settlements). This wallet will be billed for USD account creation fees if applicable. For NGN virtual accounts, you can optionally specify an `id_number` parameter in the request body, which corresponds to a valid BVN.
