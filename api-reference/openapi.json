@@ -1508,7 +1508,7 @@
                     {
                         "name": "customer_id",
                         "in": "query",
-                        "required": true,
+                        "required": false,
                         "description": "Filter by customer ID (UUID)",
                         "example": "3be6624b-81a4-40d9-bfa9-c4dd8e4f7c18",
                         "schema": {
