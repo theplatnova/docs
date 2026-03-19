@@ -1,0 +1,10 @@
+---
+title: "Generate Dynamic Virtual Account"
+openapi: "POST /v1/virtual-accounts/dynamic"
+---
+
+## Overview
+
+Generate a dynamic, single-use virtual account for a customer with a fixed receivable amount and a configurable expiry window. The account is tied to an exact amount — it will only accept a payment matching that value — and automatically becomes inactive once the lifespan elapses or the payment is received.
+
+This is ideal for checkout flows, invoice payments, or any scenario where you need a guaranteed, one-time payment collection without reusing a permanent account.

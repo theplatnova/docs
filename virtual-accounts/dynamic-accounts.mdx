@@ -1,0 +1,113 @@
+---
+title: "Dynamic Accounts"
+slug: "virtual-accounts/dynamic-accounts"
+---
+
+Dynamic virtual accounts are single-use bank accounts generated on demand for a specific customer and a fixed payment amount. Unlike permanent virtual accounts, they expire automatically — either after the configured lifespan or once a matching payment is received.
+
+## What Are Dynamic Virtual Accounts?
+
+A dynamic virtual account is a time-bound, amount-locked bank account. When you create one, you specify:
+
+- The **customer** it belongs to
+- The **exact amount** it should accept
+- The **lifespan** in minutes before it expires
+
+Once a payment matching the exact amount is received, or the lifespan elapses, the account is no longer usable.
+
+## Key Features
+
+### Amount-Locked Payments
+
+Each dynamic account is created for a specific amount. This guarantees that the exact expected amount is collected, making reconciliation straightforward with no partial or overpayments to handle.
+
+### Automatic Expiry
+
+Dynamic accounts expire after the lifespan you configure. This reduces exposure and ensures abandoned payment sessions do not leave open accounts indefinitely.
+
+### Unique Reference per Session
+
+Every generated account includes a unique `reference` and `payment_session_id` field, allowing you to track and correlate payment sessions in your system.
+
+### Instant Provisioning
+
+Accounts are created and ready to receive payments immediately. The full bank details — account number, account name, and bank name — are returned in the response and can be displayed directly to the payer.
+
+## When to Use Dynamic Accounts
+
+- **Checkout flows** — Generate a fresh account per order so each payment is uniquely tied to a transaction.
+- **Invoice collection** — Issue a single-use account alongside an invoice to ensure the exact invoice amount is paid.
+- **Time-sensitive requests** — Set a short lifespan to enforce payment deadlines (e.g., hold a booking for 20 minutes).
+
+## Generating a Dynamic Account
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/dynamic \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438",
+    "amount": 200,
+    "lifespan_minutes": 20
+  }'
+```
+
+## Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "account_name": "PLATNOVA TECHNOLOGIES LTD/PLATNOVA ",
+    "account_no": "9000043059",
+    "amount": 200,
+    "currency": "ngn",
+    "bank_name": "BEAMER (GABSYN) MICROFINANCE BANK",
+    "reference": "BDEPSTbdpLERjSmvg2XbF9iTA0bXxrX8E88BOI",
+    "email": "emmrysjonathan@gmail.com",
+    "expires_at": "2026-03-19T23:13:03.140476016Z",
+    "payment_session_id": "",
+    "usage": "integration",
+    "created_at": "2026-03-19T22:53:03.140476016Z",
+    "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438"
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+## Response Fields
+
+| Field | Description |
+|---|---|
+| `account_name` | The name on the generated account |
+| `account_no` | The bank account number to display to the payer |
+| `amount` | The exact amount the account will accept |
+| `currency` | Currency of the account (lowercase ISO code) |
+| `bank_name` | Name of the bank that issued the account |
+| `reference` | Unique reference for this payment session |
+| `email` | Email address of the customer |
+| `expires_at` | Timestamp when the account becomes inactive |
+| `payment_session_id` | Session identifier for tracking (may be empty) |
+| `usage` | Usage context identifier |
+| `created_at` | Timestamp when the account was created |
+| `customer_id` | ID of the customer this account belongs to |
+
+## Account Lifecycle
+
+1. **Created** — Account is provisioned instantly with full bank details.
+2. **Active** — Account is live and can receive the specified amount during the lifespan window.
+3. **Expired** — The lifespan elapses without a payment; the account becomes inactive.
+4. **Completed** — A matching payment is received; the account closes.
+
+## Best Practices
+
+- Keep `lifespan_minutes` short (10–30 minutes) for checkout use cases to minimise open sessions.
+- Always display `expires_at` to the payer so they know the deadline.
+- Use the `reference` field to link the payment to your internal order or invoice record.
+- If a session expires before payment, generate a new dynamic account rather than reusing the old one.
+
+## Next Steps
+
+- See the [API Reference](/api-reference/virtual-accounts/dynamic) for full request and response details.
+- Learn how permanent virtual accounts work in [Creating Accounts](/virtual-accounts/creating-accounts).

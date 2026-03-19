@@ -44,6 +44,7 @@
             "pages": [
               "virtual-accounts/overview",
               "virtual-accounts/creating-accounts",
+              "virtual-accounts/dynamic-accounts",
               "virtual-accounts/receiving-payments"
             ]
           },
@@ -130,6 +131,7 @@
             "group": "Virtual Accounts",
             "pages": [
               "api-reference/virtual-accounts/create",
+              "api-reference/virtual-accounts/dynamic",
               "api-reference/virtual-accounts/list"
             ]
           },
