@@ -724,6 +724,128 @@
                 }
             }
         },
+        "/v1/virtual-accounts/dynamic": {
+            "post": {
+                "summary": "Generate single-use virtual account",
+                "description": "Generate a dynamic, single-use virtual account for a customer with a fixed amount and configurable expiry. The account automatically expires after the specified lifespan and can only receive a payment matching the exact amount.",
+                "operationId": "createDynamicVirtualAccount",
+                "tags": [
+                    "Virtual Account"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateDynamicVirtualAccountRequest"
+                            },
+                            "example": {
+                                "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438",
+                                "amount": 200,
+                                "lifespan_minutes": 20
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Dynamic virtual account created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "account_name": {
+                                                    "type": "string"
+                                                },
+                                                "account_no": {
+                                                    "type": "string"
+                                                },
+                                                "amount": {
+                                                    "type": "number"
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "bank_name": {
+                                                    "type": "string"
+                                                },
+                                                "reference": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "expires_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "payment_session_id": {
+                                                    "type": "string"
+                                                },
+                                                "usage": {
+                                                    "type": "string"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "customer_id": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": true,
+                                    "data": {
+                                        "account_name": "PLATNOVA TECHNOLOGIES LTD/PLATNOVA ",
+                                        "account_no": "9000043059",
+                                        "amount": 200,
+                                        "currency": "ngn",
+                                        "bank_name": "BEAMER (GABSYN) MICROFINANCE BANK",
+                                        "reference": "BDEPSTbdpLERjSmvg2XbF9iTA0bXxrX8E88BOI",
+                                        "email": "emmrysjonathan@gmail.com",
+                                        "expires_at": "2026-03-19T23:13:03.140476016Z",
+                                        "payment_session_id": "",
+                                        "usage": "integration",
+                                        "created_at": "2026-03-19T22:53:03.140476016Z",
+                                        "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438"
+                                    },
+                                    "error": [],
+                                    "message": "operation was successful"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. customer not found, invalid amount)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/virtual-accounts": {
             "post": {
                 "summary": "Create virtual account (business)",
@@ -5043,6 +5165,28 @@
                     "beneficiary_account_id": {
                         "type": "string",
                         "description": "Required for USD; business beneficiary account UID"
+                    }
+                }
+            },
+            "CreateDynamicVirtualAccountRequest": {
+                "type": "object",
+                "required": [
+                    "customer_id",
+                    "amount",
+                    "lifespan_minutes"
+                ],
+                "properties": {
+                    "customer_id": {
+                        "type": "string",
+                        "description": "Unique ID of the customer to generate the account for"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "The exact amount the account will accept"
+                    },
+                    "lifespan_minutes": {
+                        "type": "integer",
+                        "description": "How long the account remains active, in minutes"
                     }
                 }
             },
