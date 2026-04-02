@@ -57,7 +57,7 @@
                                     "state": "Lagos",
                                     "postal_code": "200123",
                                     "country": "Nigeria",
-                                    "document_url": "http://example.com"
+                                    "document": "<base64-encoded proof of address>"
                                 },
                                 "proof_of_funds": {
                                     "employment_status": "employed",
@@ -5232,9 +5232,9 @@
                     "country": {
                         "type": "string"
                     },
-                    "document_url": {
+                    "document": {
                         "type": "string",
-                        "format": "uri"
+                        "description": "Base64-encoded proof-of-address file (e.g. utility bill or bank statement image)"
                     }
                 }
             },

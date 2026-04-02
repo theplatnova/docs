@@ -24,7 +24,7 @@ Create a new individual customer profile. This endpoint allows you to onboard cu
 | --- | --- |
 | `gender` | Customer gender |
 | `documents` | Array of identity documents (see below) |
-| `address` | Residential or mailing address (same shape as in the API reference schema) |
+| `address` | Residential or mailing address: `street`, `city`, `state`, `postal_code`, `country`, optional `document` (base64-encoded proof-of-address file) |
 | `proof_of_funds` | Employment and source-of-funds object (`employment_status`, `occupation`, `primary_purpose`, `source_of_funds`, `expected_monthly_pay`) |
 
 ## Identity documents (`documents`)

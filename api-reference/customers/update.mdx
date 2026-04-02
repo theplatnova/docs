@@ -14,7 +14,7 @@ All fields are optional:
 | Field | Description |
 | --- | --- |
 | `date_of_birth` | `YYYY-MM-DD` |
-| `address` | Same shape as on [create customer](/api-reference/customers/create) |
+| `address` | Same shape as on [create customer](/api-reference/customers/create); `address.document` is a base64 string when provided |
 | `first_name`, `last_name`, `phone`, `gender`, `country_code` | Profile fields |
 | `documents` | Array of document objects (see below) |
 | `proof_of_funds` | Employment and source-of-funds fields |
