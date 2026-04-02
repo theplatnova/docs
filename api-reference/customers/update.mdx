@@ -1,0 +1,35 @@
+---
+title: "Update Customer"
+openapi: "PATCH /v1/customers/{id}"
+---
+
+## Overview
+
+Update an existing customer with a partial JSON body. Only include fields you want to change. Typical uses include correcting profile data, refreshing identity documents, and submitting proof-of-funds details.
+
+## Request body
+
+All fields are optional:
+
+| Field | Description |
+| --- | --- |
+| `date_of_birth` | `YYYY-MM-DD` |
+| `address` | Same shape as on [create customer](/api-reference/customers/create) |
+| `first_name`, `last_name`, `phone`, `gender`, `country_code` | Profile fields |
+| `documents` | Array of document objects (see below) |
+| `proof_of_funds` | Employment and source-of-funds fields |
+
+### `documents` items
+
+Each element uses the same shape as items in the `documents` array on create:
+
+- `id_type` — One of: `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, `nin`, `bvn`
+- `id_number` — Value on the document
+- `front_doc` — Base64-encoded image of the front
+- `back_doc` — Base64-encoded image of the back when needed
+
+For `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, and `nin`, you need at most `front_doc` (base64); `back_doc` is not required for those types.
+
+### `proof_of_funds`
+
+Optional object with: `employment_status`, `occupation`, `primary_purpose`, `source_of_funds`, `expected_monthly_pay`.

@@ -109,6 +109,7 @@
             "group": "Customers",
             "pages": [
               "api-reference/customers/create",
+              "api-reference/customers/update",
               "api-reference/customers/get",
               "api-reference/customers/list"
             ]

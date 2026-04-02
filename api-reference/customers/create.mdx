@@ -5,4 +5,37 @@ openapi: "POST /v1/customers"
 
 ## Overview
 
-Create a new individual customer profile. This endpoint allows you to onboard customers with necessary identification details, address information, and KYC (Know Your Customer) compliance data. The response confirms successful creation or returns relevant validation errors.
+Create a new individual customer profile. This endpoint allows you to onboard customers with identification details, address information, and KYC (Know Your Customer) compliance data. The response confirms successful creation or returns relevant validation errors.
+
+## Required fields
+
+| Field | Description |
+| --- | --- |
+| `email` | Valid email address |
+| `first_name` | Customer first name |
+| `last_name` | Customer last name |
+| `phone` | Phone number |
+| `date_of_birth` | `YYYY-MM-DD` |
+| `country_code` | ISO country code |
+
+## Optional fields
+
+| Field | Description |
+| --- | --- |
+| `gender` | Customer gender |
+| `documents` | Array of identity documents (see below) |
+| `address` | Residential or mailing address (same shape as in the API reference schema) |
+| `proof_of_funds` | Employment and source-of-funds object (`employment_status`, `occupation`, `primary_purpose`, `source_of_funds`, `expected_monthly_pay`) |
+
+## Identity documents (`documents`)
+
+Each object in `documents` includes:
+
+- `id_type` — One of: `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, `nin`, `bvn`
+- `id_number` — The number on the document
+- `front_doc` — Base64-encoded image of the front
+- `back_doc` — Base64-encoded image of the back when applicable
+
+For `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, and `nin`, you need **at most** `front_doc` (base64); `back_doc` is not required for those types.
+
+To change documents or proof-of-funds after creation, use [Update customer](/api-reference/customers/update).

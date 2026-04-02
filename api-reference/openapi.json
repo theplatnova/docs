@@ -43,13 +43,14 @@
                                 "phone": "+23490123456789",
                                 "country_code": "NG",
                                 "date_of_birth": "1970-12-28",
-                                "country": "Nigeria",
-                                "document": {
-                                    "id_type": "NATIONAL_ID",
-                                    "id_number": "1096277890",
-                                    "front_doc": "",
-                                    "back_doc": ""
-                                },
+                                "gender": "male",
+                                "documents": [
+                                    {
+                                        "id_type": "national_id",
+                                        "id_number": "1096277890",
+                                        "front_doc": "<base64-encoded image>"
+                                    }
+                                ],
                                 "address": {
                                     "street": "12 Lekki Lane",
                                     "city": "Lekki",
@@ -57,6 +58,13 @@
                                     "postal_code": "200123",
                                     "country": "Nigeria",
                                     "document_url": "http://example.com"
+                                },
+                                "proof_of_funds": {
+                                    "employment_status": "employed",
+                                    "occupation": "engineering",
+                                    "primary_purpose": "payments_to_friends_or_family_abroad",
+                                    "source_of_funds": "salary",
+                                    "expected_monthly_pay": "0_4999"
                                 }
                             }
                         }
@@ -591,6 +599,95 @@
                                     "data": {},
                                     "error": [],
                                     "message": "customer was not found"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update customer",
+                "description": "Partially update a customer. All body fields are optional; include only fields you want to change. Use documents and proof_of_funds for KYC updates.",
+                "operationId": "updateCustomer",
+                "tags": [
+                    "Customer"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCustomerRequest"
+                            },
+                            "example": {
+                                "first_name": "Jane",
+                                "phone": "+2348012345678",
+                                "documents": [
+                                    {
+                                        "id_type": "passport",
+                                        "id_number": "A12345678",
+                                        "front_doc": "<base64-encoded image>"
+                                    }
+                                ],
+                                "proof_of_funds": {
+                                    "employment_status": "employed",
+                                    "occupation": "engineering",
+                                    "primary_purpose": "payments_to_friends_or_family_abroad",
+                                    "source_of_funds": "salary",
+                                    "expected_monthly_pay": "0_4999"
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Customer updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. customer not found)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "example": {
+                                    "status": false,
+                                    "data": {},
+                                    "error": [],
+                                    "message": "customer was not found"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError422"
                                 }
                             }
                         }
@@ -5060,9 +5157,99 @@
                     }
                 }
             },
-            "CreateCustomerRequest": {
+            "DocumentInput": {
+                "type": "object",
+                "description": "Identity document fields. Supported id_type values: passport, resident_id, drivers_license, national_id, voters_card, nin, bvn. For passport, resident_id, drivers_license, national_id, voters_card, and nin, provide at most front_doc as a base64-encoded image; back_doc is not required. Each entry in the documents array follows these rules.",
+                "properties": {
+                    "id_type": {
+                        "type": "string",
+                        "enum": [
+                            "passport",
+                            "resident_id",
+                            "drivers_license",
+                            "national_id",
+                            "voters_card",
+                            "nin",
+                            "bvn"
+                        ],
+                        "description": "Identity document type"
+                    },
+                    "id_number": {
+                        "type": "string",
+                        "description": "Document number"
+                    },
+                    "front_doc": {
+                        "type": "string",
+                        "description": "Base64-encoded image of the document front"
+                    },
+                    "back_doc": {
+                        "type": "string",
+                        "description": "Base64-encoded image of the document back (when applicable)"
+                    }
+                }
+            },
+            "ProofOfFunds": {
+                "type": "object",
+                "description": "Proof-of-funds / source-of-wealth fields.",
+                "properties": {
+                    "employment_status": {
+                        "type": "string",
+                        "description": "Employment status"
+                    },
+                    "occupation": {
+                        "type": "string",
+                        "description": "Occupation"
+                    },
+                    "primary_purpose": {
+                        "type": "string",
+                        "description": "Primary purpose of the account or relationship"
+                    },
+                    "source_of_funds": {
+                        "type": "string",
+                        "description": "Source of funds"
+                    },
+                    "expected_monthly_pay": {
+                        "type": "string",
+                        "description": "Expected monthly pay or income band"
+                    }
+                }
+            },
+            "CustomerAddress": {
                 "type": "object",
                 "properties": {
+                    "street": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "postal_code": {
+                        "type": "string"
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "document_url": {
+                        "type": "string",
+                        "format": "uri"
+                    }
+                }
+            },
+            "UpdateCustomerRequest": {
+                "type": "object",
+                "description": "Partial update payload. All properties are optional.",
+                "properties": {
+                    "date_of_birth": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Date of birth (YYYY-MM-DD)"
+                    },
+                    "address": {
+                        "$ref": "#/components/schemas/CustomerAddress"
+                    },
                     "first_name": {
                         "type": "string",
                         "description": "Customer first name"
@@ -5071,68 +5258,83 @@
                         "type": "string",
                         "description": "Customer last name"
                     },
+                    "phone": {
+                        "type": "string",
+                        "description": "Customer phone number"
+                    },
+                    "gender": {
+                        "type": "string",
+                        "description": "Customer gender"
+                    },
+                    "country_code": {
+                        "type": "string",
+                        "description": "ISO country code"
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DocumentInput"
+                        },
+                        "description": "Identity documents to attach or replace (see DocumentInput)"
+                    },
+                    "proof_of_funds": {
+                        "$ref": "#/components/schemas/ProofOfFunds"
+                    }
+                }
+            },
+            "CreateCustomerRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "first_name",
+                    "last_name",
+                    "phone",
+                    "date_of_birth",
+                    "country_code"
+                ],
+                "properties": {
                     "email": {
                         "type": "string",
                         "format": "email",
                         "description": "Customer email"
                     },
+                    "first_name": {
+                        "type": "string",
+                        "description": "Customer first name"
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "description": "Customer last name"
+                    },
                     "phone": {
                         "type": "string",
                         "description": "Customer phone number"
-                    },
-                    "country_code": {
-                        "type": "string",
-                        "description": "ISO country code"
                     },
                     "date_of_birth": {
                         "type": "string",
                         "format": "date",
                         "description": "Date of birth (YYYY-MM-DD)"
                     },
-                    "country": {
+                    "gender": {
                         "type": "string",
-                        "description": "Country name"
+                        "description": "Customer gender"
                     },
-                    "document": {
-                        "type": "object",
-                        "properties": {
-                            "id_type": {
-                                "type": "string"
-                            },
-                            "id_number": {
-                                "type": "string"
-                            },
-                            "front_doc": {
-                                "type": "string"
-                            },
-                            "back_doc": {
-                                "type": "string"
-                            }
-                        }
+                    "country_code": {
+                        "type": "string",
+                        "description": "ISO country code"
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DocumentInput"
+                        },
+                        "description": "Identity documents (see DocumentInput)"
                     },
                     "address": {
-                        "type": "object",
-                        "properties": {
-                            "street": {
-                                "type": "string"
-                            },
-                            "city": {
-                                "type": "string"
-                            },
-                            "state": {
-                                "type": "string"
-                            },
-                            "postal_code": {
-                                "type": "string"
-                            },
-                            "country": {
-                                "type": "string"
-                            },
-                            "document_url": {
-                                "type": "string",
-                                "format": "uri"
-                            }
-                        }
+                        "$ref": "#/components/schemas/CustomerAddress"
+                    },
+                    "proof_of_funds": {
+                        "$ref": "#/components/schemas/ProofOfFunds"
                     }
                 }
             },

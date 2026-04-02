@@ -18,6 +18,7 @@ curl -X POST https://api.platnova.com/v1/customers \
     "last_name": "Doe",
     "email": "john.doe@example.com",
     "phone": "+1234567890",
+    "date_of_birth": "1990-05-15",
     "country_code": "US"
   }'
 ```
@@ -30,13 +31,15 @@ curl -X POST https://api.platnova.com/v1/customers \
 - **Last Name** - Customer's last name
 - **Email** - Valid email address
 - **Phone** - Phone number with country code
+- **Date of Birth** - `YYYY-MM-DD` for age verification
 - **Country Code** - ISO country code (e.g., US, NG, GB)
 
 ### Optional Information
 
-- **Date of Birth** - For age verification
+- **Gender** - Customer gender
+- **Documents** - Identity documents (see [Create Customer](/api-reference/customers/create))
 - **Address** - Billing or residential address
-- **Metadata** - Custom data for your records
+- **Proof of funds** - Employment and source-of-funds fields
 
 ## Customer Response
 

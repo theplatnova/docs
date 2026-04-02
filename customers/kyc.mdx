@@ -52,13 +52,14 @@ curl -X POST https://api.platnova.com/v1/customers \
     "last_name": "Doe",
     "email": "john.doe@example.com",
     "phone": "+1234567890",
+    "date_of_birth": "1990-05-15",
     "country_code": "US"
   }'
 ```
 
 ### Step 2: Submit KYC Documents
 
-Submit required KYC documents through your dashboard or via API. Documents are verified automatically or manually depending on your configuration.
+Include identity documents in the `documents` array on create, add them with [Update customer](/api-reference/customers/update), or submit through your dashboard. Verification may be automatic or manual depending on your configuration.
 
 ### Step 3: Verification Complete
 
