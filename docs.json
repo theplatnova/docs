@@ -27,6 +27,7 @@
             "pages": [
               "customers/overview",
               "customers/onboarding",
+              "customers/proof-of-funds-options",
               "customers/kyc"
             ]
           },

@@ -5190,27 +5190,82 @@
             },
             "ProofOfFunds": {
                 "type": "object",
-                "description": "Proof-of-funds / source-of-wealth fields.",
+                "description": "Proof-of-funds / source-of-wealth fields. Use allowed field values from Proof of funds options in the Customers guides.",
                 "properties": {
                     "employment_status": {
                         "type": "string",
-                        "description": "Employment status"
+                        "description": "Employment status code",
+                        "enum": [
+                            "employed",
+                            "homemaker",
+                            "retired",
+                            "self_employed",
+                            "student",
+                            "unemployed"
+                        ]
                     },
                     "occupation": {
                         "type": "string",
-                        "description": "Occupation"
+                        "description": "Occupation field value (SOC-style); see Proof of funds options guide",
+                        "enum": [
+                            "151252",
+                            "291141",
+                            "2912XX",
+                            "21109X",
+                            "151299",
+                            "434051",
+                            "1320XX",
+                            "131082",
+                            "151255",
+                            "273099",
+                            "119111",
+                            "231011",
+                            "232099",
+                            "119199",
+                            "131161",
+                            "112021",
+                            "17302X",
+                            "132011",
+                            "151211",
+                            "999999"
+                        ]
                     },
                     "primary_purpose": {
                         "type": "string",
-                        "description": "Primary purpose of the account or relationship"
+                        "description": "Primary purpose code",
+                        "enum": [
+                            "charitable_donations",
+                            "ecommerce_retail_payments",
+                            "investment_purposes",
+                            "operating_a_company",
+                            "payments_to_friends_or_family_abroad",
+                            "personal_or_living_expenses",
+                            "protect_wealth",
+                            "purchase_goods_and_services",
+                            "receive_payment_for_freelancing"
+                        ]
                     },
                     "source_of_funds": {
                         "type": "string",
-                        "description": "Source of funds"
+                        "description": "Source of funds code",
+                        "enum": [
+                            "company_funds",
+                            "gifts",
+                            "government_benefits",
+                            "inheritance",
+                            "pension_retirement",
+                            "salary",
+                            "sale_of_assets_real_estate",
+                            "savings"
+                        ]
                     },
                     "expected_monthly_pay": {
                         "type": "string",
-                        "description": "Expected monthly pay or income band"
+                        "description": "Expected monthly payments / income band code",
+                        "enum": [
+                            "0_4999",
+                            "5000_9999"
+                        ]
                     }
                 }
             },

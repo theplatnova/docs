@@ -39,7 +39,13 @@ curl -X POST https://api.platnova.com/v1/customers \
 - **Gender** - Customer gender
 - **Documents** - Identity documents (see [Create Customer](/api-reference/customers/create))
 - **Address** - Billing or residential address
-- **Proof of funds** - Employment and source-of-funds fields
+- **Proof of funds** - Employment and source-of-funds fields (see below)
+
+### Proof of funds values
+
+Each `proof_of_funds` property must use an exact **field value** from the reference (for example `employment_status`: `employed`). Occupation uses identifiers such as `151252` for software developer.
+
+See the full reference: **[Proof of funds options](/customers/proof-of-funds-options)**.
 
 ## Customer Response
 
@@ -107,5 +113,6 @@ curl -X GET https://api.platnova.com/v1/customers \
 
 ## Next Steps
 
+- Use [Proof of funds options](/customers/proof-of-funds-options) when collecting `proof_of_funds` field values
 - Learn about [KYC & Verification](/customers/kyc) for compliance requirements
 - Explore the [Customers API Reference](/api-reference/customers/create) for detailed documentation

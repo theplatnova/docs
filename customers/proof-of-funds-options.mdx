@@ -1,0 +1,101 @@
+---
+title: "Proof of funds options"
+slug: "customers/proof-of-funds-options"
+description: "Allowed values for proof_of_funds fields when creating or updating customers."
+---
+
+When you send `proof_of_funds` on [create customer](/api-reference/customers/create) or [update customer](/api-reference/customers/update), set each property to one of the **Field** values below. The **Description** explains what each value represents.
+
+## employment_status
+
+How the customer describes their current work situation.
+
+| Field | Description |
+| --- | --- |
+| `employed` | Employed — works in traditional paid employment. |
+| `homemaker` | Homemaker — primary role is running the household and family care. |
+| `retired` | Retired — no longer in the workforce. |
+| `self_employed` | Self-employed — works for themselves or runs their own business. |
+| `student` | Student — primarily in education or training. |
+| `unemployed` | Unemployed — not currently employed. |
+
+## expected_monthly_pay
+
+Rough band for how much the customer expects to move through the account each month (or their income band, as applicable to your flow).
+
+| Field | Description |
+| --- | --- |
+| `0_4999` | Less than five thousand US dollars per month. |
+| `5000_9999` | Five thousand US dollars or more per month. |
+
+## primary_purpose
+
+Why the customer is using the product or moving money.
+
+| Field | Description |
+| --- | --- |
+| `charitable_donations` | Charitable donations — giving to nonprofits or causes. |
+| `ecommerce_retail_payments` | Ecommerce and retail payments — shopping and online or retail purchases. |
+| `investment_purposes` | Investment purposes — building or managing investments. |
+| `operating_a_company` | Operating a company — business operations and company-related activity. |
+| `payments_to_friends_or_family_abroad` | Payments to friends or family abroad — remittances or personal transfers overseas. |
+| `personal_or_living_expenses` | Personal or living expenses — day-to-day personal spending. |
+| `protect_wealth` | Protect wealth — preserving or safeguarding assets. |
+| `purchase_goods_and_services` | Purchase goods and services — general buying of goods and services. |
+| `receive_payment_for_freelancing` | Receive payment for freelancing — income from freelance or contract work. |
+
+## source_of_funds
+
+Where the customer’s money primarily comes from.
+
+| Field | Description |
+| --- | --- |
+| `company_funds` | Company funds — money originating from a business entity. |
+| `gifts` | Gifts — funds received as gifts. |
+| `government_benefits` | Government benefits — state or government assistance programs. |
+| `inheritance` | Inheritance — money or assets from an estate. |
+| `pension_retirement` | Pension or retirement funds — pension, annuity, or retirement savings. |
+| `salary` | Salary — regular wages or salary from employment. |
+| `sale_of_assets_real_estate` | Sale of assets or real estate — proceeds from selling property or other assets. |
+| `savings` | Savings — accumulated personal savings. |
+
+## occupation
+
+Standard occupation identifier. Use the **Field** value as the `occupation` string; the **Description** is the role title that value represents.
+
+| Field | Description |
+| --- | --- |
+| `151252` | Software developer. |
+| `291141` | Registered nurse. |
+| `2912XX` | Other physician. |
+| `21109X` | Other community and social service specialist. |
+| `151299` | Other computer occupation. |
+| `434051` | Customer service representative. |
+| `1320XX` | Other financial specialist. |
+| `131082` | Project management specialist. |
+| `151255` | Web and digital interface designer. |
+| `273099` | Other media and communication worker. |
+| `119111` | Medical and health services manager. |
+| `231011` | Lawyer. |
+| `232099` | Other legal support worker. |
+| `119199` | Other manager. |
+| `131161` | Market research analyst and marketing specialist. |
+| `112021` | Marketing manager. |
+| `17302X` | Other engineering technologist and technician. |
+| `132011` | Accountant and auditor. |
+| `151211` | Computer systems analyst. |
+| `999999` | Unemployed with no work experience in the last five years, earlier, or never worked. |
+
+## government_documents
+
+Government ID types when your flow asks for a document category in this group (for example alongside address or identity checks).
+
+| Field | Description |
+| --- | --- |
+| `passport` | Passport — international travel document used as government ID. |
+| `drivers_license` | Driver’s license — government-issued driving license used as ID. |
+
+## Next steps
+
+- [Customer onboarding](/customers/onboarding) — end-to-end create flow
+- [Create customer (API)](/api-reference/customers/create) — request schema
