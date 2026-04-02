@@ -61,7 +61,7 @@
                                 },
                                 "proof_of_funds": {
                                     "employment_status": "employed",
-                                    "occupation": "engineering",
+                                    "occupation": "151252",
                                     "primary_purpose": "payments_to_friends_or_family_abroad",
                                     "source_of_funds": "salary",
                                     "expected_monthly_pay": "0_4999"
@@ -631,7 +631,7 @@
                                 ],
                                 "proof_of_funds": {
                                     "employment_status": "employed",
-                                    "occupation": "engineering",
+                                    "occupation": "151252",
                                     "primary_purpose": "payments_to_friends_or_family_abroad",
                                     "source_of_funds": "salary",
                                     "expected_monthly_pay": "0_4999"
@@ -5159,7 +5159,7 @@
             },
             "DocumentInput": {
                 "type": "object",
-                "description": "Identity document fields. Supported id_type values: passport, resident_id, drivers_license, national_id, voters_card, nin, bvn. For passport, resident_id, drivers_license, national_id, voters_card, and nin, provide at most front_doc as a base64-encoded image; back_doc is not required. Each entry in the documents array follows these rules.",
+                "description": "Identity document fields. Supported id_type values: passport, resident_id, drivers_license, national_id, voters_card, nin, bvn. For passport, resident_id, drivers_license, national_id, voters_card, and nin, provide at most front_doc as a base64-encoded image; back_doc is not required. These rules apply to each item in documents, to legacy document and additional_documents on create, and to each item in documents on update.",
                 "properties": {
                     "id_type": {
                         "type": "string",
@@ -5383,7 +5383,22 @@
                         "items": {
                             "$ref": "#/components/schemas/DocumentInput"
                         },
-                        "description": "Identity documents (see DocumentInput)"
+                        "description": "Identity documents (see DocumentInput). Preferred way to send one or more IDs on create."
+                    },
+                    "document": {
+                        "description": "Legacy single primary identity document. Same shape and id_type values as each item in documents. Prefer documents when starting new integrations.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DocumentInput"
+                            }
+                        ]
+                    },
+                    "additional_documents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DocumentInput"
+                        },
+                        "description": "Legacy extra identity documents. Same id_type options and front/back rules as documents. The API merges these with documents server-side; prefer a single documents array when possible."
                     },
                     "address": {
                         "$ref": "#/components/schemas/CustomerAddress"

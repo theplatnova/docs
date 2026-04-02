@@ -23,19 +23,29 @@ Create a new individual customer profile. This endpoint allows you to onboard cu
 | Field | Description |
 | --- | --- |
 | `gender` | Customer gender |
-| `documents` | Array of identity documents (see below) |
+| `documents` | Array of identity documents (recommended; see [Identity documents](#identity-documents)) |
+| `document` | Legacy single primary identity document; same shape and `id_type` values as `documents[]` |
+| `additional_documents` | Legacy array of extra identity documents; same rules as `documents[]` (merged with `documents` on the server) |
 | `address` | Residential or mailing address: `street`, `city`, `state`, `postal_code`, `country`, optional `document` (base64-encoded proof-of-address file) |
 | `proof_of_funds` | Employment and source-of-funds object (`employment_status`, `occupation`, `primary_purpose`, `source_of_funds`, `expected_monthly_pay`). Allowed **field** values and meanings are in [Proof of funds options](/customers/proof-of-funds-options). |
 
-## Identity documents (`documents`)
+## Identity documents
 
-Each object in `documents` includes:
+You can send identity material in three ways on create:
 
-- `id_type` — One of: `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, `nin`, `bvn`
-- `id_number` — The number on the document
-- `front_doc` — Base64-encoded image of the front
-- `back_doc` — Base64-encoded image of the back when applicable
+1. **`documents`** (recommended) — array of document objects.
+2. **`document`** (legacy) — one object for the primary ID; same fields as a single `documents` element.
+3. **`additional_documents`** (legacy) — array of further IDs; same fields as `documents[]`.
+
+For **every** document object (whether in `documents`, `document`, or `additional_documents`), the allowed values and rules are the same:
+
+- **`id_type`** — Any of: `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, `nin`, `bvn`
+- **`id_number`** — The number on the document
+- **`front_doc`** — Base64-encoded image of the front
+- **`back_doc`** — Base64-encoded image of the back when applicable
 
 For `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, and `nin`, you need **at most** `front_doc` (base64); `back_doc` is not required for those types.
+
+New integrations should prefer **`documents`** only. Legacy fields remain supported so existing clients keep working.
 
 To change documents or proof-of-funds after creation, use [Update customer](/api-reference/customers/update).
