@@ -3754,7 +3754,7 @@
                                 "$ref": "#/components/schemas/VerifyPaymentRequest"
                             },
                             "example": {
-                                "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+                                "reference": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
                             }
                         }
                     }
@@ -3776,8 +3776,9 @@
                                                 "id": {
                                                     "type": "string"
                                                 },
-                                                "ref": {
-                                                    "type": "string"
+                                                "reference": {
+                                                    "type": "string",
+                                                    "description": "Transaction or payment reference"
                                                 },
                                                 "currency": {
                                                     "type": "string"
@@ -3823,7 +3824,7 @@
                         }
                     },
                     "400": {
-                        "description": "Payment not found or invalid ref",
+                        "description": "Payment not found or invalid reference",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5613,12 +5614,12 @@
             "VerifyPaymentRequest": {
                 "type": "object",
                 "required": [
-                    "ref"
+                    "reference"
                 ],
                 "properties": {
-                    "ref": {
+                    "reference": {
                         "type": "string",
-                        "description": "Transaction/payment reference to verify"
+                        "description": "Transaction or payment reference to verify"
                     }
                 }
             },
