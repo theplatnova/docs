@@ -21,9 +21,9 @@ All fields are optional:
 
 ### `documents` items
 
-Each element uses the same shape as on create (including the same `id_type` values as `documents`, `document`, and `additional_documents`):
+Each element uses the same shape as on create (see [Identity documents](/api-reference/customers/create#identity-documents)):
 
-- `id_type` — One of: `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, `nin`, `bvn`
+- `id_type` — One of: `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, `nin`, `bvn`, or a tax ID type (see [Tax ID document](/api-reference/customers/create#tax-id-document))
 - `id_number` — Value on the document
 - `front_doc` — Base64-encoded image of the front
 - `back_doc` — Base64-encoded image of the back when needed
