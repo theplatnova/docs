@@ -49,3 +49,29 @@ For `passport`, `resident_id`, `drivers_license`, `national_id`, `voters_card`, 
 New integrations should prefer **`documents`** only. Legacy fields remain supported so existing clients keep working.
 
 To change documents or proof-of-funds after creation, use [Update customer](/api-reference/customers/update).
+
+## Tax ID document
+
+A tax ID document is required when creating virtual accounts for a customer. Submit it as an entry in the `documents` array (or the legacy `document` / `additional_documents` fields). The tax ID value is always passed in `id_number`; the `id_type` depends on the customer's country:
+
+| Country | Country Code | `id_type` |
+| --- | --- | --- |
+| Algeria | `DZ` | `nif` |
+| Angola | `AO` | `nif` |
+| Canada | `CA` | `sin` |
+| France | `FR` | `spi` |
+| Indonesia | `ID` | `npwp` |
+| Italy | `IT` | `cf` |
+| Kenya | `KE` | `pin` |
+| Mexico | `MX` | `rfc` |
+| Nepal | `NP` | `pan` |
+| Nigeria | `NG` | `bvn` |
+| Pakistan | `PK` | `ntn` |
+| Romania | `RO` | `cnp` |
+| Tunisia | `TN` | `mf` |
+| Turkey | `TR` | `tckn` |
+| United Kingdom | `GB` | `nino` |
+| United States | `US` | `ssn` |
+| All other countries | — | `tin` |
+
+For any country not listed above, use `id_type: "tin"`.

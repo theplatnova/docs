@@ -38,6 +38,7 @@ curl -X POST https://api.platnova.com/v1/customers \
 
 - **Gender** - Customer gender
 - **Documents** - Identity documents: prefer the `documents` array; `document` and `additional_documents` are still supported (see [Create Customer](/api-reference/customers/create))
+- **Tax ID** - Required when creating virtual accounts for a customer (see [Tax ID document](#tax-id-document) below)
 - **Address** - Billing or residential address
 - **Proof of funds** - Employment and source-of-funds fields (see below)
 
@@ -102,6 +103,27 @@ View all your customers:
 ```bash
 curl -X GET https://api.platnova.com/v1/customers \
   -H "X-API-KEY: YOUR_API_KEY"
+```
+
+## Tax ID document
+
+A tax ID is required when creating virtual accounts for a customer. Pass it as an entry in the `documents` array with the `id_type` that matches the customer's country, and the tax ID number in `id_number`.
+
+The `id_type` varies by country — for example `ssn` for US customers, `nino` for UK customers, and `bvn` for Nigerian customers. Countries not covered by a specific type use `tin` as the default.
+
+See the full country-to-type mapping in [Create Customer — Tax ID document](/api-reference/customers/create#tax-id-document).
+
+**Example** — adding a tax ID for a US customer:
+
+```json
+{
+  "documents": [
+    {
+      "id_type": "ssn",
+      "id_number": "123-45-6789"
+    }
+  ]
+}
 ```
 
 ## Best Practices
