@@ -42,7 +42,10 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `card.refund` | Card Refund |
 | `card.funded` | Card Funded |
 | `card.declined` | Card Declined |
+| `account.created` | Virtual Account Created |
 | `account.funded` | Account Funded |
+| `customer.approved` | Customer Approved |
+| `customer.rejected` | Customer Rejected |
 | `transfer.success` | Transfer Success |
 | `transfer.failed` | Transfer Failed |
 
@@ -318,6 +321,70 @@ Sent when a virtual account receives funds.
     "currency": "USD",
     "transaction_ref": "TXN123456",
     "description": "Deposit to virtual account"
+  }
+}
+```
+
+### account.created
+
+Sent when a virtual account is created.
+
+```json
+{
+  "event": "account.created",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "virtual_account_id": "va_uid",
+    "currency": "USD",
+    "account_number": "1234567890",
+    "account_name": "John Doe",
+    "bank_name": "Bank Name",
+    "bank_code": "001",
+    "ach_routing_number": "123456789",
+    "rtp_routing_number": "123456789",
+    "wire_routing_number": "123456789",
+    "swift_code": "SWIFT123",
+    "bank_address": "123 Bank St, New York, NY 10001"
+  }
+}
+```
+
+### customer.approved
+
+Sent when a customer's documents are approved for virtual account creation.
+
+```json
+{
+  "event": "customer.approved",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "cus_123",
+  "data": {
+    "id": "cus_123",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890"
+  }
+}
+```
+
+### customer.rejected
+
+Sent when a customer's documents are rejected for virtual account creation.
+
+```json
+{
+  "event": "customer.rejected",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "cus_123",
+  "data": {
+    "id": "cus_123",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "reason": "Document is blurry"
   }
 }
 ```
