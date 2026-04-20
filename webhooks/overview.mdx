@@ -42,7 +42,7 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `card.refund` | Card Refund |
 | `card.funded` | Card Funded |
 | `card.declined` | Card Declined |
-| `account.created` | Virtual Account Created |
+| `account.issued` | Virtual Account Issued |
 | `account.funded` | Account Funded |
 | `customer.approved` | Customer Approved |
 | `customer.rejected` | Customer Rejected |
@@ -325,13 +325,13 @@ Sent when a virtual account receives funds.
 }
 ```
 
-### account.created
+### account.issued
 
-Sent when a virtual account is created.
+Sent when a virtual account is issued.
 
 ```json
 {
-  "event": "account.created",
+  "event": "account.issued",
   "timestamp": "2024-01-01T12:00:00Z",
   "customer_id": "user_id",
   "data": {
