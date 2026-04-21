@@ -698,7 +698,7 @@
         "/v1/virtual-accounts/create": {
             "post": {
                 "summary": "Create virtual account (customer)",
-                "description": "Create a virtual bank account for a customer in the specified currency. Requires customer_id and currency. For NGN, id_number (BVN) may be required; for USD, beneficiary_account_id is required.",
+                "description": "Create a virtual bank account for a customer in the specified currency. Requires customer_id and currency. For NGN, id_number (BVN) may be required.",
                 "operationId": "createUserVirtualAccount",
                 "tags": [
                     "Virtual Account"
@@ -716,8 +716,7 @@
                                 "id_number": "22123456789",
                                 "codes": [
                                     "058"
-                                ],
-                                "beneficiary_account_id": "5c5e173f-7754-41af-a2ee-b4be7d709e0c"
+                                ]
                             }
                         }
                     }
@@ -5434,10 +5433,6 @@
                             "type": "string"
                         },
                         "description": "Bank codes"
-                    },
-                    "beneficiary_account_id": {
-                        "type": "string",
-                        "description": "Required for USD; business beneficiary account UID"
                     }
                 }
             },
