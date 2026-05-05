@@ -16,8 +16,6 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
     "email": "jonathanemma121@gmail.com",
     "amount": 2000.15,
     "currency": "ngn",
-    "success_url": "https://platnova.com/process?status=successful",
-    "cancel_url": "https://platnova.com/process?status=cancelled",
     "payment_options": [
       {
         "id": "defi"
@@ -31,8 +29,6 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 - **email**: Customer email for the checkout.
 - **amount**: Amount to collect.
 - **currency**: Currency code (for example `ngn`).
-- **success_url**: Redirect URL after successful payment.
-- **cancel_url**: Redirect URL if customer cancels.
 - **payment_options**: Array of accepted payment options. Supported `id` values are:
   - `defi`
   - `bank_transfer`

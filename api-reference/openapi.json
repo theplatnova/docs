@@ -4123,8 +4123,6 @@
                                     "email",
                                     "amount",
                                     "currency",
-                                    "success_url",
-                                    "cancel_url",
                                     "payment_options"
                                 ],
                                 "properties": {
@@ -4137,14 +4135,6 @@
                                     },
                                     "currency": {
                                         "type": "string"
-                                    },
-                                    "success_url": {
-                                        "type": "string",
-                                        "format": "uri"
-                                    },
-                                    "cancel_url": {
-                                        "type": "string",
-                                        "format": "uri"
                                     },
                                     "payment_options": {
                                         "type": "array",
@@ -4166,8 +4156,6 @@
                                 "email": "jonathanemma121@gmail.com",
                                 "amount": 2000.15,
                                 "currency": "ngn",
-                                "success_url": "https://platnova.com/process?status=successful",
-                                "cancel_url": "https://platnova.com/process?status=cancelled",
                                 "payment_options": [
                                     {
                                         "id": "defi"
