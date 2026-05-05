@@ -1,0 +1,25 @@
+---
+title: "Overview"
+slug: "checkout/overview"
+---
+
+Checkout lets your business create a hosted payment session for a customer and redirect them to a Platnova payment page. You create the checkout with amount, currency, and return URLs, then send the generated `url` to the customer to complete payment.
+
+## How checkout works
+
+1. **Create checkout** using `POST /v1/checkout` with customer email, amount, currency, and payment options.
+2. **Redirect customer** to the returned hosted checkout `url`.
+3. **Track status** by fetching the checkout with `GET /v1/checkout/{id}` or by using your redirect URLs.
+
+## Required redirects
+
+- **success_url**: where the customer is redirected after successful payment.
+- **cancel_url**: where the customer is redirected if they cancel.
+
+Both URLs should point to pages your application controls so you can show the right confirmation state and continue your business flow.
+
+## Next steps
+
+- Build your first request in [Initiating checkout](/checkout/initiating-checkout)
+- Fetch an existing checkout in [Retrieving checkout](/checkout/retrieving-checkout)
+- See full request/response schemas in [Create checkout](/api-reference/checkout/create) and [Get checkout](/api-reference/checkout/get)

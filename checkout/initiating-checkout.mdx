@@ -1,0 +1,93 @@
+---
+title: "Initiating Checkout"
+slug: "checkout/initiating-checkout"
+---
+
+Start a checkout session with `POST /v1/checkout`. This creates a hosted payment page and returns a checkout `id` and `url`.
+
+## Example request
+
+```bash
+curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
+  --header 'X-API-KEY: YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  --data-raw '{
+    "email": "jonathanemma121@gmail.com",
+    "amount": 2000.15,
+    "currency": "ngn",
+    "success_url": "https://platnova.com/process?status=successful",
+    "cancel_url": "https://platnova.com/process?status=cancelled",
+    "payment_options": [
+      {
+        "id": "defi"
+      }
+    ]
+  }'
+```
+
+## Request fields
+
+- **email**: Customer email for the checkout.
+- **amount**: Amount to collect.
+- **currency**: Currency code (for example `ngn`).
+- **success_url**: Redirect URL after successful payment.
+- **cancel_url**: Redirect URL if customer cancels.
+- **payment_options**: Array of accepted payment options. Supported `id` values are:
+  - `defi`
+  - `bank_transfer`
+  - `novatag`
+
+## Payment option values
+
+Use any of these values in `payment_options[].id`:
+
+```json
+[
+  { "id": "defi" },
+  { "id": "bank_transfer" },
+  { "id": "novatag" }
+]
+```
+
+## Example response
+
+```json
+{
+  "status": true,
+  "data": {
+    "amount": 2000.15,
+    "currency": "ngn",
+    "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "email": "jonathanemma121@gmail.com",
+    "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "status": "pending",
+    "success_url": "https://platnova.com/process?status=successful",
+    "cancel_url": "https://platnova.com/process?status=cancelled",
+    "source": "platform",
+    "entity": {
+      "category": "Technology",
+      "country_code": "NG",
+      "created_at": "2025-09-14T20:00:41.114031Z",
+      "description": "A leading technology solutions provider g",
+      "dial_code": "+234",
+      "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
+      "legal_name": "Techies 2 Ltd",
+      "name": "Techies 2 Ltd",
+      "phone": "8012345678",
+      "status": "ACTIVE",
+      "username": "techies2ltd"
+    },
+    "payment_options": [
+      {
+        "id": "defi"
+      }
+    ],
+    "created_at": "2026-05-05T15:57:19Z"
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+Use `data.url` to redirect your customer to complete payment. Keep `data.id` so you can retrieve this checkout later with the get endpoint.

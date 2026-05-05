@@ -4105,6 +4105,420 @@
                 }
             }
         },
+        "/v1/checkout": {
+            "post": {
+                "summary": "Create checkout",
+                "description": "Initiate a hosted checkout session for a customer.",
+                "operationId": "createCheckout",
+                "tags": [
+                    "Checkout"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "amount",
+                                    "currency",
+                                    "success_url",
+                                    "cancel_url",
+                                    "payment_options"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "amount": {
+                                        "type": "number"
+                                    },
+                                    "currency": {
+                                        "type": "string"
+                                    },
+                                    "success_url": {
+                                        "type": "string",
+                                        "format": "uri"
+                                    },
+                                    "cancel_url": {
+                                        "type": "string",
+                                        "format": "uri"
+                                    },
+                                    "payment_options": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "required": [
+                                                "id"
+                                            ],
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "example": {
+                                "email": "jonathanemma121@gmail.com",
+                                "amount": 2000.15,
+                                "currency": "ngn",
+                                "success_url": "https://platnova.com/process?status=successful",
+                                "cancel_url": "https://platnova.com/process?status=cancelled",
+                                "payment_options": [
+                                    {
+                                        "id": "defi"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Checkout initiated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "amount": {
+                                                    "type": "number"
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "success_url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "cancel_url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "source": {
+                                                    "type": "string"
+                                                },
+                                                "entity": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "category": {
+                                                            "type": "string"
+                                                        },
+                                                        "country_code": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "format": "date-time"
+                                                        },
+                                                        "description": {
+                                                            "type": "string"
+                                                        },
+                                                        "dial_code": {
+                                                            "type": "string"
+                                                        },
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "legal_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "phone": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "username": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "payment_options": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": true,
+                                    "data": {
+                                        "amount": 2000.15,
+                                        "currency": "ngn",
+                                        "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+                                        "email": "jonathanemma121@gmail.com",
+                                        "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
+                                        "status": "pending",
+                                        "success_url": "https://platnova.com/process?status=successful",
+                                        "cancel_url": "https://platnova.com/process?status=cancelled",
+                                        "source": "platform",
+                                        "entity": {
+                                            "category": "Technology",
+                                            "country_code": "NG",
+                                            "created_at": "2025-09-14T20:00:41.114031Z",
+                                            "description": "A leading technology solutions provider g",
+                                            "dial_code": "+234",
+                                            "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
+                                            "legal_name": "Techies 2 Ltd",
+                                            "name": "Techies 2 Ltd",
+                                            "phone": "8012345678",
+                                            "status": "ACTIVE",
+                                            "username": "techies2ltd"
+                                        },
+                                        "payment_options": [
+                                            {
+                                                "id": "defi"
+                                            }
+                                        ],
+                                        "created_at": "2026-05-05T15:57:19Z"
+                                    },
+                                    "error": [],
+                                    "message": "operation was successful"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/checkout/{id}": {
+            "get": {
+                "summary": "Get checkout",
+                "description": "Retrieve checkout details by checkout ID.",
+                "operationId": "getCheckout",
+                "tags": [
+                    "Checkout"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Checkout ID",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "3e584f08-6a55-4b15-a97f-364a7d21071e"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Checkout retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "amount": {
+                                                    "type": "number"
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "success_url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "cancel_url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "source": {
+                                                    "type": "string"
+                                                },
+                                                "entity": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "category": {
+                                                            "type": "string"
+                                                        },
+                                                        "country_code": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "format": "date-time"
+                                                        },
+                                                        "description": {
+                                                            "type": "string"
+                                                        },
+                                                        "dial_code": {
+                                                            "type": "string"
+                                                        },
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "legal_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "phone": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "username": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "payment_options": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": true,
+                                    "data": {
+                                        "amount": 2000.15,
+                                        "currency": "ngn",
+                                        "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+                                        "email": "jonathanemma121@gmail.com",
+                                        "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
+                                        "status": "pending",
+                                        "success_url": "https://platnova.com/process?status=successful",
+                                        "cancel_url": "https://platnova.com/process?status=cancelled",
+                                        "source": "platform",
+                                        "entity": {
+                                            "category": "Technology",
+                                            "country_code": "NG",
+                                            "created_at": "2025-09-14T20:00:41.114031Z",
+                                            "description": "A leading technology solutions provider g",
+                                            "dial_code": "+234",
+                                            "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
+                                            "legal_name": "Techies 2 Ltd",
+                                            "name": "Techies 2 Ltd",
+                                            "phone": "8012345678",
+                                            "status": "ACTIVE",
+                                            "username": "techies2ltd"
+                                        },
+                                        "payment_options": [
+                                            {
+                                                "id": "defi"
+                                            }
+                                        ],
+                                        "created_at": "2026-05-05T15:57:19Z"
+                                    },
+                                    "error": [],
+                                    "message": "operation was successful"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/links": {
             "post": {
                 "summary": "Create payment link",
@@ -5896,6 +6310,10 @@
         {
             "name": "Transaction",
             "description": "List transactions and generate receipts"
+        },
+        {
+            "name": "Checkout",
+            "description": "Create and retrieve checkout sessions"
         },
         {
             "name": "Payment Link",

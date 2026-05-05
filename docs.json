@@ -66,6 +66,14 @@
             ]
           },
           {
+            "group": "Checkout",
+            "pages": [
+              "checkout/overview",
+              "checkout/initiating-checkout",
+              "checkout/retrieving-checkout"
+            ]
+          },
+          {
             "group": "Invoices",
             "pages": [
               "invoices/overview",
@@ -157,6 +165,13 @@
               "api-reference/links/create",
               "api-reference/links/get",
               "api-reference/links/list"
+            ]
+          },
+          {
+            "group": "Checkout",
+            "pages": [
+              "api-reference/checkout/create",
+              "api-reference/checkout/get"
             ]
           },
           {

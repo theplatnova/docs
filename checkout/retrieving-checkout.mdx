@@ -1,0 +1,56 @@
+---
+title: "Retrieving Checkout"
+slug: "checkout/retrieving-checkout"
+---
+
+Retrieve an existing checkout with `GET /v1/checkout/{id}` to confirm its latest state and details.
+
+## Example request
+
+```bash
+curl --location 'https://sandbox.api.platnova.co/v1/checkout/3e584f08-6a55-4b15-a97f-364a7d21071e' \
+  --header 'X-API-KEY: YOUR_API_KEY' \
+  --header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+## Example response
+
+```json
+{
+  "status": true,
+  "data": {
+    "amount": 2000.15,
+    "currency": "ngn",
+    "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "email": "jonathanemma121@gmail.com",
+    "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "status": "pending",
+    "success_url": "https://platnova.com/process?status=successful",
+    "cancel_url": "https://platnova.com/process?status=cancelled",
+    "source": "platform",
+    "entity": {
+      "category": "Technology",
+      "country_code": "NG",
+      "created_at": "2025-09-14T20:00:41.114031Z",
+      "description": "A leading technology solutions provider g",
+      "dial_code": "+234",
+      "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
+      "legal_name": "Techies 2 Ltd",
+      "name": "Techies 2 Ltd",
+      "phone": "8012345678",
+      "status": "ACTIVE",
+      "username": "techies2ltd"
+    },
+    "payment_options": [
+      {
+        "id": "defi"
+      }
+    ],
+    "created_at": "2026-05-05T15:57:19Z"
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+The response payload mirrors the create response and includes the latest checkout `status`. Use this endpoint when you need to fetch checkout details on demand in your backend.
