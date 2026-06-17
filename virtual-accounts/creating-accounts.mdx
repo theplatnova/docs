@@ -30,6 +30,28 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
 
 - **Account Type** - Current or savings account (defaults based on currency)
 - **Account Name** - Custom account name (defaults to customer name)
+- **Codes** - For NGN accounts, an array of provider bank codes used to select which provider issues the account (see [Choosing a Provider](#choosing-a-provider-ngn-accounts) below)
+
+## Choosing a Provider (NGN Accounts)
+
+For NGN virtual accounts, you can select which provider issues the account by passing its bank code in the `codes` field:
+
+| Provider | Bank Code |
+|---|---|
+| Palmpay | `100033` |
+| Paga | `100002` |
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "customer_123",
+    "currency": "NGN",
+    "id_number": "22123456789",
+    "codes": ["100033"]
+  }'
+```
 
 ## Account Response
 
