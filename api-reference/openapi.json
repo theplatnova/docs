@@ -1704,6 +1704,7 @@
                                 "$ref": "#/components/schemas/CreateCardRequest"
                             },
                             "example": {
+                                "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
                                 "currency": "ngn",
                                 "brand": "mastercard",
                                 "amount": 15000,
@@ -5881,7 +5882,14 @@
             },
             "CreateCardRequest": {
                 "type": "object",
+                "required": [
+                    "customer_id"
+                ],
                 "properties": {
+                    "customer_id": {
+                        "type": "string",
+                        "description": "Customer ID"
+                    },
                     "currency": {
                         "type": "string",
                         "description": "Card currency"
