@@ -1,8 +1,40 @@
 # docs — CLAUDE.md
 
-Documentation for the Platnova platform.
+**The public developer documentation, live at `docs.platnova.com`** — the API reference that external merchants integrate against. A [Mintlify](https://mintlify.com) site: 70 `.mdx` files, navigation and theme in `docs.json`.
 
-**Status: low-traffic.** Last substantive change 2026-06-17. Verify anything here against the code before relying on it — documentation drifts faster than it is corrected, and this repo has no CI to catch it.
+**Status: live and public.** Verified 2026-09-08. Low commit traffic (last substantive change 2026-06-17) but high consequence — this is a product surface, not an internal wiki.
+
+## This is publishing, not writing *(verified 2026-09-08)*
+
+`docs.platnova.com` serves this repo. **A merge here reaches every integrator, immediately, with no staging gate you control** — and there is no CI in this repo at all: no build check, no link check, no spell check, nothing. The only review is the one on the PR.
+
+So treat a change here the way you would treat a release: someone with authority over what Platnova tells its integrators should see it before it merges. Copy about fees, limits, compliance requirements or timelines is a regulated claim, not documentation.
+
+`main` and `dev` are currently identical (0 commits apart in both directions), so there is no work-branch subtlety here — but that also means nothing is staged behind `dev`.
+
+## It documents `api`, and nothing keeps them in sync
+
+Every endpoint here belongs to **`api`** (the merchant backend), not `engine`:
+
+| documented | environment base URL |
+|---|---|
+| sandbox | `https://sandbox.api.platnova.co` |
+| live | `https://api.platnova.com` |
+
+Pages under `api-reference/` declare their endpoint in frontmatter (`openapi: 'GET /v1/cards'`) — but **that string is not generated from `api`'s source and nothing validates it.** There is no OpenAPI spec exported from the Go code, no contract test, no CI check. An endpoint renamed, a field removed or an auth rule changed in `api` leaves this site confidently describing something that no longer exists, and the first person to notice is an integrator whose call fails.
+
+**So: when you change a route, request body or error shape in `api`, update the page here in the same change.** That discipline is the only mechanism there is. It is also the cheapest possible fix for the failure this workspace already had — a merchant who got `"invalid input"` when the real cause was a missing BVN.
+
+Auth is `X-API-Key` (`api/internal/common/middleware/credential.go:98`). `Authorization` is for JWT and Token credentials, which are not what integrators use.
+
+## Two defects found on the live site, 2026-09-08
+
+Recorded because both are the same class — **starter-template and copy-paste residue reaching real integrators** — and because finding them took reading the published HTML, not the repo:
+
+1. **Mintlify's starter "plant store" example was live.** `api-reference/endpoint/{create,get,delete}.mdx` documented `GET /plants`, `POST /plants`, `DELETE /plants/{id}`. They were absent from `docs.json` navigation, so they looked harmless — but Mintlify publishes any page that exists, and `docs.platnova.com/api-reference/endpoint/get` returned HTTP 200 with the title *"Get Plants - Platnova Docs"* and matching OpenGraph metadata, so it previewed that way when shared and was indexable.
+2. **`authentication.mdx` contradicted itself.** The prose said to send the key in the `Authorization` header while its own example used `X-API-Key`. The example was right. An integrator following the sentence gets an auth failure that the page cannot help them debug.
+
+**Being absent from `docs.json` does not mean a page is unpublished.** Check the live URL, not just the navigation.
 
 ## What matters here
 
