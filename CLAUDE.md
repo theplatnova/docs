@@ -72,3 +72,17 @@ Every push triggers a `claude-review` workflow that posts an inline review.
 **When every finding is handled, post a closing summary** saying what was fixed, what was rejected and why, so a human reviewer sees a resolved state rather than an open one. To confirm none were missed, diff the bot's comment ids against the `in_reply_to_id` values of your replies.
 
 **If the `review` check fails with no comments posted, the workflow itself errored** — read the run log rather than assuming the PR is at fault. It has failed org-wide twice for reasons that had nothing to do with any PR: once when the Anthropic account ran out of credits, and once because a repo pinned no model and defaulted to one its key could not use. Both reported as "review found problems" when in fact no review ran.
+
+## Keep this file true
+
+**Record what you learn, in the same change that taught you.** If your work established or corrected a convention, revealed a trap that is invisible from the code, or proved something in this file wrong, update `CLAUDE.md` **in the same PR** — not later, not as a follow-up ticket. This is opportunistic maintenance done as part of the work that surfaced it, the same rule the knowledge graph already follows.
+
+**Deciding there is nothing to record is a fine answer.** Forgetting to decide is the failure.
+
+**Date what you verify; mark what you assume.** A fact checked today should say so, and a fact taken on trust should say *unverified* — then correcting it later is a small edit rather than an argument. A confidently wrong file is worse than no file, because it gets believed.
+
+**Delete as readily as you add.** Anything the code already says plainly does not belong here; it dilutes the material that does. What belongs is a rule about how something must be done here, a trap invisible from the code, or a correction to an assumption someone reasonably held.
+
+**When you find something that is broken rather than merely undocumented, raise it** — a ticket, a PR, a message. Writing a defect into this file and moving on documents the problem instead of fixing it.
+
+A `Stop` hook and an advisory CI check both notice when a session changed something conventional and left this file untouched. Neither can tell whether you learned anything — nothing can. They exist to make the decision conscious, not to make it for you.
