@@ -1,0 +1,10 @@
+---
+title: "List Banks"
+openapi: "GET /v1/banks/{country_code}"
+---
+
+## Overview
+
+Every bank you can send to in a country, with the `code` each one needs. That `code` is the `bank_code` you pass to [Verify a bank account](/api-reference/banks/verify) and in `info.bank_code` on [Send payment](/api-reference/payments/send).
+
+Codes are specific to our payment provider in each country. A Nigerian bank's code here can differ from the CBN code you may hold from another provider, so always take the code from this list rather than a list of your own. Cache it for at most a day.

@@ -3626,7 +3626,7 @@
                                 "$ref": "#/components/schemas/SendPaymentRequest"
                             },
                             "example": {
-                                "from_amount": 100.50,
+                                "from_amount": 100.5,
                                 "from_wallet_id": "43a2b75e-5c59-429e-872a-2a54c7b17e37",
                                 "to_currency": "NGN",
                                 "payment_method": "bank_transfer",
@@ -5521,6 +5521,386 @@
                     }
                 }
             }
+        },
+        "/v1/banks/{country_code}": {
+            "get": {
+                "summary": "List banks",
+                "description": "Banks you can send to in a country, with the bank_code each one needs. Codes are specific to our payment provider for that country: a Nigerian bank's code here can differ from its CBN code, so always take the code from this list. Cache it for at most a day.",
+                "operationId": "listBanks",
+                "tags": [
+                    "Bank"
+                ],
+                "parameters": [
+                    {
+                        "name": "country_code",
+                        "in": "path",
+                        "required": true,
+                        "description": "ISO 3166-1 alpha-2 country code, e.g. NG, GH, KE",
+                        "schema": {
+                            "type": "string",
+                            "example": "NG"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Banks retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "description": "Bank name as the provider lists it"
+                                                    },
+                                                    "code": {
+                                                        "type": "string",
+                                                        "description": "The bank_code to use on verify and send. Provider-specific per country; do not substitute a code from another source."
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "status": true,
+                                        "data": [
+                                            {
+                                                "name": "Access Bank",
+                                                "code": "044"
+                                            },
+                                            {
+                                                "name": "GTBank",
+                                                "code": "058"
+                                            },
+                                            {
+                                                "name": "OPay",
+                                                "code": "100004"
+                                            }
+                                        ],
+                                        "error": [],
+                                        "message": "operation was successful"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. unknown country or bank code, provider unavailable)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/banks/{country_code}/{bank_code}": {
+            "get": {
+                "summary": "List bank branches",
+                "description": "Branches of a bank, for countries whose transfers need a branch_code (Ghana and Kenya do; Nigeria does not). The branch code goes into info.branch_code on the send request.",
+                "operationId": "listBankBranches",
+                "tags": [
+                    "Bank"
+                ],
+                "parameters": [
+                    {
+                        "name": "country_code",
+                        "in": "path",
+                        "required": true,
+                        "description": "ISO 3166-1 alpha-2 country code, e.g. NG, GH, KE",
+                        "schema": {
+                            "type": "string",
+                            "example": "NG"
+                        }
+                    },
+                    {
+                        "name": "bank_code",
+                        "in": "path",
+                        "required": true,
+                        "description": "A code from the bank list",
+                        "schema": {
+                            "type": "string",
+                            "example": "GH010100"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Branches retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "branch_code": {
+                                                        "type": "string"
+                                                    },
+                                                    "branch_name": {
+                                                        "type": "string"
+                                                    },
+                                                    "swift_code": {
+                                                        "type": "string"
+                                                    },
+                                                    "bic": {
+                                                        "type": "string"
+                                                    },
+                                                    "bank_id": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "status": true,
+                                        "data": [
+                                            {
+                                                "id": 1,
+                                                "branch_code": "GH010101",
+                                                "branch_name": "Accra Main",
+                                                "swift_code": "GHIBGHAC",
+                                                "bic": "GHIB",
+                                                "bank_id": 230
+                                            }
+                                        ],
+                                        "error": [],
+                                        "message": "operation was successful"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. unknown country or bank code, provider unavailable)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/banks/verify": {
+            "post": {
+                "summary": "Verify a bank account",
+                "description": "Resolves an account number at a bank to the account holder's name so you can show it before sending. Call this before every bank transfer; a wrong bank_code or account number is refused here rather than after the money has moved.",
+                "operationId": "verifyBankAccount",
+                "tags": [
+                    "Bank"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "account_number",
+                                    "bank_code",
+                                    "country_code"
+                                ],
+                                "properties": {
+                                    "account_number": {
+                                        "type": "string",
+                                        "example": "0123456789"
+                                    },
+                                    "bank_code": {
+                                        "type": "string",
+                                        "description": "From the bank list",
+                                        "example": "044"
+                                    },
+                                    "country_code": {
+                                        "type": "string",
+                                        "example": "NG"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Account resolved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "account_number": {
+                                                    "type": "string"
+                                                },
+                                                "account_name": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "status": true,
+                                        "data": {
+                                            "account_number": "0123456789",
+                                            "account_name": "ADAEZE OBI"
+                                        },
+                                        "error": [],
+                                        "message": "operation was successful"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Account could not be resolved (wrong number, wrong bank_code, or provider unavailable)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/banks/suggest": {
+            "post": {
+                "summary": "Suggest banks for an account number",
+                "description": "When you have an account number but not the bank: returns banks we have previously paid this account number through. A hint, not a lookup; still call verify with the code you pick.",
+                "operationId": "suggestBanks",
+                "tags": [
+                    "Bank"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "account_number"
+                                ],
+                                "properties": {
+                                    "account_number": {
+                                        "type": "string",
+                                        "example": "0123456789"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Suggestions (may be empty)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "bank_code": {
+                                                        "type": "string"
+                                                    },
+                                                    "bank_name": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "status": true,
+                                        "data": [
+                                            {
+                                                "bank_code": "058",
+                                                "bank_name": "GTBank"
+                                            }
+                                        ],
+                                        "error": [],
+                                        "message": "operation was successful"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. unknown country or bank code, provider unavailable)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -6318,6 +6698,10 @@
         {
             "name": "Invoice",
             "description": "Create and manage invoices"
+        },
+        {
+            "name": "Bank",
+            "description": "Bank lists and account verification for bank transfers"
         }
     ]
 }

@@ -1,0 +1,8 @@
+---
+title: "Suggest Banks for an Account Number"
+openapi: "POST /v1/banks/suggest"
+---
+
+## Overview
+
+When you have an account number but not the bank, this returns the banks we have previously paid that account number through. It is a hint from past transfers, not a lookup against the banking network: the list can be empty, and you should still [verify](/api-reference/banks/verify) with the code you pick.

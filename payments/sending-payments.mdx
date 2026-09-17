@@ -44,6 +44,17 @@ curl -X POST https://api.platnova.com/v1/payments/send \
 - **payment_type** – `instant`, `scheduled`, or `recurring` (default: instant)
 - **is_save_to_beneficiary** – Save recipient as beneficiary
 
+## Finding the bank_code
+
+`bank_code` is not a CBN or SWIFT code; it is the code our payment provider uses for that bank in that country. Get it from [List banks](/api-reference/banks/list) for the recipient's country, and use it as-is:
+
+1. `GET /v1/banks/{country_code}` lists every bank with its `code`.
+2. For Ghana and Kenya, `GET /v1/banks/{country_code}/{bank_code}` lists branches; pass the chosen `branch_code` in `info.branch_code`.
+3. `POST /v1/banks/verify` resolves the account number to the holder's name before you send.
+4. If you only have an account number, `POST /v1/banks/suggest` returns banks we have paid it through before.
+
+Cache the bank list for at most a day. All four endpoints need your API key.
+
 ## Payment Response
 
 ```json

@@ -1,0 +1,8 @@
+---
+title: "List Bank Branches"
+openapi: "GET /v1/banks/{country_code}/{bank_code}"
+---
+
+## Overview
+
+Some countries route transfers by branch as well as bank. Ghana and Kenya do; Nigeria does not. For those countries, pick a branch here and send its `branch_code` in `info.branch_code` on [Send payment](/api-reference/payments/send).

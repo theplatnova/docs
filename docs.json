@@ -146,6 +146,15 @@
             ]
           },
           {
+            "group": "Banks",
+            "pages": [
+              "api-reference/banks/list",
+              "api-reference/banks/branches",
+              "api-reference/banks/verify",
+              "api-reference/banks/suggest"
+            ]
+          },
+          {
             "group": "Payments",
             "pages": [
               "api-reference/payments/send",
