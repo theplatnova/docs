@@ -27,7 +27,7 @@ Only use the live environment after thorough testing in sandbox and receiving ap
 ```bash
 # Sandbox API calls
 curl -X POST https://sandbox.api.platnova.co/v1/cards \
-  -H "Authorization: Bearer YOUR_SANDBOX_API_KEY" \
+  -H "X-API-Key: YOUR_SANDBOX_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"user_id": "test_user_123", "spending_limit": 1000}'
 ```
@@ -37,7 +37,7 @@ curl -X POST https://sandbox.api.platnova.co/v1/cards \
 ```bash
 # Live API calls
 curl -X POST https://api.platnova.com/v1/cards \
-  -H "Authorization: Bearer YOUR_LIVE_API_KEY" \
+  -H "X-API-Key: YOUR_LIVE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"user_id": "user_123", "spending_limit": 1000}'
 ```

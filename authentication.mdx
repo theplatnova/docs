@@ -31,7 +31,7 @@ Contact our support team at [support@platnova.com](mailto:support@platnova.com) 
 
 ### Using Your API Key
 
-Include your API key in the `Authorization` header of your requests:
+Include your API key in the `X-API-Key` header of your requests. Platnova does **not** accept the API key in an `Authorization` header — that header is reserved for JWT and Token credentials, which are not used for API integrations.
 
 ```bash
 curl -X POST https://api.platnova.com/v1/cards \
