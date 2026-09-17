@@ -1,0 +1,10 @@
+---
+title: "Verify a Bank Account"
+openapi: "POST /v1/banks/verify"
+---
+
+## Overview
+
+Resolves an account number at a bank to the account holder's name. Show the name to whoever is paying before you send: a wrong `bank_code` or a mistyped account number is refused here, rather than after the money has moved.
+
+`bank_code` must come from [List banks](/api-reference/banks/list) for the same `country_code`.
