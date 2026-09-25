@@ -1,0 +1,8 @@
+---
+title: "Link Physical Card"
+openapi: "POST /v1/cards/physical/link"
+---
+
+## Overview
+
+Link a Platnova physical card to one of your customers. Pass the card number (PAN) printed on the card, the card brand, and the customer's ID. Linking runs in the background: the card is returned with a `processing` status and becomes `active` once linking completes, at which point a `card.created` webhook is sent. Spending limits and channels can only be set at link time. The customer must be active and have an identity document number or BVN, a date of birth, and an address on their profile. See the [Physical Cards guide](/card/physical-cards) for the full flow.

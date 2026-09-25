@@ -1,0 +1,209 @@
+---
+title: "Physical Cards"
+slug: "card/physical-cards"
+---
+
+Issue Platnova physical cards to your customers. Platnova supplies you with physical cards, you hand them to your customers, and you use the API to link each card to a customer, set its PIN, and manage it.
+
+Physical cards are NGN debit cards that can be used at ATMs, POS terminals, and online.
+
+## How It Works
+
+<Steps>
+  <Step title="Receive your cards">
+    Platnova ships a batch of physical cards to your business. Card ordering and delivery are arranged with our team offline, so there is no API call for ordering.
+  </Step>
+  <Step title="Hand a card to your customer">
+    Distribute the cards to your customers however suits your business, for example in a branch, by courier, or at an event.
+  </Step>
+  <Step title="Link the card">
+    Call the link endpoint with the customer's ID and the card number printed on the card. Linking runs in the background and the card starts in `processing`.
+  </Step>
+  <Step title="Wait for activation">
+    You receive a `card.created` webhook once the card is active. You can also poll [Get Card](/api-reference/cards/get).
+  </Step>
+  <Step title="Set the PIN">
+    Set a PIN on the card before your customer uses it.
+  </Step>
+</Steps>
+
+## Prerequisites
+
+- An API key (see [Authentication](/authentication))
+- The **Cards** feature enabled on your business
+- A customer who is **active** and whose profile includes:
+  - An identity document number (for example NIN, driver's licence or passport) **or** a BVN
+  - Date of birth
+  - Address
+
+Linking fails straight away if any of these are missing. See [Customer KYC](/customers/kyc) for how to submit them.
+
+## Linking a Card
+
+Send the full card number (PAN) from the front of the card, the card brand, and the customer it belongs to:
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards/physical/link \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+    "pan": "5061 2345 6789 0123",
+    "brand": "verve"
+  }'
+```
+
+The response includes the new `card_id`. Store it, because you use it for every later call on this card.
+
+```json
+{
+  "status": true,
+  "data": {
+    "customer": {
+      "id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "johndoe@email.com"
+    },
+    "card_id": "18ee492a-617c-4878-958a-2ee08dc20ff4",
+    "card_status": "processing",
+    "card_brand": "verve",
+    "card_currency": "ngn",
+    "amount_debited": 0
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+Spaces in the PAN are ignored. Each card can only be linked once. Linking the same card again returns `this card has already been linked`.
+
+### Spending Controls
+
+You can set spending limits and allowed channels when you link the card. Both are optional.
+
+```json
+{
+  "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+  "pan": "5061234567890123",
+  "brand": "verve",
+  "limits": [
+    { "amount": 50000, "interval": "daily" },
+    { "amount": 500000, "interval": "monthly" }
+  ],
+  "channels": {
+    "atm": true,
+    "pos": true,
+    "web": false,
+    "mobile": true
+  }
+}
+```
+
+- **limits**: the maximum spend per `daily`, `weekly`, `monthly` or `yearly` interval, in NGN. Leave it out for no limits.
+- **channels**: where the card can be used. Leave it out to allow all channels.
+
+<Warning>
+Spending controls can only be set when the card is linked. They cannot be changed afterwards, so choose them carefully.
+</Warning>
+
+## Tracking Activation
+
+Linking usually completes within a few seconds. When it does, Platnova sends a `card.created` event to your webhook URL:
+
+```json
+{
+  "event": "card.created",
+  "timestamp": "2026-09-25T10:15:32Z",
+  "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+  "data": {
+    "card_id": "18ee492a-617c-4878-958a-2ee08dc20ff4",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "ngn",
+    "amount": 0,
+    "card_info": {
+      "masked_pan": "506123******0123",
+      "last4": "0123",
+      "expiry_month": "09",
+      "expiry_year": "2029",
+      "type": "physical",
+      "brand": "verve",
+      "name_on_card": "John Doe"
+    }
+  }
+}
+```
+
+See [Webhooks](/webhooks/overview) to set up and verify webhook deliveries.
+
+If you prefer polling, call [Get Card](/api-reference/cards/get) with the `card_id`:
+
+| Status | Meaning |
+| --- | --- |
+| `processing` | The card is being linked. |
+| `active` | The card is linked and ready. Set a PIN next. |
+| `canceled` | Linking failed. Check the customer's KYC details and the card number, then link again. |
+
+<Note>
+No webhook is sent when linking fails. If a card stays in `processing` or moves to `canceled`, check its status with Get Card.
+</Note>
+
+## Setting the Card PIN
+
+Once the card is `active`, set a 4-digit PIN for your customer:
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards/physical/{card_id}/reset_pin \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "pin": "4821" }'
+```
+
+Use the same endpoint whenever your customer forgets their PIN or wants to change it. The new PIN takes effect immediately.
+
+<Warning>
+Never log or store PINs in your system. Collect the PIN from your customer and send it straight to Platnova.
+</Warning>
+
+## Updating a Card
+
+Update the colours your app uses to display the card:
+
+```bash
+curl -X PATCH https://api.platnova.com/v1/cards/physical/{card_id} \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "colors": ["#0A2540", "#635BFF"] }'
+```
+
+This only changes how the card is displayed. It does not change spending limits or channels.
+
+## Rate Limits
+
+Physical card endpoints allow **4 requests per minute**. Link and PIN requests are also processed one at a time for your business, so wait for each request to finish before sending the next. Use the `X-Ratelimit-Remaining` and `X-Ratelimit-Reset` response headers to pace your calls.
+
+## Common Errors
+
+| Message | What to do |
+| --- | --- |
+| `customer was not found` | Check the `customer_id` belongs to your business. |
+| `customer is not active` | Complete the customer's KYC before linking. |
+| `customer does not have required KYC documents for card linking` | Add an identity document number or BVN to the customer. |
+| `customer date of birth and address are required for card linking` | Update the customer with a date of birth and address. |
+| `pan must be a 16 to 19 digit card number` | Re-enter the number printed on the card. |
+| `this card has already been linked` | This card is already linked to a customer. |
+| `pin can only be reset on an active card` | Wait for the card to become `active`. |
+| `pin reset is only supported for linked physical cards` | The `card_id` belongs to a virtual card. |
+
+## Best Practices
+
+- Store the `card_id` from the link response against your customer record
+- Listen for `card.created` instead of polling in a tight loop
+- Ask your customer to choose a PIN as soon as the card is active
+- Confirm the last 4 digits with your customer before linking, so you don't link the wrong card
+
+## Next Steps
+
+- See the [Link Physical Card](/api-reference/cards/link-physical) API reference
+- Set up [Webhooks](/webhooks/overview) to track card activation

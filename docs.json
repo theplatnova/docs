@@ -37,6 +37,7 @@
               "card/overview",
               "card/quickstart",
               "card/management",
+              "card/physical-cards",
               "card/funding"
             ]
           },
@@ -134,7 +135,10 @@
               "api-reference/cards/freeze",
               "api-reference/cards/unfreeze",
               "api-reference/cards/reveal",
-              "api-reference/cards/events"
+              "api-reference/cards/events",
+              "api-reference/cards/link-physical",
+              "api-reference/cards/update-physical",
+              "api-reference/cards/reset-physical-pin"
             ]
           },
           {
