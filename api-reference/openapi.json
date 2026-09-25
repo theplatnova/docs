@@ -5521,6 +5521,402 @@
                     }
                 }
             }
+        },
+        "/v1/cards/physical/link": {
+            "post": {
+                "summary": "Link physical card",
+                "description": "Link a Platnova physical card to a customer. Linking completes in the background and a card.created webhook is sent when the card is active.",
+                "operationId": "linkPhysicalCard",
+                "tags": [
+                    "Card"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LinkPhysicalCardRequest"
+                            },
+                            "example": {
+                                "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+                                "pan": "5061234567890123",
+                                "brand": "verve",
+                                "limits": [
+                                    {
+                                        "amount": 50000,
+                                        "interval": "daily"
+                                    }
+                                ],
+                                "channels": {
+                                    "atm": true,
+                                    "pos": true,
+                                    "web": false,
+                                    "mobile": true
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200 - Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "customer": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "first_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "last_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "format": "email"
+                                                        }
+                                                    }
+                                                },
+                                                "card_id": {
+                                                    "type": "string",
+                                                    "description": "ID of the linked card. Store this for later calls."
+                                                },
+                                                "card_status": {
+                                                    "type": "string",
+                                                    "description": "Always processing. The card becomes active when linking completes."
+                                                },
+                                                "card_brand": {
+                                                    "type": "string"
+                                                },
+                                                "card_currency": {
+                                                    "type": "string"
+                                                },
+                                                "amount_debited": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": true,
+                                    "data": {
+                                        "customer": {
+                                            "id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+                                            "first_name": "John",
+                                            "last_name": "Doe",
+                                            "email": "johndoe@email.com"
+                                        },
+                                        "card_id": "18ee492a-617c-4878-958a-2ee08dc20ff4",
+                                        "card_status": "processing",
+                                        "card_brand": "verve",
+                                        "card_currency": "ngn",
+                                        "amount_debited": 0
+                                    },
+                                    "error": [],
+                                    "message": "operation was successful"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "400 - Card already linked",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "example": {
+                                    "status": false,
+                                    "data": {},
+                                    "error": [],
+                                    "message": "this card has already been linked"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "403 - Customer not active",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "example": {
+                                    "status": false,
+                                    "data": {},
+                                    "error": [],
+                                    "message": "customer is not active"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "422 - Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "description": "Field name to list of error messages"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": "error",
+                                    "message": "Validation failed",
+                                    "errors": {
+                                        "brand": [
+                                            "Invalid value"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/cards/physical/{card_id}": {
+            "parameters": [
+                {
+                    "name": "card_id",
+                    "in": "path",
+                    "required": true,
+                    "description": "ID of the physical card, returned as card_id when the card was linked",
+                    "example": "18ee492a-617c-4878-958a-2ee08dc20ff4",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "patch": {
+                "summary": "Update physical card",
+                "description": "Update the display colours of a physical card.",
+                "operationId": "updatePhysicalCard",
+                "tags": [
+                    "Card"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePhysicalCardRequest"
+                            },
+                            "example": {
+                                "colors": [
+                                    "#0A2540",
+                                    "#635BFF"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200 - Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": true,
+                                    "data": {},
+                                    "error": [],
+                                    "message": "operation was successful"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "400 - Card not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "example": {
+                                    "status": false,
+                                    "data": {},
+                                    "error": [],
+                                    "message": "card not found"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/cards/physical/{card_id}/reset_pin": {
+            "parameters": [
+                {
+                    "name": "card_id",
+                    "in": "path",
+                    "required": true,
+                    "description": "ID of the physical card, returned as card_id when the card was linked",
+                    "example": "18ee492a-617c-4878-958a-2ee08dc20ff4",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "post": {
+                "summary": "Reset physical card PIN",
+                "description": "Set a new 4-digit PIN on an active physical card.",
+                "operationId": "resetPhysicalCardPin",
+                "tags": [
+                    "Card"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetPhysicalCardPinRequest"
+                            },
+                            "example": {
+                                "pin": "4821"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200 - Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        },
+                                        "error": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": true,
+                                    "data": {},
+                                    "error": [],
+                                    "message": "operation was successful"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "400 - Card not active",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "example": {
+                                    "status": false,
+                                    "data": {},
+                                    "error": [],
+                                    "message": "pin can only be reset on an active card"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "422 - Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "description": "Field name to list of error messages"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "status": "error",
+                                    "message": "Validation failed",
+                                    "errors": {
+                                        "pin": [
+                                            "This field is required"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -6269,6 +6665,109 @@
                             "cancelled"
                         ],
                         "description": "New invoice status"
+                    }
+                }
+            },
+            "LinkPhysicalCardRequest": {
+                "type": "object",
+                "required": [
+                    "customer_id",
+                    "pan",
+                    "brand"
+                ],
+                "properties": {
+                    "customer_id": {
+                        "type": "string",
+                        "description": "ID of the customer the card is being given to. The customer must be active."
+                    },
+                    "pan": {
+                        "type": "string",
+                        "description": "The 16 to 19 digit card number printed on the card. Spaces are ignored."
+                    },
+                    "brand": {
+                        "type": "string",
+                        "enum": [
+                            "mastercard",
+                            "visa",
+                            "verve"
+                        ],
+                        "description": "Card brand shown on the card"
+                    },
+                    "colors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Colours used to display the card in your app"
+                    },
+                    "limits": {
+                        "type": "array",
+                        "description": "Spending limits. Leave out for no limits. Cannot be changed after linking.",
+                        "items": {
+                            "type": "object",
+                            "required": [
+                                "amount",
+                                "interval"
+                            ],
+                            "properties": {
+                                "amount": {
+                                    "type": "number",
+                                    "description": "Maximum spend in NGN for the interval"
+                                },
+                                "interval": {
+                                    "type": "string",
+                                    "enum": [
+                                        "daily",
+                                        "weekly",
+                                        "monthly",
+                                        "yearly"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "channels": {
+                        "type": "object",
+                        "description": "Channels the card can be used on. Leave out to allow all channels. Cannot be changed after linking.",
+                        "properties": {
+                            "atm": {
+                                "type": "boolean"
+                            },
+                            "pos": {
+                                "type": "boolean"
+                            },
+                            "web": {
+                                "type": "boolean"
+                            },
+                            "mobile": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                }
+            },
+            "ResetPhysicalCardPinRequest": {
+                "type": "object",
+                "required": [
+                    "pin"
+                ],
+                "properties": {
+                    "pin": {
+                        "type": "string",
+                        "pattern": "^[0-9]{4}$",
+                        "description": "New 4-digit PIN"
+                    }
+                }
+            },
+            "UpdatePhysicalCardRequest": {
+                "type": "object",
+                "properties": {
+                    "colors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Colours used to display the card in your app"
                     }
                 }
             }
