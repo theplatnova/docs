@@ -29,22 +29,36 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 - **email**: Customer email for the checkout.
 - **amount**: Amount to collect.
 - **currency**: Currency code (for example `ngn`).
-- **payment_options**: Array of accepted payment options. Supported `id` values are:
-  - `defi`
-  - `bank_transfer`
-  - `novatag`
+- **payment_options**: Optional. The ways the payer may pay. **Leave it out to offer every method that is live for the currency** — that is the recommended default, and new methods reach your payers as we switch them on. Send it only to restrict the checkout to specific methods. Supported `id` values:
+
+| `id` | What the payer does | Currencies |
+|---|---|---|
+| `tag_transfer` | Pays from their Platnova wallet by scanning a QR code | all |
+| `bank_transfer` | Transfers to a one-time account number | NGN |
+| `card` | Enters their card on a secure page | NGN, USD, EUR, GBP, CAD |
+| `apple_pay` | One tap on an iPhone, iPad or Mac | USD, EUR, GBP, CAD (NGN soon) |
+| `google_pay` | One tap in Chrome or on Android | USD, EUR, GBP, CAD (NGN soon) |
+| `opay` | Approves the payment in their OPay app | NGN |
+| `ussd` | Dials a code from any phone, no internet banking needed | NGN |
+| `mobile_money` | Approves a prompt on their phone | GHS, KES, UGX, RWF, TZS, ZMW, XAF, XOF |
+| `crypto` | Pays in crypto | all |
+
+A method that is not live for the checkout's currency is left off the page even if you list it. `novatag` and `defi` are accepted as older spellings of `tag_transfer` and `crypto`.
 
 ## Payment option values
 
-Use any of these values in `payment_options[].id`:
+To restrict a checkout, list the methods you want:
 
 ```json
 [
-  { "id": "defi" },
   { "id": "bank_transfer" },
-  { "id": "novatag" }
+  { "id": "ussd" },
+  { "id": "opay" },
+  { "id": "card" }
 ]
 ```
+
+To offer everything, omit `payment_options` from the request.
 
 ## Example response
 
