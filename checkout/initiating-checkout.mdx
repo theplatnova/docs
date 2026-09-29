@@ -40,10 +40,10 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 | `google_pay` | One tap in Chrome or on Android | USD, EUR, GBP, CAD (NGN soon) |
 | `opay` | Approves the payment in their OPay app | NGN |
 | `ussd` | Dials a code from any phone, no internet banking needed | NGN |
-| `mobile_money` | Approves a prompt on their phone | GHS, KES, UGX, RWF, TZS, ZMW, XAF, XOF |
+| `mobile_money` | Approves a prompt on their phone, paying from a Ghanaian, Kenyan, Ugandan, Rwandan or Tanzanian wallet in that currency at Platnova's rate | all |
 | `crypto` | Pays in crypto | all |
 
-A method that is not live for the checkout's currency is left off the page even if you list it. `novatag` and `defi` are accepted as older spellings of `tag_transfer` and `crypto`.
+A method that is not live for the checkout's currency is left off the page even if you list it. Mobile money is cross-currency: the payer sees what they will pay in their own currency, you are settled the checkout amount in yours, and the conversion is Platnova's, not yours. `novatag` and `defi` are accepted as older spellings of `tag_transfer` and `crypto`.
 
 ## Payment option values
 
