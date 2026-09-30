@@ -4155,6 +4155,7 @@
                             "apple_pay",
                             "google_pay",
                             "opay",
+                            "bank_account",
                             "ussd",
                             "mobile_money",
                             "crypto"
@@ -4273,6 +4274,7 @@
                                   "apple_pay",
                                   "google_pay",
                                   "opay",
+                            "bank_account",
                                   "ussd",
                                   "mobile_money",
                                   "crypto"
@@ -4481,6 +4483,7 @@
                                   "apple_pay",
                                   "google_pay",
                                   "opay",
+                            "bank_account",
                                   "ussd",
                                   "mobile_money",
                                   "crypto"
