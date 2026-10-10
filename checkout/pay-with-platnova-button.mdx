@@ -1,0 +1,227 @@
+---
+title: "Pay with Platnova button"
+slug: "checkout/pay-with-platnova-button"
+description: "Add a branded Pay with Platnova button to your site that opens Platnova's hosted checkout."
+---
+
+Put a branded **Pay with Platnova** button on your website. When your customer clicks it, they go to Platnova's hosted checkout at `pay.platnova.com`. The checkout shows every payment method that is live for the currency, and then sends them back to your site.
+
+The button never sees your API key. Your **server** creates the checkout with your key and passes only the checkout link to the browser.
+
+<Warning>
+Never put your API key in browser code, HTML, or a mobile app bundle. Anyone who loads your page could read it and use it. The button script refuses any option that looks like a key.
+</Warning>
+
+## How it works
+
+1. Your server calls [`POST /v1/checkout`](/checkout/initiating-checkout) with your API key.
+2. Your server gives the returned `data.url` to the browser.
+3. The button sends your customer to that link, and they pay on Platnova's hosted checkout.
+4. After a successful payment, Platnova sends them to your `success_url`.
+5. Your server confirms the payment with a [webhook](#5-confirm-the-payment-on-your-server) or by [retrieving the checkout](/checkout/retrieving-checkout). Don't rely on the redirect alone.
+
+## 1. Create the checkout on your server
+
+Use your API key in the `X-API-KEY` header. Leave out `payment_options` to offer every payment method that is live for the currency. New methods then reach your customers as we turn them on.
+
+<CodeGroup>
+
+```bash curl
+curl --request POST 'https://api.platnova.com/v1/checkout' \
+  --header 'X-API-KEY: YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "email": "customer@example.com",
+    "first_name": "Ada",
+    "last_name": "Obi",
+    "amount": 25000,
+    "currency": "ngn",
+    "success_url": "https://shop.example.com/orders/1042/paid",
+    "cancel_url": "https://shop.example.com/orders/1042"
+  }'
+```
+
+```js Node.js (Express)
+// server.js — runs on your server, never in the browser.
+import express from 'express';
+
+const app = express();
+const PLATNOVA_API = 'https://api.platnova.com'; // sandbox: https://sandbox.api.platnova.co
+
+app.post('/api/orders/:orderId/checkout', async (req, res) => {
+  const order = await findOrder(req.params.orderId); // your own lookup: price comes from your server, not the browser
+
+  const response = await fetch(`${PLATNOVA_API}/v1/checkout`, {
+    method: 'POST',
+    headers: {
+      'X-API-KEY': process.env.PLATNOVA_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: order.customerEmail,
+      first_name: order.customerFirstName,
+      last_name: order.customerLastName,
+      amount: order.total,
+      currency: order.currency, // e.g. "ngn"
+      success_url: `https://shop.example.com/orders/${order.id}/paid`,
+      cancel_url: `https://shop.example.com/orders/${order.id}`,
+    }),
+  });
+
+  const body = await response.json();
+  if (!response.ok || !body.status) {
+    return res.status(502).json({ error: 'Could not start checkout' });
+  }
+
+  await saveCheckoutId(order.id, body.data.id); // keep it to confirm the payment later
+  res.json({ url: body.data.url });
+});
+```
+
+</CodeGroup>
+
+The response contains the checkout `id` and the hosted checkout `url`:
+
+```json
+{
+  "status": true,
+  "data": {
+    "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "status": "pending",
+    "amount": 25000,
+    "currency": "ngn",
+    "success_url": "https://shop.example.com/orders/1042/paid",
+    "cancel_url": "https://shop.example.com/orders/1042"
+  }
+}
+```
+
+See [Initiating checkout](/checkout/initiating-checkout) for every request field, including `payment_options` if you want to offer only some methods.
+
+<Info>
+Save `data.id` against your order. You'll need it to confirm the payment. Put your own order id in `success_url`, because Platnova redirects to it exactly as you sent it, with nothing added.
+</Info>
+
+## 2. Add the script to your page
+
+Load the script once, on any page that shows the button:
+
+```html
+<script src="https://pay.platnova.com/js/v1/pay-button.js" defer></script>
+```
+
+It has no dependencies and makes no network requests of its own. `v1` is a stable version: we fix bugs inside it but never change how it behaves. If your site sends a Content Security Policy, allow `https://pay.platnova.com` in `script-src`.
+
+## 3. Show the button
+
+Pick whichever fits how your page is built.
+
+### Option A: you already have the link when the page renders
+
+Render the checkout `url` from step 1 into the page:
+
+```html
+<a href="https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e" data-platnova-pay-button>
+  Pay with Platnova
+</a>
+```
+
+The script replaces the link with the branded button. If the script doesn't load, the customer still has a working link. A checkout link stays valid for 7 days, so for pages that stay open longer, use option B. You can also use a container:
+
+```html
+<div
+  data-platnova-pay-button
+  data-checkout-url="https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e"
+  data-theme="dark"
+></div>
+```
+
+### Option B: create the checkout when the customer clicks
+
+This is best when the cart can change, or when you don't want to create a checkout for every page view. Call `PlatnovaPay.button` with a `createCheckout` function that asks **your** server for a fresh link:
+
+```html
+<div id="pay-with-platnova"></div>
+
+<script src="https://pay.platnova.com/js/v1/pay-button.js" defer></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    PlatnovaPay.button('#pay-with-platnova', {
+      createCheckout: async function () {
+        const res = await fetch('/api/orders/1042/checkout', { method: 'POST' });
+        if (!res.ok) throw new Error('checkout failed');
+        const { url } = await res.json();
+        return url; // returning the whole { url } object also works
+      },
+      onError: function (error) {
+        // Optional: report it. The button has already shown the customer a message.
+        console.error(error);
+      },
+    });
+  });
+</script>
+```
+
+While your server responds, the button shows a loading state and ignores repeat clicks. If `createCheckout` throws, takes longer than 20 seconds, or returns anything other than a Platnova checkout link, the button resets and shows *"We couldn't open checkout. Please try again."* It also calls `onError` and dispatches a `platnova:error` event that bubbles up from the button.
+
+### Options
+
+| Option | Attribute | Values | Default |
+|---|---|---|---|
+| `checkoutUrl` | `href` or `data-checkout-url` | A Platnova checkout link | — |
+| `createCheckout` | — | A function that returns the link (or `{ url }`), or a promise of one | — |
+| `theme` | `data-theme` | `purple`, `dark`, `light` | `purple` |
+| `size` | `data-size` | `small` (40px), `medium` (48px), `large` (56px) | `medium` |
+| `label` | `data-label` | Button text | `Pay with Platnova` |
+| `fullWidth` | `data-full-width` | Fills its container (good for mobile layouts) | off |
+| `mode` | — | `redirect` | `redirect` |
+| `onError` | — | Called with the error when `createCheckout` fails | — |
+
+Pass either `checkoutUrl` or `createCheckout`, not both. `PlatnovaPay.button` returns `{ element, destroy }`. If your single-page app adds buttons after the page loads, call `PlatnovaPay.init()` to pick them up.
+
+<Note>
+The button only ever sends customers to Platnova's checkout (`https://pay.platnova.com`, plus the sandbox checkout host). It refuses any other link, so nobody can use it to redirect your customers somewhere else. A link it refuses is left exactly as you wrote it, and the reason is logged in the browser console.
+</Note>
+
+The button renders in its own isolated styles (Shadow DOM), so your site's CSS won't change how it looks. It is a real link or button, so it works with the keyboard and screen readers, and it shows a visible focus ring.
+
+## 4. Handle the redirect back
+
+After a successful payment, the checkout shows a confirmation and then sends the customer to your `success_url`. Use that page to thank them. A customer who doesn't pay leaves by going back or closing the tab. The hosted checkout doesn't currently send anyone to `cancel_url`, so keep the order payable on your side. With option B, the button resets when they come back to your page.
+
+**A visit to `success_url` is not proof of payment**: anyone can type that URL into their browser.
+
+## 5. Confirm the payment on your server
+
+Confirm the payment from your server before you fulfil the order. Use either or both of these:
+
+- **Webhook (recommended).** [Configure a webhook](/webhooks/overview) for `checkout.paid`, and `checkout.failed` if you want to hear about payments that did not settle. The event's `data.checkout_id` matches the `id` you saved in step 1. `data.amount` is what you are credited, `data.paid_amount` is what the customer paid, and `data.reference` is the payment reference.
+- **Retrieve the checkout.** Call [`GET /v1/checkout/{id}`](/checkout/retrieving-checkout). A paid checkout has `status: "success"` with `paid_at` and `payment_reference`. An unpaid one stays `pending`.
+
+Check that the amount and currency match your order before you mark it paid.
+
+## No JavaScript? Use a button image
+
+If you can't run scripts, for example in an email, link a static button image to the checkout `url`:
+
+```html
+<a href="https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e">
+  <img
+    src="https://pay.platnova.com/buttons/v1/pay-with-platnova-purple.svg"
+    width="240" height="48" alt="Pay with Platnova"
+  />
+</a>
+```
+
+| Theme | SVG | PNG | PNG @2x |
+|---|---|---|---|
+| Purple | [`pay-with-platnova-purple.svg`](https://pay.platnova.com/buttons/v1/pay-with-platnova-purple.svg) | [`.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-purple.png) | [`@2x.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-purple@2x.png) |
+| Dark | [`pay-with-platnova-dark.svg`](https://pay.platnova.com/buttons/v1/pay-with-platnova-dark.svg) | [`.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-dark.png) | [`@2x.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-dark@2x.png) |
+| Light | [`pay-with-platnova-light.svg`](https://pay.platnova.com/buttons/v1/pay-with-platnova-light.svg) | [`.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-light.png) | [`@2x.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-light@2x.png) |
+
+Email clients often block SVG, so use the PNG there. To see every variant live, open the [button demo page](https://pay.platnova.com/js/v1/demo).
+
+## Testing in sandbox
+
+Point your server at `https://sandbox.api.platnova.co` with your sandbox API key. Sandbox checkout links live on Platnova's sandbox checkout host, and the button accepts them exactly as it accepts live ones. See [Environments](/environments).
