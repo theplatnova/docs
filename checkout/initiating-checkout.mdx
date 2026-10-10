@@ -46,6 +46,12 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 
 A method that is not live for the checkout's currency is left off the page even if you list it. Mobile money is cross-currency: the payer sees what they will pay in their own currency, you are settled the checkout amount in yours, and the conversion is Platnova's, not yours. `novatag` and `defi` are accepted as older spellings of `tag_transfer` and `crypto`.
 
+### Crypto payments
+
+The payer is shown an invoice in coins for the checkout amount. What arrives can differ slightly: wallets and networks shave off fees, and payers sometimes send a little less or more. Platnova values the coins that actually arrived at the market rate when the payment settles, and never credits more than the crypto processor delivered. A payment that covers the invoice is booked as successful even if the processor calls it `partially_paid`. One that falls short is booked as partially completed, and you are credited what arrived.
+
+Each crypto deposit records the breakdown: the amount requested, the coins received and their coin, what those coins were worth, the rate, the fee and the amount credited. You can see it in the transaction details on the dashboard, in the transaction CSV export (the `Requested`, `Received`, `Coins`, `Pay Currency` and `Rate` columns) and in the [`defi.payment` webhook](/webhooks/overview#defi-payment) (`booking_status`, `requested_amount`, `rate`).
+
 ## Payment option values
 
 To restrict a checkout, list the methods you want:
