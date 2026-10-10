@@ -17,7 +17,7 @@ Never put your API key in browser code, HTML, or a mobile app bundle. Anyone who
 1. Your server calls [`POST /v1/checkout`](/checkout/initiating-checkout) with your API key.
 2. Your server gives the returned `data.url` to the browser.
 3. The button sends your customer to that link, and they pay on Platnova's hosted checkout.
-4. Platnova redirects them to your `success_url` or `cancel_url`.
+4. After a successful payment, Platnova sends them to your `success_url`.
 5. Your server confirms the payment with a [webhook](#5-confirm-the-payment-on-your-server) or by [retrieving the checkout](/checkout/retrieving-checkout). Don't rely on the redirect alone.
 
 ## 1. Create the checkout on your server
@@ -100,7 +100,7 @@ The response contains the checkout `id` and the hosted checkout `url`:
 See [Initiating checkout](/checkout/initiating-checkout) for every request field, including `payment_options` if you want to offer only some methods.
 
 <Info>
-Save `data.id` against your order. You'll need it to confirm the payment. Put your own order id in `success_url` and `cancel_url`, because Platnova redirects to those URLs exactly as you sent them.
+Save `data.id` against your order. You'll need it to confirm the payment. Put your own order id in `success_url`, because Platnova redirects to it exactly as you sent it, with nothing added.
 </Info>
 
 ## 2. Add the script to your page
@@ -188,7 +188,9 @@ The button renders in its own isolated styles (Shadow DOM), so your site's CSS w
 
 ## 4. Handle the redirect back
 
-After payment, Platnova sends the customer to your `success_url`. If they back out, it sends them to your `cancel_url`. These URLs are where you thank the customer or let them try again. **A visit to `success_url` is not proof of payment**: anyone can type that URL into their browser.
+After a successful payment, the checkout shows a confirmation and then sends the customer to your `success_url`. Use that page to thank them. A customer who doesn't pay leaves by going back or closing the tab. The hosted checkout doesn't currently send anyone to `cancel_url`, so keep the order payable on your side. With option B, the button resets when they come back to your page.
+
+**A visit to `success_url` is not proof of payment**: anyone can type that URL into their browser.
 
 ## 5. Confirm the payment on your server
 
@@ -218,7 +220,7 @@ If you can't run scripts, for example in an email, link a static button image to
 | Dark | [`pay-with-platnova-dark.svg`](https://pay.platnova.com/buttons/v1/pay-with-platnova-dark.svg) | [`.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-dark.png) | [`@2x.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-dark@2x.png) |
 | Light | [`pay-with-platnova-light.svg`](https://pay.platnova.com/buttons/v1/pay-with-platnova-light.svg) | [`.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-light.png) | [`@2x.png`](https://pay.platnova.com/buttons/v1/pay-with-platnova-light@2x.png) |
 
-Email clients often block SVG, so use the PNG there. To see every variant live, open the [button demo page](https://pay.platnova.com/js/v1/demo.html).
+Email clients often block SVG, so use the PNG there. To see every variant live, open the [button demo page](https://pay.platnova.com/js/v1/demo).
 
 ## Testing in sandbox
 
