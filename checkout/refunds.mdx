@@ -1,0 +1,317 @@
+---
+title: "Refunds"
+slug: "checkout/refunds"
+---
+
+A refund sends money from a paid checkout back to the person who paid it. You choose how much (all of it or part of it), Platnova takes the money from your wallet and returns it to the payer the way that suits the payment method they used, and you get a webhook when it lands or fails.
+
+## How refunds work
+
+1. **Create a refund** with `POST /v1/checkout/{checkout_id}/refund`, giving a `reason`, an `idempotency_key` and, for a partial refund, an `amount`.
+2. **We debit your wallet** in the checkout's currency and send the money back to the payer.
+3. **Track it** with the [`checkout.refunded` and `checkout.refund_failed` webhooks](#webhooks), or fetch it with `GET /v1/refunds/{refund_id}`.
+
+## Which payments can be refunded
+
+How the money goes back depends on how the payer paid, which is the checkout's payment method (the same `id` values as [`payment_options`](/checkout/initiating-checkout#request-fields)).
+
+| Payment method | How the refund reaches the payer |
+|---|---|
+| `card`, `apple_pay`, `google_pay` | Back to the original card, through the provider that took the payment. |
+| `bank_transfer`, `bank_account`, `ussd`, `opay` | An NGN bank transfer to the account the payment came from. If we did not receive that account's details with the payment, you supply a `destination` account in the request. |
+| `crypto`, `tag_transfer`, `mobile_money` | **Not supported yet.** |
+
+<Warning>
+Crypto, Nova Tag (`tag_transfer`) and mobile money payments cannot be refunded through the API yet. A refund request for one of these is rejected with `422 refund_method_unsupported` and nothing is debited. Refund these payers yourself for now, for example with [Send payment](/payments/sending-payments).
+</Warning>
+
+## How much you can refund
+
+The refundable amount of a checkout is **what you were credited for the payment, minus any refunds already made** (refunds that failed do not count).
+
+What you were credited is the net amount, after Platnova's processing fee. **The processing fee is not returned when you refund.** For example, if a payer paid NGN 10,000 and you were credited NGN 9,850 after a NGN 150 fee, you can refund up to NGN 9,850 in total.
+
+You can refund a checkout more than once, in parts, until the refundable amount reaches zero. Leave `amount` out to refund everything that is left.
+
+## Funding and fees
+
+Refunds are paid from your **available wallet balance** in the checkout's currency. If the balance does not cover the refund, the request is rejected with `422 insufficient_balance` and nothing is debited.
+
+<Note>
+A payment that is still waiting in a pending settlement is not in your wallet yet. Until it settles, refunding it draws on whatever else is in your balance.
+</Note>
+
+- **Card, Apple Pay and Google Pay refunds:** your wallet is debited the refund `amount`.
+- **Bank-transfer refunds** (`bank_transfer`, `bank_account`, `ussd`, `opay`): these go out through the same payout system as [Send payment](/payments/sending-payments), so the normal payout fee and, where it applies, the stamp duty levy are charged **on top** of the refund. The payer receives exactly `amount`, and your wallet is debited `amount` plus those charges. Bank-transfer refunds need payouts to be enabled on your business; if they are not, the request is rejected with `422 payouts_not_enabled`.
+
+If a refund fails, everything it debited from your wallet, including any payout fee, is credited back, once.
+
+## Idempotency
+
+Every refund request needs an `idempotency_key`: a string you choose, up to 128 characters, unique across your business. Use something tied to the refund in your own system, such as `order-1042-refund-1`.
+
+- Sending the **same key for the same checkout and amount** again returns the original refund with `200` and does not refund twice. If a request times out or you are not sure it arrived, retry it with the same key.
+- Sending the same key with a **different checkout or amount** is rejected with `409 idempotency_key_reused`.
+- A repeated key returns the original refund whatever its status, including `failed`. To try again after a failed refund, send a new key.
+- A request refused with an error (see [Errors](#errors)) records nothing, so you can fix the cause and retry with the same key.
+- If the first request with a key is still being processed, a repeat gets `409 refund_in_progress`. Retry shortly.
+
+## Statuses
+
+| Status | Meaning |
+|---|---|
+| `pending` | The refund has been accepted and recorded, and has not yet been handed to the provider, or its bank transfer is waiting for a teammate's approval (see [Approval](#approval-for-refunds-to-another-account)). |
+| `processing` | The refund is with the card provider or the bank transfer is in flight. |
+| `succeeded` | The money has been sent back to the payer. Card refunds can take a few days more to appear on the payer's statement, depending on their bank. |
+| `failed` | The refund did not go through. `failure_reason` says why, and your wallet has been credited back. |
+
+`succeeded` and `failed` are final. A refund moves `pending` → `processing` → `succeeded` or `failed`; a refund the provider refuses straight away can be `failed` in the response to the create request itself, so check `status` there as well as listening for webhooks.
+
+## Authentication
+
+Send your API key in the `X-API-KEY` header, as with the rest of the API. A request made with a dashboard session instead of an API key needs a team member who has the permission to send payments, and a completed two-factor check.
+
+## Approval for refunds to another account
+
+A bank-transfer refund back to the account the customer paid from goes out straight away. A refund to a `destination` you choose is a payout to an account of your choosing, so your business's payout approval rules apply, exactly as for [sending a payment](/payments/sending-payments):
+
+- With an API key, it goes out straight away.
+- A team member who can approve payments sends it straight away.
+- A team member who cannot approve payments must name an `approver`. The refund answers `202` with `awaiting_approval: true` and `status: "pending"`, and the approver is asked to approve the transfer. If they decline, the refund becomes `failed` and the money is returned to your wallet. Without an `approver`, the request is refused with `422 approver_required`.
+
+## Create a refund
+
+`POST /v1/checkout/{checkout_id}/refund`
+
+### Request fields
+
+- **amount**: Optional. How much to refund, in the checkout's currency. Leave it out to refund the full refundable amount.
+- **reason**: Required, up to 255 characters. Why you are refunding. It is for your own records and systems and is not shown to the payer.
+- **idempotency_key**: Required, up to 128 characters. See [Idempotency](#idempotency).
+- **destination**: Optional. An NGN bank account to send a bank-transfer refund to: `account_number` and `bank_code`. Used only for `bank_transfer`, `bank_account`, `ussd` and `opay` payments, and only when we do not have the account the payment came from. If we need it and it is missing, the request is rejected with `422 refund_destination_required`. It is ignored for card refunds, and ignored when we hold the account the payment came from: the money goes back where it came from. A destination is checked with the customer's bank before anything is sent.
+- **approver**: Optional. The ID of a teammate who can approve payments. Needed only when a team member who cannot approve payments refunds to a `destination` (see [Approval](#approval-for-refunds-to-another-account)).
+
+### Example request
+
+```bash
+curl --location 'https://sandbox.api.platnova.co/v1/checkout/3e584f08-6a55-4b15-a97f-364a7d21071e/refund' \
+  --header 'X-API-KEY: YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+    "amount": 2500,
+    "reason": "Customer returned item",
+    "idempotency_key": "order-1042-refund-1"
+  }'
+```
+
+With a destination account, for a bank-transfer payment whose source account we do not have:
+
+```json
+{
+  "amount": 2500,
+  "reason": "Customer returned item",
+  "idempotency_key": "order-1042-refund-1",
+  "destination": {
+    "account_number": "0123456789",
+    "bank_code": "058"
+  }
+}
+```
+
+### Example response
+
+```json
+{
+  "status": true,
+  "data": {
+    "id": "6f1c2b7e-9a4d-4c1e-8f3a-2d5b7c9e1a04",
+    "checkout_id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "payment_reference": "TRNSF_8K2M4P6Q",
+    "amount": 2500.00,
+    "currency": "NGN",
+    "method": "bank_transfer",
+    "status": "processing",
+    "reason": "Customer returned item",
+    "idempotency_key": "order-1042-refund-1",
+    "destination": {
+      "account_number": "0123456789",
+      "bank_code": "058",
+      "account_name": "ADA OBI"
+    },
+    "payout_reference": "SND_5H7J9L1N",
+    "created_at": "2026-10-11T10:00:00Z",
+    "updated_at": "2026-10-11T10:00:01Z",
+    "completed_at": null
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+## The Refund object
+
+| Field | Description |
+|---|---|
+| `id` | The refund's ID. Use it with `GET /v1/refunds/{refund_id}`. |
+| `checkout_id` | The checkout that was refunded. |
+| `payment_reference` | The transaction reference of the checkout payment being refunded. |
+| `amount` | What the payer gets back, in `currency`. Fees charged to you are not included. |
+| `currency` | The checkout's currency. |
+| `method` | How the payer paid: the checkout's payment method `id`, such as `card` or `bank_transfer`. |
+| `status` | `pending`, `processing`, `succeeded` or `failed`. See [Statuses](#statuses). |
+| `reason` | The reason you gave. |
+| `failure_reason` | Why the refund failed. Present only when `status` is `failed`. |
+| `idempotency_key` | The key you sent. |
+| `destination` | Bank-transfer refunds: the account the money was sent to, with `account_number`, `bank_code` and `account_name`. `null` for card refunds. |
+| `payout_reference` | Bank-transfer refunds: the reference of the payout that carried the refund. |
+| `provider_reference` | Card refunds: the card provider's reference for the refund. |
+| `created_at` | When the refund was created. |
+| `updated_at` | When the refund last changed. |
+| `completed_at` | When the refund reached `succeeded` or `failed`; `null` until then. |
+
+## List a checkout's refunds
+
+`GET /v1/checkout/{checkout_id}/refunds` returns every refund made on a checkout, newest first, including failed ones.
+
+```bash
+curl --location 'https://sandbox.api.platnova.co/v1/checkout/3e584f08-6a55-4b15-a97f-364a7d21071e/refunds' \
+  --header 'X-API-KEY: YOUR_API_KEY'
+```
+
+```json
+{
+  "status": true,
+  "data": [
+    {
+      "id": "9b3e5d1f-2c4a-4e6b-a8d0-1f3e5a7c9b02",
+      "checkout_id": "7a1d3f5b-8c2e-4a6d-b9f1-3e5c7a9d1b48",
+      "payment_reference": "TRNSF_3D5F7H9K",
+      "amount": 15.00,
+      "currency": "USD",
+      "method": "card",
+      "status": "succeeded",
+      "reason": "Partial refund: one item out of stock",
+      "idempotency_key": "order-1043-refund-2",
+      "destination": null,
+      "provider_reference": "rf_4829175",
+      "created_at": "2026-10-11T09:12:44Z",
+      "updated_at": "2026-10-11T09:12:47Z",
+      "completed_at": "2026-10-11T09:12:47Z"
+    },
+    {
+      "id": "4d8a2c6e-1b3f-4d5a-9c7e-6b8d0f2a4c16",
+      "checkout_id": "7a1d3f5b-8c2e-4a6d-b9f1-3e5c7a9d1b48",
+      "payment_reference": "TRNSF_3D5F7H9K",
+      "amount": 10.00,
+      "currency": "USD",
+      "method": "card",
+      "status": "failed",
+      "reason": "Partial refund: late delivery",
+      "failure_reason": "The card provider declined the refund",
+      "idempotency_key": "order-1043-refund-1",
+      "destination": null,
+      "created_at": "2026-10-10T16:40:02Z",
+      "updated_at": "2026-10-10T16:40:03Z",
+      "completed_at": "2026-10-10T16:40:03Z"
+    }
+  ],
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+## Retrieve a refund
+
+`GET /v1/refunds/{refund_id}` returns a single [Refund object](#the-refund-object), or `404 refund_not_found` if there is no such refund on your business.
+
+```bash
+curl --location 'https://sandbox.api.platnova.co/v1/refunds/6f1c2b7e-9a4d-4c1e-8f3a-2d5b7c9e1a04' \
+  --header 'X-API-KEY: YOUR_API_KEY'
+```
+
+## Errors
+
+A refund request that cannot be made returns `status: false` with a machine-readable code in both `error[0]` and `data.code`. Branch on the code, not on `message`, which is written for people and may change.
+
+```json
+{
+  "status": false,
+  "data": {
+    "code": "amount_exceeds_refundable",
+    "refundable": 1500.00
+  },
+  "error": ["amount_exceeds_refundable"],
+  "message": "The amount is more than is left to refund on this checkout"
+}
+```
+
+| HTTP | Code | Meaning |
+|---|---|---|
+| 404 | `checkout_not_found` | There is no checkout with this ID on your business. |
+| 404 | `refund_not_found` | There is no refund with this ID on your business. |
+| 422 | `checkout_not_paid` | The checkout exists but has no settled payment to refund. |
+| 422 | `amount_exceeds_refundable` | `amount` is more than is left to refund. `data.refundable` says how much is left. |
+| 422 | `nothing_to_refund` | The checkout has already been refunded in full. |
+| 422 | `refund_method_unsupported` | The payment was made by crypto, Nova Tag or mobile money, which cannot be refunded through the API yet. |
+| 422 | `refund_destination_required` | A bank-transfer refund needs a `destination` because we do not have the account the payment came from. |
+| 422 | `refund_destination_invalid` | The bank could not confirm the `destination` account, or a field the transfer needs is missing. `message` says which. |
+| 422 | `approver_required` | A team member who cannot approve payments refunded to a `destination` without naming an `approver`. |
+| 422 | `insufficient_balance` | Your wallet balance in the checkout's currency does not cover the refund (and, for bank-transfer refunds, its fees). |
+| 422 | `payouts_not_enabled` | Bank-transfer refunds need payouts, which are not enabled on your business. |
+| 409 | `idempotency_key_reused` | This `idempotency_key` was already used for a different checkout or amount. |
+| 409 | `refund_in_progress` | The first request with this `idempotency_key` is still being processed. Retry shortly. |
+| 400 | — | A field is missing or invalid. Same shape as other [validation errors](/errors#field-validation-errors). |
+
+None of these errors debits your wallet.
+
+## Webhooks
+
+Two webhooks tell you how a refund ended. Subscribe to them in your [webhook settings](/webhooks/overview) like any other event.
+
+| Event | Sent when |
+|---|---|
+| `checkout.refunded` | A refund reaches `succeeded`. |
+| `checkout.refund_failed` | A refund reaches `failed`. Your wallet has been credited back. |
+
+### checkout.refunded
+
+```json
+{
+  "event": "checkout.refunded",
+  "timestamp": "2026-10-11T10:02:13Z",
+  "customer_id": "",
+  "data": {
+    "refund_id": "6f1c2b7e-9a4d-4c1e-8f3a-2d5b7c9e1a04",
+    "checkout_id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "payment_reference": "TRNSF_8K2M4P6Q",
+    "amount": 2500.00,
+    "currency": "NGN",
+    "method": "bank_transfer",
+    "status": "succeeded",
+    "reason": "Customer returned item"
+  }
+}
+```
+
+### checkout.refund_failed
+
+```json
+{
+  "event": "checkout.refund_failed",
+  "timestamp": "2026-10-10T16:40:03Z",
+  "customer_id": "",
+  "data": {
+    "refund_id": "4d8a2c6e-1b3f-4d5a-9c7e-6b8d0f2a4c16",
+    "checkout_id": "7a1d3f5b-8c2e-4a6d-b9f1-3e5c7a9d1b48",
+    "payment_reference": "TRNSF_3D5F7H9K",
+    "amount": 10.00,
+    "currency": "USD",
+    "method": "card",
+    "status": "failed",
+    "reason": "Partial refund: late delivery",
+    "failure_reason": "The card provider declined the refund"
+  }
+}
+```
+
+Use `refund_id` to match the webhook to the refund you created, and to ignore a repeated delivery of the same event.

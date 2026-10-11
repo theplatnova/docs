@@ -71,7 +71,8 @@
               "checkout/overview",
               "checkout/initiating-checkout",
               "checkout/retrieving-checkout",
-              "checkout/pay-with-platnova-button"
+              "checkout/pay-with-platnova-button",
+              "checkout/refunds"
             ]
           },
           {
