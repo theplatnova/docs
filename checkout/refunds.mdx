@@ -53,12 +53,14 @@ Every refund request needs an `idempotency_key`: a string you choose, up to 128 
 - Sending the **same key for the same checkout and amount** again returns the original refund with `200` and does not refund twice. If a request times out or you are not sure it arrived, retry it with the same key.
 - Sending the same key with a **different checkout or amount** is rejected with `409 idempotency_key_reused`.
 - A repeated key returns the original refund whatever its status, including `failed`. To try again after a failed refund, send a new key.
+- A request refused with an error (see [Errors](#errors)) records nothing, so you can fix the cause and retry with the same key.
+- If the first request with a key is still being processed, a repeat gets `409 refund_in_progress`. Retry shortly.
 
 ## Statuses
 
 | Status | Meaning |
 |---|---|
-| `pending` | The refund has been accepted and recorded, and has not yet been handed to the provider. |
+| `pending` | The refund has been accepted and recorded, and has not yet been handed to the provider, or its bank transfer is waiting for a teammate's approval (see [Approval](#approval-for-refunds-to-another-account)). |
 | `processing` | The refund is with the card provider or the bank transfer is in flight. |
 | `succeeded` | The money has been sent back to the payer. Card refunds can take a few days more to appear on the payer's statement, depending on their bank. |
 | `failed` | The refund did not go through. `failure_reason` says why, and your wallet has been credited back. |
@@ -69,6 +71,14 @@ Every refund request needs an `idempotency_key`: a string you choose, up to 128 
 
 Send your API key in the `X-API-KEY` header, as with the rest of the API. A request made with a dashboard session instead of an API key needs a team member who has the permission to send payments, and a completed two-factor check.
 
+## Approval for refunds to another account
+
+A bank-transfer refund back to the account the customer paid from goes out straight away. A refund to a `destination` you choose is a payout to an account of your choosing, so your business's payout approval rules apply, exactly as for [sending a payment](/payments/sending-payments):
+
+- With an API key, it goes out straight away.
+- A team member who can approve payments sends it straight away.
+- A team member who cannot approve payments must name an `approver`. The refund answers `202` with `awaiting_approval: true` and `status: "pending"`, and the approver is asked to approve the transfer. If they decline, the refund becomes `failed` and the money is returned to your wallet. Without an `approver`, the request is refused with `422 approver_required`.
+
 ## Create a refund
 
 `POST /v1/checkout/{checkout_id}/refund`
@@ -78,7 +88,8 @@ Send your API key in the `X-API-KEY` header, as with the rest of the API. A requ
 - **amount**: Optional. How much to refund, in the checkout's currency. Leave it out to refund the full refundable amount.
 - **reason**: Required, up to 255 characters. Why you are refunding. It is for your own records and systems and is not shown to the payer.
 - **idempotency_key**: Required, up to 128 characters. See [Idempotency](#idempotency).
-- **destination**: Optional. An NGN bank account to send a bank-transfer refund to: `account_number` and `bank_code`. Used only for `bank_transfer`, `bank_account`, `ussd` and `opay` payments, and only when we do not have the account the payment came from. If we need it and it is missing, the request is rejected with `422 refund_destination_required`. It is ignored for card refunds.
+- **destination**: Optional. An NGN bank account to send a bank-transfer refund to: `account_number` and `bank_code`. Used only for `bank_transfer`, `bank_account`, `ussd` and `opay` payments, and only when we do not have the account the payment came from. If we need it and it is missing, the request is rejected with `422 refund_destination_required`. It is ignored for card refunds, and ignored when we hold the account the payment came from: the money goes back where it came from. A destination is checked with the customer's bank before anything is sent.
+- **approver**: Optional. The ID of a teammate who can approve payments. Needed only when a team member who cannot approve payments refunds to a `destination` (see [Approval](#approval-for-refunds-to-another-account)).
 
 ### Example request
 
@@ -243,9 +254,12 @@ A refund request that cannot be made returns `status: false` with a machine-read
 | 422 | `nothing_to_refund` | The checkout has already been refunded in full. |
 | 422 | `refund_method_unsupported` | The payment was made by crypto, Nova Tag or mobile money, which cannot be refunded through the API yet. |
 | 422 | `refund_destination_required` | A bank-transfer refund needs a `destination` because we do not have the account the payment came from. |
+| 422 | `refund_destination_invalid` | The bank could not confirm the `destination` account, or a field the transfer needs is missing. `message` says which. |
+| 422 | `approver_required` | A team member who cannot approve payments refunded to a `destination` without naming an `approver`. |
 | 422 | `insufficient_balance` | Your wallet balance in the checkout's currency does not cover the refund (and, for bank-transfer refunds, its fees). |
 | 422 | `payouts_not_enabled` | Bank-transfer refunds need payouts, which are not enabled on your business. |
 | 409 | `idempotency_key_reused` | This `idempotency_key` was already used for a different checkout or amount. |
+| 409 | `refund_in_progress` | The first request with this `idempotency_key` is still being processed. Retry shortly. |
 | 400 | — | A field is missing or invalid. Same shape as other [validation errors](/errors#field-validation-errors). |
 
 None of these errors debits your wallet.
