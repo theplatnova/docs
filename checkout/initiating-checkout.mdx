@@ -29,6 +29,8 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 - **email**: Customer email for the checkout.
 - **amount**: Amount to collect.
 - **currency**: Currency code (for example `ngn`).
+- **success_url**: Optional. Where the customer is sent after a successful payment, exactly as you send it.
+- **cancel_url**: Optional, but send it. The hosted checkout's **Cancel and return** action sends a customer who decides not to pay to this URL, exactly as you send it. If you leave it out, the checkout shows no return action and customers can only close the tab.
 - **payment_options**: Optional. The ways the payer may pay. **Leave it out to offer every method that is live for the currency** — that is the recommended default, and new methods reach your payers as we switch them on. Send it only to restrict the checkout to specific methods. Supported `id` values:
 
 | `id` | What the payer does | Currencies |
