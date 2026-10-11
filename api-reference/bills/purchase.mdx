@@ -1,0 +1,8 @@
+---
+title: "Create Betting Top-up"
+openapi: "POST /v1/bills/betting"
+---
+
+## Overview
+
+Debit your NGN wallet `amount + fee` and top up the customer's betting wallet. Amounts are ₦100 to ₦500,000. `reference` must be unique across your business; retry a timed-out request with the same reference, never a new one. The request answers `202` with `status: processing`; the outcome arrives as `bill.success`, `bill.failed` or `bill.reversed`. See [Betting top-ups](/bills/betting).

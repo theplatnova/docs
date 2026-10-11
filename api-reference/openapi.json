@@ -4274,7 +4274,7 @@
                                   "apple_pay",
                                   "google_pay",
                                   "opay",
-                            "bank_account",
+                                  "bank_account",
                                   "ussd",
                                   "mobile_money",
                                   "crypto"
@@ -4483,7 +4483,7 @@
                                   "apple_pay",
                                   "google_pay",
                                   "opay",
-                            "bank_account",
+                                  "bank_account",
                                   "ussd",
                                   "mobile_money",
                                   "crypto"
@@ -5966,6 +5966,565 @@
           }
         }
       }
+    },
+    "/v1/bills/betting/billers": {
+      "get": {
+        "summary": "List betting billers",
+        "operationId": "listBettingBillers",
+        "tags": [
+          "Bills"
+        ],
+        "description": "The betting billers you can top up. Cache for up to an hour.",
+        "responses": {
+          "200": {
+            "description": "Billers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string",
+                            "example": "bet9ja"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Bet9ja"
+                          },
+                          "skip_validation": {
+                            "type": "boolean",
+                            "description": "The biller returns no customer name on validate."
+                          },
+                          "min_amount": {
+                            "type": "number",
+                            "example": 100
+                          },
+                          "max_amount": {
+                            "type": "number",
+                            "example": 500000
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/betting/validate": {
+      "post": {
+        "summary": "Validate a betting customer",
+        "operationId": "validateBettingCustomer",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Ask the biller who owns a customer ID. Show `customer_name` to the payer and have them confirm it before you create a top-up.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "customer_id"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "description": "A slug from the biller list.",
+                    "example": "bet9ja"
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "description": "The customer's ID with the biller. Its format depends on the biller: SportyBet takes a phone number.",
+                    "example": "Hassan3330"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "biller": {
+                          "type": "string"
+                        },
+                        "customer_id": {
+                          "type": "string"
+                        },
+                        "customer_name": {
+                          "type": "string",
+                          "example": "HASSANA SAIDU"
+                        },
+                        "can_vend": {
+                          "type": "boolean"
+                        },
+                        "min_amount": {
+                          "type": "number",
+                          "example": 100
+                        },
+                        "max_amount": {
+                          "type": "number",
+                          "example": 500000
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/betting": {
+      "post": {
+        "summary": "Create a betting top-up",
+        "operationId": "createBettingTopUp",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Debits your NGN wallet `amount + fee` and tops up the customer's betting wallet. Answers 202 with `status: processing`; the outcome arrives as `bill.success`, `bill.failed` or `bill.reversed`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "customer_id",
+                  "amount",
+                  "reference"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "example": "bet9ja"
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "example": "Hassan3330"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "NGN, from 100 to 500,000.",
+                    "example": 1000
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Your reference, unique across your business. Retry a timed-out request with the same one.",
+                    "example": "order-1042"
+                  },
+                  "customer_name_confirmation": {
+                    "type": "string",
+                    "description": "The name the payer confirmed. Refused with customer_name_mismatch if it does not match the biller's.",
+                    "example": "HASSANA SAIDU"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List betting top-ups",
+        "operationId": "listBettingTopUps",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "processing",
+                "success",
+                "failed",
+                "reversed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of top-ups, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "bills": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Bill"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/betting/{id}": {
+      "get": {
+        "summary": "Get a betting top-up",
+        "operationId": "getBettingTopUp",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The bill `id` or your `reference`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The top-up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6716,6 +7275,83 @@
             "description": "New invoice status"
           }
         }
+      },
+      "Bill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Bill ID.",
+            "example": "8b8f0d0e-5d6c-4d8e-9d3c-0f4a1c3b2a10"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Your reference, unique across your business.",
+            "example": "order-1042"
+          },
+          "transaction_reference": {
+            "type": "string",
+            "description": "The wallet transaction's reference."
+          },
+          "product": {
+            "type": "string",
+            "example": "betting"
+          },
+          "biller": {
+            "type": "string",
+            "example": "bet9ja"
+          },
+          "customer_id": {
+            "type": "string",
+            "example": "Hassan3330"
+          },
+          "customer_name": {
+            "type": "string",
+            "description": "The name the biller holds for the account.",
+            "example": "HASSANA SAIDU"
+          },
+          "amount": {
+            "type": "number",
+            "description": "NGN credited to the customer's betting wallet.",
+            "example": 1000
+          },
+          "fee": {
+            "type": "number",
+            "description": "NGN charged to you on top of amount.",
+            "example": 0
+          },
+          "currency": {
+            "type": "string",
+            "example": "NGN"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "success",
+              "failed",
+              "reversed"
+            ]
+          },
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "insufficient_provider_balance",
+              "provider_unavailable",
+              "provider_rejected",
+              "reversed"
+            ]
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -6767,6 +7403,10 @@
     {
       "name": "Bank",
       "description": "Bank lists and account verification for bank transfers"
+    },
+    {
+      "name": "Bills",
+      "description": "Betting wallet top-ups"
     }
   ]
 }
