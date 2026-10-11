@@ -42,7 +42,7 @@ A payment that is still waiting in a pending settlement is not in your wallet ye
 </Note>
 
 - **Card, Apple Pay and Google Pay refunds:** your wallet is debited the refund `amount`.
-- **Bank-transfer refunds** (`bank_transfer`, `bank_account`, `ussd`, `opay`): these go out through the same payout system as [Send payment](/payments/sending-payments), so the normal payout fee and the stamp duty levy are charged **on top** of the refund. The payer receives exactly `amount`, and your wallet is debited `amount` plus those charges. Bank-transfer refunds need payouts to be enabled on your business; if they are not, the request is rejected with `422 payouts_not_enabled`.
+- **Bank-transfer refunds** (`bank_transfer`, `bank_account`, `ussd`, `opay`): these go out through the same payout system as [Send payment](/payments/sending-payments), so the normal payout fee and, where it applies, the stamp duty levy are charged **on top** of the refund. The payer receives exactly `amount`, and your wallet is debited `amount` plus those charges. Bank-transfer refunds need payouts to be enabled on your business; if they are not, the request is rejected with `422 payouts_not_enabled`.
 
 If a refund fails, everything it debited from your wallet, including any payout fee, is credited back, once.
 
