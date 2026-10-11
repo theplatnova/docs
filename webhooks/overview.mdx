@@ -51,6 +51,8 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `checkout.paid` | Checkout Paid |
 | `checkout.failed` | Checkout Failed |
 | `defi.payment` | Crypto Checkout Payment |
+| `checkout.refunded` | Checkout Refund Succeeded |
+| `checkout.refund_failed` | Checkout Refund Failed |
 
 ## Event Payloads
 
@@ -544,6 +546,10 @@ Sent as a crypto checkout payment progresses: when the payer's transfer is seen,
 - **rate** – What one coin of `pay_currency` was valued at, in `currency`. On settlement this is the market rate when the payment settled. Before settlement it is the invoice's quoted rate.
 - **metadata.actually_paid_at_fiat** – The value of the coins that arrived, at `rate`.
 - **metadata.transaction_hash** / **sender_address** – The payer's on-chain transfer and, where the chain shows it (Solana today), the sending wallet. Empty until the transfer is seen.
+
+### checkout.refunded and checkout.refund_failed
+
+Sent when a [checkout refund](/checkout/refunds) succeeds or fails. Payloads and fields are on the [Refunds](/checkout/refunds#webhooks) page.
 
 ## Best Practices
 
