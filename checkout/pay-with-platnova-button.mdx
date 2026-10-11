@@ -22,7 +22,7 @@ Never put your API key in browser code, HTML, or a mobile app bundle. Anyone who
 
 ## 1. Create the checkout on your server
 
-Use your API key in the `X-API-KEY` header. Leave out `payment_options` to offer every payment method that is live for the currency. New methods then reach your customers as we turn them on.
+Use your API key in the `X-API-KEY` header. Every payment method that is live for the currency is offered, and new methods reach your customers as we turn them on; `payment_options` is ignored.
 
 <CodeGroup>
 
@@ -97,7 +97,7 @@ The response contains the checkout `id` and the hosted checkout `url`:
 }
 ```
 
-See [Initiating checkout](/checkout/initiating-checkout) for every request field, including `payment_options` if you want to offer only some methods.
+See [Initiating checkout](/checkout/initiating-checkout) for every request field and the payment methods offered.
 
 ### Who pays the fee
 
@@ -114,7 +114,7 @@ See [Initiating checkout](/checkout/initiating-checkout) for every request field
 }
 ```
 
-With `"merchant"`, Nova Tag transfer isn't offered. If you list `tag_transfer` in `payment_options` together with `"fee_bearer": "merchant"`, the request is rejected.
+With `"merchant"`, Nova Tag transfer isn't offered: the payer's app adds its own fee on top, so the merchant can't bear it there. Every other live method still is.
 
 <Info>
 Save `data.id` against your order. You'll need it to confirm the payment. Put your own order id in `success_url`, because Platnova redirects to it exactly as you sent it, with nothing added.
