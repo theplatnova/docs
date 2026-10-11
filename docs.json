@@ -70,7 +70,8 @@
             "pages": [
               "checkout/overview",
               "checkout/initiating-checkout",
-              "checkout/retrieving-checkout"
+              "checkout/retrieving-checkout",
+              "checkout/pay-with-platnova-button"
             ]
           },
           {
