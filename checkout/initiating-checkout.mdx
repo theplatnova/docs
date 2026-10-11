@@ -16,11 +16,8 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
     "email": "jonathanemma121@gmail.com",
     "amount": 2000.15,
     "currency": "ngn",
-    "payment_options": [
-      {
-        "id": "defi"
-      }
-    ]
+    "success_url": "https://shop.example.com/orders/1042/paid",
+    "cancel_url": "https://shop.example.com/orders/1042"
   }'
 ```
 
@@ -28,10 +25,12 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 
 - **email**: Customer email for the checkout.
 - **amount**: Amount to collect.
-- **currency**: Currency code (for example `ngn`).
+- **currency**: Currency code (for example `ngn`). It must be a currency Platnova holds wallets in, such as `ngn`, `usd`, `gbp`, `eur`, `kes` or `ghs`; any other code is refused with `400 currency is not supported for checkout`.
 - **success_url**: Optional. Where the customer is sent after a successful payment, exactly as you send it.
 - **cancel_url**: Optional, but send it. The hosted checkout's **Cancel and return** action sends a customer who decides not to pay to this URL, exactly as you send it. If you leave it out, the checkout shows no return action and customers can only close the tab.
-- **payment_options**: Optional. The ways the payer may pay. **Leave it out to offer every method that is live for the currency** — that is the recommended default, and new methods reach your payers as we switch them on. Send it only to restrict the checkout to specific methods. Supported `id` values:
+- **payment_options**: Ignored. Every checkout offers every payment method that is live for its currency, and new methods reach your payers as we switch them on. The field is still accepted, so existing integrations keep working, but a checkout cannot be restricted to some methods. The response's `payment_options` lists what the checkout actually offers.
+
+## Payment methods offered
 
 | `id` | What the payer does | Currencies |
 |---|---|---|
@@ -46,28 +45,13 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 | `mobile_money` | Approves a prompt on their phone, paying from a Ghanaian, Kenyan, Ugandan, Rwandan or Tanzanian wallet in that currency at Platnova's rate | all |
 | `crypto` | Pays in crypto | all |
 
-A method that is not live for the checkout's currency is left off the page even if you list it. Mobile money is cross-currency: the payer sees what they will pay in their own currency, you are settled the checkout amount in yours, and the conversion is Platnova's, not yours. `novatag` and `defi` are accepted as older spellings of `tag_transfer` and `crypto`.
+A method is offered only while it is live for the checkout's currency. Card, Apple Pay, Google Pay and mobile money are cross-currency: a payer may pay in their own currency, sees exactly what they will be charged before paying, and is charged that figure. You are settled the checkout amount in the checkout's currency; the conversion is Platnova's, not yours. With `"fee_bearer": "merchant"`, `tag_transfer` is not offered (see [Who pays the fee](/checkout/pay-with-platnova-button#who-pays-the-fee)).
 
 ### Crypto payments
 
 The payer is shown an invoice in coins for the checkout amount. What arrives can differ slightly: wallets and networks shave off fees, and payers sometimes send a little less or more. Platnova values the coins that actually arrived at the market rate when the payment settles, and never credits more than the crypto processor delivered. A payment that covers the invoice is booked as successful even if the processor calls it `partially_paid`. One that falls short is booked as partially completed, and you are credited what arrived.
 
 Each crypto deposit records the breakdown: the amount requested, the coins received and their coin, what those coins were worth, the rate, the fee and the amount credited. You can see it in the transaction details on the dashboard, in the transaction CSV export (the `Requested`, `Received`, `Coins`, `Pay Currency` and `Rate` columns) and in the [`defi.payment` webhook](/webhooks/overview#defi-payment) (`booking_status`, `requested_amount`, `rate`).
-
-## Payment option values
-
-To restrict a checkout, list the methods you want:
-
-```json
-[
-  { "id": "bank_transfer" },
-  { "id": "ussd" },
-  { "id": "opay" },
-  { "id": "card" }
-]
-```
-
-To offer everything, omit `payment_options` from the request.
 
 ## Example response
 
@@ -98,9 +82,14 @@ To offer everything, omit `payment_options` from the request.
       "username": "techies2ltd"
     },
     "payment_options": [
-      {
-        "id": "defi"
-      }
+      { "id": "tag_transfer" },
+      { "id": "bank_transfer" },
+      { "id": "ussd" },
+      { "id": "opay" },
+      { "id": "bank_account" },
+      { "id": "mobile_money" },
+      { "id": "card" },
+      { "id": "crypto" }
     ],
     "created_at": "2026-05-05T15:57:19Z"
   },
