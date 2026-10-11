@@ -99,6 +99,23 @@ The response contains the checkout `id` and the hosted checkout `url`:
 
 See [Initiating checkout](/checkout/initiating-checkout) for every request field, including `payment_options` if you want to offer only some methods.
 
+### Who pays the fee
+
+`fee_bearer` is optional and decides who pays Platnova's deposit fee:
+
+- `"customer"` (the default, used when you leave it out): the fee is added on top, so the customer pays `amount` plus the fee and you receive `amount`.
+- `"merchant"`: the customer pays exactly `amount`, and you receive `amount` less the fee.
+
+```json
+{
+  "amount": 25000,
+  "currency": "ngn",
+  "fee_bearer": "merchant"
+}
+```
+
+With `"merchant"`, Nova Tag transfer isn't offered. If you list `tag_transfer` in `payment_options` together with `"fee_bearer": "merchant"`, the request is rejected.
+
 <Info>
 Save `data.id` against your order. You'll need it to confirm the payment. Put your own order id in `success_url`, because Platnova redirects to it exactly as you sent it, with nothing added.
 </Info>
@@ -188,7 +205,7 @@ The button renders in its own isolated styles (Shadow DOM), so your site's CSS w
 
 ## 4. Handle the redirect back
 
-After a successful payment, the checkout shows a confirmation and then sends the customer to your `success_url`. Use that page to thank them. A customer who doesn't pay leaves by going back or closing the tab. The hosted checkout doesn't currently send anyone to `cancel_url`, so keep the order payable on your side. With option B, the button resets when they come back to your page.
+After a successful payment, the checkout shows a confirmation and then sends the customer to your `success_url`. Use that page to thank them. A customer who decides not to pay can use **Cancel and return to [your business name]** on the checkout, which sends them to your `cancel_url` in the same tab, exactly as you sent it. If they may already be paying (for example, they have an open bank-transfer account or crypto invoice), the checkout asks them to confirm first, because the payment can still arrive after they leave. Always send your own `cancel_url`. If you leave it out, Platnova fills in a default that doesn't lead back to your site. Either way, keep the order payable on your side until the checkout is paid or you cancel the order. With option B, the button resets when they come back to your page.
 
 **A visit to `success_url` is not proof of payment**: anyone can type that URL into their browser.
 
