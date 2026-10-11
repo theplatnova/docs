@@ -1,0 +1,142 @@
+---
+title: "Betting top-ups"
+slug: "bills/betting"
+---
+
+Fund a customer's betting wallet (Bet9ja, SportyBet, BetKing and the rest) from your NGN wallet. You name the biller, the customer's account ID with that biller and the amount; Platnova debits your wallet, tops up the customer's account and tells you the outcome by webhook.
+
+<Note>
+Bills is switched off for every business until Platnova enables it. Until then each `/v1/bills` request answers `400` with "The bills feature is not enabled for your business". Contact [support@platnova.com](mailto:support@platnova.com) to have it enabled.
+</Note>
+
+## How a top-up works
+
+1. **List the billers** with `GET /v1/bills/betting/billers` and let the payer pick one. Cache the list for up to an hour.
+2. **Validate the customer** with `POST /v1/bills/betting/validate`. The biller answers with the name on the account.
+3. **Show that name to the payer and have them confirm it** before you go on.
+4. **Create the top-up** with `POST /v1/bills/betting`. Your NGN wallet is debited the amount plus any fee, and the request answers `202` with `status: "processing"`.
+5. **Wait for the outcome**: the [`bill.success`, `bill.failed` or `bill.reversed` webhook](#webhooks), or poll `GET /v1/bills/betting/{id}`.
+
+## Always confirm the customer's name
+
+A betting account ID is short and easy to mistype, and a mistyped ID is often **someone else's real account**: in testing, a random Bet9ja ID resolved to a real person. A top-up sent to the wrong account cannot be pulled back.
+
+So before every top-up:
+
+- Call `validate` and show the payer `customer_name` exactly as returned.
+- Only continue once the payer confirms it is them.
+- Send what they confirmed as `customer_name_confirmation` on the purchase. We validate the customer again at purchase time and refuse the top-up with `422 customer_name_mismatch` if the name no longer matches, so nothing is debited.
+
+A few billers (those with `skip_validation: true` in the biller list) do not return a name. For those, the payer has only the account ID to go on: make them re-enter it rather than confirm a name, and leave `customer_name_confirmation` out.
+
+## Customer ID formats
+
+What `customer_id` means depends on the biller, and the biller decides whether it is valid:
+
+| Biller | `customer_id` |
+|---|---|
+| SportyBet | The customer's **phone number** on SportyBet, e.g. `08012345678`. A username is refused with "The custRef parameter is not a valid phone number". |
+| Bet9ja | The customer's Bet9ja user ID or username. |
+| Others | Usually the user ID shown in the customer's betting account. |
+
+When an ID is refused, `validate` and `purchase` answer `422 invalid_customer`, and `message` carries the biller's own explanation. Show it to the payer.
+
+## Amounts
+
+- Amounts are in **naira** (NGN) and are paid from your NGN wallet.
+- Every biller is open-amount: any amount from **₦100 to ₦500,000** per top-up. Some customers' accounts carry a higher minimum, which `validate` returns as `min_amount`.
+- Amounts outside the range are refused with `422 amount_out_of_range`, with `min_amount` and `max_amount` in `data`.
+
+## Fees
+
+Your wallet is debited `amount + fee`. `fee` is on every bill object and is `0` unless a betting fee is set for your business. The customer receives exactly `amount`.
+
+## References and retries
+
+`reference` is **your** identifier for the top-up, up to 100 characters, and must be unique across your business. Use your own order or payment ID.
+
+- A second request with a reference you have already used is refused with `409 duplicate_reference` and debits nothing. The existing top-up is in `data.bill`.
+- If a request times out and you do not know whether it arrived, **retry it with the same reference**. Either it is created, or you get `409 duplicate_reference` with the top-up the first request created. Never retry with a new reference: that can top up the customer twice.
+- You can fetch a top-up by its `id` or by your `reference`.
+
+## Statuses
+
+| Status | Meaning |
+|---|---|
+| `processing` | Your wallet has been debited and the top-up is being delivered. Most settle within seconds. |
+| `success` | The customer's betting wallet has been credited. Final. |
+| `failed` | The biller refused the top-up. `amount` and `fee` have been returned to your wallet. Final. |
+| `reversed` | The top-up could not be confirmed, was checked with the biller and was reversed: `amount` and `fee` have been returned to your wallet. Final. |
+
+A top-up that cannot be confirmed straight away stays `processing` while we check it with the biller. That can take longer than usual; do not treat `processing` as failed, and do not send the top-up again under a new reference.
+
+`failure_reason` on `failed` and `reversed`:
+
+| `failure_reason` | Meaning |
+|---|---|
+| `insufficient_provider_balance` | Betting top-ups are temporarily unavailable on our side. Retry later. |
+| `provider_unavailable` | The biller could not be reached. Retry later. |
+| `provider_rejected` | The biller refused this top-up. |
+| `reversed` | Checked and reversed after it could not be confirmed. |
+
+## Temporarily unavailable
+
+While betting top-ups are unavailable on our side, new purchases are refused **before anything is debited** with `503 provider_unavailable`. Retry after a few minutes.
+
+## Errors
+
+Refusals carry a stable code in `error[0]` and `data.code`:
+
+| HTTP | Code | When |
+|---|---|---|
+| 400 | (validation) | A required field is missing or malformed. |
+| 400 | | Bills is not enabled for your business. |
+| 404 | `bill_not_found` | No top-up with that `id` or `reference` on your business. |
+| 409 | `duplicate_reference` | The `reference` is already used; the existing top-up is in `data.bill`. |
+| 422 | `unknown_biller` | The biller is not in the biller list. |
+| 422 | `invalid_customer` | The biller refused the customer ID. `message` is the biller's reason. |
+| 422 | `customer_cannot_vend` | The biller will not accept a top-up for this account. |
+| 422 | `customer_name_mismatch` | `customer_name_confirmation` does not match the biller's name for the account (`data.customer_name`). |
+| 422 | `amount_out_of_range` | The amount is outside `min_amount`–`max_amount`. |
+| 422 | `insufficient_funds` | Your NGN wallet does not cover `amount + fee`. |
+| 422 | `wallet_not_available` | Your business has no NGN wallet. |
+| 503 | `provider_unavailable` | Top-ups are temporarily unavailable. Nothing was debited. |
+
+## Authentication
+
+Send your API key in the `X-API-KEY` header. A request made with a dashboard session needs a team member with the permission to send payments, and a completed two-factor check, to create a top-up.
+
+## Webhooks
+
+Subscribe your endpoint to `bill.success`, `bill.failed` and `bill.reversed` (or `bill.*`). Each carries the bill:
+
+```json
+{
+  "event": "bill.success",
+  "timestamp": "2026-10-12T09:14:03Z",
+  "data": {
+    "id": "8b8f0d0e-5d6c-4d8e-9d3c-0f4a1c3b2a10",
+    "reference": "order-1042",
+    "product": "betting",
+    "biller": "bet9ja",
+    "customer_id": "Hassan3330",
+    "customer_name": "HASSANA SAIDU",
+    "amount": 1000,
+    "fee": 0,
+    "currency": "NGN",
+    "status": "success"
+  }
+}
+```
+
+On `bill.failed` and `bill.reversed`, `status` is `failed` or `reversed` and `failure_reason` is set; `amount` and `fee` are already back in your wallet.
+
+Webhooks are retried if your endpoint does not answer `2xx`, so the same event can arrive more than once. Use `data.id` or `data.reference` to process each top-up once.
+
+## Endpoints
+
+- [List betting billers](/api-reference/bills/list-billers): `GET /v1/bills/betting/billers`
+- [Validate a customer](/api-reference/bills/validate): `POST /v1/bills/betting/validate`
+- [Create a top-up](/api-reference/bills/purchase): `POST /v1/bills/betting`
+- [Get a top-up](/api-reference/bills/get): `GET /v1/bills/betting/{id}`
+- [List top-ups](/api-reference/bills/list): `GET /v1/bills/betting`
