@@ -503,6 +503,69 @@ Sent when a transfer fails.
 }
 ```
 
+### checkout.paid
+
+Sent when a checkout (including one opened from a payment link) is settled. Checkout payers have no customer record, so `customer_id` is empty and the payer's email is in `data.customer_email`.
+
+```json
+{
+  "event": "checkout.paid",
+  "timestamp": "2026-10-10T12:00:00Z",
+  "customer_id": "",
+  "data": {
+    "checkout_id": "checkout_id",
+    "link_id": "link_id",
+    "reference": "PN-1234567890",
+    "amount": 9850.00,
+    "paid_amount": 10000.00,
+    "fee": 150.00,
+    "currency": "NGN",
+    "payment_method": "bank_transfer",
+    "customer_email": "payer@example.com",
+    "status": "success"
+  }
+}
+```
+
+- **checkout_id** – The checkout that was paid.
+- **link_id** – The payment link the checkout came from. Omitted when the checkout was not opened from a payment link.
+- **reference** – The transaction reference. Quote it to support when asking about this payment.
+- **amount** – What you are credited, in `currency`.
+- **paid_amount** – What the payer sent. Reconcile the payer's statement against `paid_amount` and your own ledger against `amount`.
+- **fee** – The difference between the two: what Platnova kept.
+- **payment_method** – One of `bank_transfer`, `tag_transfer`, `crypto`, `card`, `ussd`, `opay`, `bank_account`, `mobile_money`, `apple_pay`, `google_pay`.
+- **customer_email** – The email the payer entered at checkout. Omitted when none was given.
+- **status** – `success`.
+
+By the time this event is sent, the payment can also be confirmed with [Verify payment](/api-reference/payments/verify) or [Get checkout](/api-reference/checkout/get).
+
+### checkout.failed
+
+Sent when a checkout is not settled, most often because an underpayment is being reversed. Same payload as `checkout.paid`, with `status` set to `failed` and a `reason`.
+
+```json
+{
+  "event": "checkout.failed",
+  "timestamp": "2026-10-10T12:00:00Z",
+  "customer_id": "",
+  "data": {
+    "checkout_id": "checkout_id",
+    "reference": "PN-1234567890",
+    "amount": 8000.00,
+    "paid_amount": 8000.00,
+    "fee": 0,
+    "currency": "NGN",
+    "payment_method": "bank_transfer",
+    "customer_email": "payer@example.com",
+    "status": "failed",
+    "reason": "We received NGN 8000 against an order for NGN 10000. The payment is being returned to the sender and the order has not been settled."
+  }
+}
+```
+
+- **amount**, **paid_amount**, **fee** – What was attempted, not collected. Nothing was settled to you. For a reversed underpayment, `paid_amount` is what arrived and is being returned to the payer, and `fee` is 0.
+- **reason** – Why the checkout failed. Written for a person to read; do not parse it.
+
 ### defi.payment
 
 Sent as a crypto checkout payment progresses: when the payer's transfer is seen, while it confirms, and when it settles, expires or fails.
@@ -552,4 +615,4 @@ Sent as a crypto checkout payment progresses: when the payer's transfer is seen,
 - **Handle duplicates** – Use `transaction_ref` or event idempotency keys to avoid processing the same event more than once.
 - **Log for debugging** – Log incoming webhook requests and responses to troubleshoot delivery or retry issues.
 
-For API endpoints to create or manage webhook configurations programmatically, see the [Webhooks API reference](/api-reference/endpoint/webhook).
+Webhook endpoints are created and managed in the [dashboard](https://business.platnova.com); there is no API-key endpoint for managing them.
