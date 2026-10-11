@@ -48,6 +48,7 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `customer.rejected` | Customer Rejected |
 | `transfer.success` | Transfer Success |
 | `transfer.failed` | Transfer Failed |
+| `defi.payment` | Crypto Checkout Payment |
 
 ## Event Payloads
 
@@ -499,6 +500,48 @@ Sent when a transfer fails.
   }
 }
 ```
+
+### defi.payment
+
+Sent as a crypto checkout payment progresses: when the payer's transfer is seen, while it confirms, and when it settles, expires or fails.
+
+```json
+{
+  "event": "defi.payment",
+  "timestamp": "2026-10-10T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "order_id": "checkout_id",
+    "amount": 686.11,
+    "fee": 14.00,
+    "reference": "BDEP123456",
+    "currency": "USD",
+    "status": "partially_paid",
+    "booking_status": "successful",
+    "requested_amount": 689.00,
+    "rate": 0.9996,
+    "metadata": {
+      "pay_address": "TXYZ...",
+      "pay_currency": "usdttrc20",
+      "order_id": "checkout_id",
+      "order_description": "Order #1042",
+      "actually_paid_at_fiat": 700.11,
+      "payment_id": "5115741345",
+      "transaction_hash": "0xabc...",
+      "sender_address": ""
+    }
+  }
+}
+```
+
+- **amount** – What was credited to you (once settled), in `currency`.
+- **fee** – What was kept back: Platnova's fee plus any VAT.
+- **status** – The crypto processor's own status for the payment: `waiting`, `confirming`, `confirmed`, `sending`, `partially_paid`, `finished`, `expired` or `failed`. Passed through unchanged.
+- **booking_status** – How Platnova booked the payment: `pending`, `successful`, `partially_completed`, `failed`, `cancelled` or `reversed`. **Use this to decide whether an order is paid.** The processor calls any shortfall `partially_paid`, even a payment a few cents short because of a network fee, but Platnova books a payment that covers the invoice as `successful`. `partially_completed` means less arrived than was asked, and `amount` is what did arrive.
+- **requested_amount** – The invoice the payer was asked to pay, in `currency`. It includes the fee when the fee is charged on top.
+- **rate** – What one coin of `pay_currency` was valued at, in `currency`. On settlement this is the market rate when the payment settled. Before settlement it is the invoice's quoted rate.
+- **metadata.actually_paid_at_fiat** – The value of the coins that arrived, at `rate`.
+- **metadata.transaction_hash** / **sender_address** – The payer's on-chain transfer and, where the chain shows it (Solana today), the sending wallet. Empty until the transfer is seen.
 
 ## Best Practices
 
