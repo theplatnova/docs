@@ -1,0 +1,205 @@
+---
+title: "Verifying webhooks"
+slug: "webhooks/signatures"
+---
+
+Every webhook endpoint has a **secret**. When the endpoint is signed, every call we make to it carries a signature of the request body, computed with that secret. Check the signature before you act on a call: it proves the call came from Platnova and that the body was not changed on the way.
+
+## The headers we send
+
+| Header | Sent when | Value |
+|---|---|---|
+| `X-Platnova-Signature` | The endpoint is signed | `sha256=` followed by the lowercase hex HMAC-SHA256 of the raw request body, keyed with the endpoint secret |
+| `X-Platnova-Key-Id` | The endpoint is signed | The first 8 hex characters of SHA-256 of the secret that produced `X-Platnova-Signature` (see [Key id](#key-id)) |
+| `X-Platnova-Signature-Previous` | The endpoint is signed and a [rotation](#rotating-the-secret) is in its overlap window | The same signature, computed with the **previous** secret |
+| `X-Platnova-Key-Id-Previous` | Same as above | The key id of the previous secret |
+| `X-Webhook-Secret`, `X-Auth-Secret` | Every endpoint, until **1 January 2027** for signed endpoints | The endpoint secret itself, in plain text. This is the legacy check and is being retired |
+
+**Which endpoints are signed.** Every endpoint created on or after **24 September 2026** is signed. Endpoints created before that date are not signed unless we have switched signing on for you. Until then they receive only the plain-text `X-Webhook-Secret` and `X-Auth-Secret` headers, with no end date. To have an older endpoint signed, contact support, or delete it and create it again.
+
+<Warning>
+`X-Platnova-Signature` always holds exactly **one** `sha256=` value. Compare the whole header with the value you compute. Do not split it on commas or look for a list. During a rotation the old secret's signature comes in its own header, `X-Platnova-Signature-Previous`.
+</Warning>
+
+## Verifying a signature
+
+1. **Read the raw request body** as bytes, before any JSON parsing. Do not parse the JSON and serialise it again: any difference in spacing, key order or escaping changes the signature, and verification fails even though the call is genuine.
+2. **Compute** `"sha256=" + hex(HMAC-SHA256(key = your secret as UTF-8, message = raw body))`, using lowercase hex.
+3. **Compare** it with `X-Platnova-Signature` in **constant time**, using one of the functions below, never `==`.
+4. **If they match, accept the call.** During a rotation, also accept a match on `X-Platnova-Signature-Previous`.
+5. **If neither matches, answer with a non-2xx status**, such as `401`. See [Answer honestly](#answer-honestly).
+
+<CodeGroup>
+
+```javascript Node.js (Express)
+const crypto = require("crypto");
+
+// express.raw keeps the body as the exact bytes we sent.
+app.post("/webhooks/platnova", express.raw({ type: "application/json" }), (req, res) => {
+  const expected = "sha256=" +
+    crypto.createHmac("sha256", process.env.PLATNOVA_WEBHOOK_SECRET).update(req.body).digest("hex");
+  const given = req.get("X-Platnova-Signature") || "";
+
+  const a = Buffer.from(expected);
+  const b = Buffer.from(given);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return res.status(401).send("invalid signature");
+  }
+
+  const event = JSON.parse(req.body.toString("utf8"));
+  // ... queue the event for processing, then answer quickly
+  res.status(200).json({ received: true });
+});
+```
+
+```python Python (Flask)
+import hashlib, hmac, os
+from flask import request, abort
+
+@app.post("/webhooks/platnova")
+def platnova_webhook():
+    raw = request.get_data()  # the raw bytes, before parsing
+    expected = "sha256=" + hmac.new(
+        os.environ["PLATNOVA_WEBHOOK_SECRET"].encode("utf-8"), raw, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(expected, request.headers.get("X-Platnova-Signature", "")):
+        abort(401)
+    event = request.get_json()
+    # ... queue the event for processing, then answer quickly
+    return {"received": True}, 200
+```
+
+```go Go
+func platnovaWebhook(w http.ResponseWriter, r *http.Request) {
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	mac := hmac.New(sha256.New, []byte(os.Getenv("PLATNOVA_WEBHOOK_SECRET")))
+	mac.Write(raw)
+	expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+	if !hmac.Equal([]byte(expected), []byte(r.Header.Get("X-Platnova-Signature"))) {
+		http.Error(w, "invalid signature", http.StatusUnauthorized)
+		return
+	}
+	// ... json.Unmarshal(raw, &event), queue it, then answer quickly
+	w.WriteHeader(http.StatusOK)
+}
+```
+
+```php PHP
+$raw = file_get_contents('php://input'); // the raw bytes, before json_decode
+$expected = 'sha256=' . hash_hmac('sha256', $raw, getenv('PLATNOVA_WEBHOOK_SECRET'));
+$given = $_SERVER['HTTP_X_PLATNOVA_SIGNATURE'] ?? '';
+
+if (!hash_equals($expected, $given)) {
+    http_response_code(401);
+    exit('invalid signature');
+}
+$event = json_decode($raw, true);
+// ... queue the event for processing, then answer quickly
+http_response_code(200);
+```
+
+</CodeGroup>
+
+You can check your implementation against a known value. With the secret `secret` and the body `{"event":"webhook.test"}` (24 bytes, no trailing newline), the signature is:
+
+```text
+sha256=f4a3c7502660171ad2170df1a0360d8da6e579a10084c4f49a8845531d04fe64
+```
+
+```bash
+printf '{"event":"webhook.test"}' | openssl dgst -sha256 -hmac secret
+```
+
+### Answer honestly
+
+We judge a delivery **only by your HTTP status code**. Any 2xx counts as delivered, and that event is never sent again. We cannot see what your code decides after it answers.
+
+So if your verification fails, **answer with a non-2xx status** (for example `401`). If you answer `200` with something like `{"received": true, "verified": false}`, we record the event as delivered and stop retrying. Your system has then dropped the event, and neither side gets any warning. A non-2xx answer gets the event retried, shows up as a failure in your dashboard, and, if it keeps happening, [pauses the endpoint and emails you](/webhooks/delivery#paused-endpoints).
+
+## Key id
+
+`X-Platnova-Key-Id` names the secret that produced the signature. It is the first 8 hex characters of SHA-256 of the secret, so it identifies a secret without revealing it. It is not secret itself, and it is safe to log.
+
+Use it when you hold more than one Platnova secret. For example, two Platnova businesses might post to one URL, or you might be part-way through a [rotation](#rotating-the-secret). Look up the secret by key id, then verify with that secret. Do not try each secret in turn.
+
+To work out the key id of a secret you hold:
+
+```bash
+printf %s "$SECRET" | shasum -a 256 | cut -c1-8
+```
+
+The dashboard and `GET /v1/webhooks` show each endpoint's `key_id` (and `previous_key_id` during a rotation), so you can match what you hold against what we send.
+
+## Rotating the secret
+
+Rotate an endpoint's secret from the dashboard: **Settings → Webhooks → the endpoint's menu → Rotate secret**. The dashboard calls `POST /v1/webhooks/{id}/rotate-secret`, which needs a signed-in session with permission to update webhooks; it cannot be called with an API key.
+
+| Field | Type | Description |
+|---|---|---|
+| `overlap_hours` | integer, optional | How long the old secret keeps being honoured: `0` to `168`. Default `168` (7 days). Use `0` if the old secret has leaked, to stop using it at once. |
+
+The response carries the new secret. **It is shown once.** We never return a secret again, so store it before you close the dialog.
+
+```json
+{
+  "secret": "q3Zt...new secret...",
+  "key_id": "7c1e09ab",
+  "previous_key_id": "3f52c8d1",
+  "previous_secret_expires_at": "2026-10-20T12:00:00Z"
+}
+```
+
+During the overlap window, every signed delivery carries both signatures:
+
+- `X-Platnova-Signature` and `X-Platnova-Key-Id`, computed with the **new** secret.
+- `X-Platnova-Signature-Previous` and `X-Platnova-Key-Id-Previous`, computed with the **old** secret.
+
+To rotate without missing an event:
+
+1. Rotate, and store the new secret beside the old one.
+2. Accept a call if **either** signature verifies against a secret you hold.
+3. Switch your receiver to the new secret.
+4. Once `previous_secret_expires_at` has passed, the `-Previous` headers stop arriving. Delete the old secret.
+
+Rotating again during an overlap window drops the oldest secret. Only the current secret and the one before it are ever honoured.
+
+<Note>
+**Unsigned endpoints have no overlap.** An endpoint that is not signed only receives the secret in plain text, in `X-Webhook-Secret` and `X-Auth-Secret`. After a rotation those headers carry the new secret straight away. Update your receiver first, or ask us to sign the endpoint.
+</Note>
+
+When you create an endpoint, the response also returns its secret once. That is the secret you supplied, or, if you left it blank, the one we generated.
+
+## Sending a test event
+
+To check your receiver end to end, use **Send test event** in the endpoint's menu. The dashboard calls `POST /v1/webhooks/{id}/test`, which sends this body straight away, signed exactly like a real delivery:
+
+```json
+{
+  "event": "webhook.test",
+  "timestamp": "2026-10-13T12:00:00Z",
+  "customer_id": "",
+  "data": { "webhook_id": "your-endpoint-id" }
+}
+```
+
+It waits for your answer and returns what happened:
+
+| Field | Description |
+|---|---|
+| `delivered` | `true` if your endpoint answered with a 2xx status |
+| `status_code` | The HTTP status your endpoint returned (`0` if it could not be reached) |
+| `latency_ms` | How long your endpoint took to answer |
+| `response_body` | The first 2 KB of what your endpoint returned |
+| `error` | Why the call failed to reach you (timeout, DNS, TLS), if it did |
+| `key_id` | The key id of the secret we signed with |
+| `signed` | Whether the call carried `X-Platnova-Signature` |
+
+A test event is not stored as an event. It does not appear in your event history, and it never counts towards pausing the endpoint.
+
+<Warning>
+`delivered: true` means the call reached your server and your server answered 2xx. It does **not** mean your verification passed. If your code answers `200` and then treats the call as unverified, we cannot tell. Check `response_body`, and [answer non-2xx when verification fails](#answer-honestly).
+</Warning>
