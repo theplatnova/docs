@@ -194,7 +194,7 @@ It waits for your answer and returns what happened:
 | `status_code` | The HTTP status your endpoint returned (`0` if it could not be reached) |
 | `latency_ms` | How long your endpoint took to answer |
 | `response_body` | The first 2 KB of what your endpoint returned |
-| `error` | Why the call failed to reach you (timeout, DNS, TLS), if it did |
+| `error` | If the call did not get an answer from you, a short reason: `connection refused`, `timed out waiting for a response`, `host could not be resolved`, `TLS handshake failed`, or `destination address is not allowed` (see [Endpoint URLs](/webhooks/delivery#endpoint-urls)). The raw network error is never returned |
 | `key_id` | The key id of the secret we signed with |
 | `signed` | Whether the call carried `X-Platnova-Signature` |
 

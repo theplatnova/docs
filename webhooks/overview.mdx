@@ -7,10 +7,10 @@ Receive real-time notifications for card activity, virtual account funding, and 
 
 ## How Webhooks Work
 
-1. **Configure your endpoint**: in the dashboard, set the URL that will receive webhook events and choose the events you want. You can supply a secret, or leave it blank and we generate one. Either way, the secret is shown **once**, when the endpoint is created. Store it then.
+1. **Configure your endpoint**: in the dashboard, set the URL that will receive webhook events (it must be `https` and publicly reachable; see [Endpoint URLs](/webhooks/delivery#endpoint-urls)) and choose the events you want. You can supply a secret, or leave it blank and we generate one. Either way, the secret is shown **once**, when the endpoint is created. Store it then.
 2. **Receive events**: we send a POST request to your URL for each subscribed event. Answer with any **2xx** status within 30 seconds to acknowledge it.
 3. **Verify every call**: check the `X-Platnova-Signature` header against the raw body with your secret. See [Verifying webhooks](/webhooks/signatures).
-4. **Retries and recovery**: a failed delivery is retried 3 times. An endpoint that keeps failing is paused, and you are emailed. It resumes by itself once it answers again, and nothing recorded in the meantime is lost. See [Delivery, retries and pausing](/webhooks/delivery).
+4. **Retries and recovery**: each event gets 3 attempts (the first plus 2 retries). An endpoint that keeps failing is paused, and you are emailed. It resumes by itself once it answers again, and nothing recorded in the meantime is lost. See [Delivery, retries and pausing](/webhooks/delivery).
 
 <Warning>
 We judge a delivery by your HTTP status alone. Any 2xx means delivered, and that event is never sent again. If your signature check fails, answer with a non-2xx status such as `401`, not `200` with an error in the body.

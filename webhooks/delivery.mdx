@@ -7,18 +7,29 @@ This page covers what happens to an event between us recording it and your endpo
 
 ## Acknowledging an event
 
-An event is **delivered** when your endpoint answers our `POST` with any **2xx** status within **30 seconds**. Anything else counts as a failed attempt: a non-2xx status, a timeout, or a connection, DNS or TLS error.
+An event is **delivered** when your endpoint answers our `POST` with any **2xx** status within **30 seconds**. Anything else counts as a failed attempt: a non-2xx status (including a 3xx redirect, which we do not follow), a timeout, a refused connection, or a DNS or TLS error.
 
 - **Answer quickly.** Verify the [signature](/webhooks/signatures), store or queue the event, answer `200`, and do the work afterwards.
 - **Answer non-2xx when you have not accepted the event**, for example when verification fails. A `200` is final: an event you answered 2xx is never sent again. See [Answer honestly](/webhooks/signatures#answer-honestly).
 
+## Endpoint URLs
+
+The URL you save, when creating or updating an endpoint, must:
+
+- use **`https`**, and
+- resolve only to **public internet addresses**. URLs that resolve to private, loopback, link-local (including cloud metadata) or carrier-grade NAT (`100.64.0.0/10`) addresses are refused.
+
+We check this when the URL is saved and again on every call, so a hostname that later starts resolving to a private address stops receiving deliveries. Those attempts fail with "destination address is not allowed". **Redirects are not followed**: a 3xx answer counts as a failed delivery, so give us the final URL.
+
+Endpoints saved with an `http` URL before this rule keep receiving deliveries. Change them to `https` when you next edit them; an update must use `https`.
+
 ## Retries
 
-Each event gets a first attempt and up to **3 retries**, spaced out over a few minutes. If all four attempts fail, the event is marked `failed`. You can send it again from the dashboard: **Retry** on one event, or **Retry failed** for every failed event on the endpoint.
+Each event gets **3 attempts in total**: the first, plus up to 2 retries spaced out over a few minutes. If all three fail, the event is marked `failed`. You can send it again from the dashboard: **Retry** on one event, or **Retry failed** for every failed event on the endpoint.
 
 ## Paused endpoints
 
-If your endpoint fails **5 deliveries in a row** and **none** of its deliveries has succeeded in the last 24 hours, we pause it. An endpoint that has been working recently is not paused for a short bad patch. Its owners and developers are emailed instead.
+If your endpoint fails **5 deliveries in a row** (non-2xx answers, timeouts and refused connections all count) and **none** of its deliveries has succeeded in the last 24 hours, we pause it. An endpoint that has been working recently is not paused for a short bad patch. Its owners and developers are emailed instead.
 
 When an endpoint is paused:
 
@@ -37,6 +48,8 @@ You do not have to do anything to un-pause an endpoint. While it is paused, we p
 | After that | Every 6 hours |
 
 As soon as one of those attempts gets a 2xx, the endpoint is **resumed** and its backlog is redelivered.
+
+A paused endpoint with nothing waiting to be delivered is not tried at all. The first new event recorded for it starts the schedule again.
 
 ### Resuming by hand
 
