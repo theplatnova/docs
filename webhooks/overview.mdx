@@ -319,6 +319,7 @@ Sent when a virtual account receives funds.
   "customer_id": "user_id",
   "data": {
     "virtual_account_id": "va_uid",
+    "virtual_account_number": "0123456789",
     "amount": 495.00,
     "paid_amount": 500.00,
     "fee": 5.00,
@@ -328,6 +329,8 @@ Sent when a virtual account receives funds.
   }
 }
 ```
+
+`virtual_account_number` is the account number the payer paid into, so you can match a deposit to the account you gave them without looking up `virtual_account_id`. It is omitted when the deposit did not arrive through a virtual account.
 
 ### account.issued
 
