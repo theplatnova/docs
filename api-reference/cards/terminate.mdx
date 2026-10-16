@@ -1,0 +1,31 @@
+---
+title: "Terminate Card"
+openapi: "PUT /v1/cards/{card_id}/terminate"
+---
+
+## Overview
+
+Close a card permanently. Use this when a customer no longer needs a card, or when you want to close it and return its balance. Unlike [freezing](/api-reference/cards/freeze), termination cannot be undone.
+
+## What happens to the balance
+
+You do not need to withdraw first. A card cannot be withdrawn below USD 1.00, but termination returns everything left on the card.
+
+- The card issuer returns the balance and it is credited back automatically, the same way a [withdrawal](/api-reference/cards/withdraw) is credited. This usually takes less than a minute.
+- `balance_refund` in the response tells you where it stands:
+  - `none`: there was nothing on the card.
+  - `pending`: the balance is on its way back. You receive the `card.termination_refund` webhook when it lands.
+  - `refunded`: it was credited during this request.
+- You also receive `card.terminated` when the card is closed.
+
+## When a card cannot be terminated
+
+| `data.code` | Status | Meaning |
+|---|---|---|
+| `card_not_found` | 404 | No card with this id belongs to your business. |
+| `card_not_issued` | 409 | The card was never issued (still being created, or its KYC failed), so there is nothing to terminate. A card that fails KYC is cancelled and refunded automatically. |
+| `card_movement_pending` | 409 | A funding or withdrawal on the card is still processing. Try again once it has settled. |
+| `card_frozen_by_platnova` | 403 | Platnova froze this card. Contact support. |
+| `card_cannot_be_terminated` | 409 | This card can't be terminated through the API. Contact support. |
+
+Terminating a card that is already terminated returns `200` with `already_terminated: true`, so the call is safe to retry.
