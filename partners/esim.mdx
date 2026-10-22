@@ -1,0 +1,109 @@
+---
+title: "eSIM"
+slug: "partners-esim"
+description: "Sell data eSIMs to your customers, paid from your business wallet, and deliver them with a single-use install link."
+---
+
+You list plans, buy an eSIM for your customer, and send them a single-use link to install it. Each purchase and top-up is paid from your NGN business wallet. If an order fails, the money goes back to your wallet automatically.
+
+eSIM must be enabled for your business. Until it is, every route answers `403` `partner_product_disabled`. If the service is unavailable, routes answer `503` `esim_unavailable`.
+
+All amounts are integers in kobo. A `partner_reference` here is **1 to 64 letters, digits, `.`, `_` or `-`, and never `..`**; anything else gets `422` `partner_reference_invalid`.
+
+## How it works
+
+1. **List plans** with `GET /v1/partner/esim/plans?country=GB`. Prices are in NGN and include our fee.
+2. **Buy** with `POST /v1/partner/esim/orders`. Your wallet is debited at once and the answer is `202`, with the order `processing`.
+3. **Deliver.** When it's ready you receive `esim.order.ready` with an install link. Send that link to your customer by email, SMS or your own screen.
+4. **Top up** later with `POST /v1/partner/esim/orders/{partner_reference}/topups`.
+
+## List plans
+
+`GET /v1/partner/esim/plans?country=GB`
+
+`country` is a two-letter ISO code in capitals. Leave it out to list every plan.
+
+```json
+[
+  {
+    "plan_id": "esim_1GB_7D_GB_V2",
+    "name": "UK 1GB 7 days",
+    "data_mb": 1024,
+    "unlimited": false,
+    "duration_days": 7,
+    "countries": ["GB"],
+    "amount_minor": 650000,
+    "currency": "NGN"
+  }
+]
+```
+
+## Buy an eSIM
+
+`POST /v1/partner/esim/orders` (needs an `Idempotency-Key`)
+
+```json
+{ "partner_reference": "SHL-ESIM-1", "plan_id": "esim_1GB_7D_GB_V2", "amount_minor": 650000 }
+```
+
+Send the `amount_minor` the plan list showed you. The answer:
+
+| HTTP | `data.order.status` | Meaning |
+|---|---|---|
+| `202` | `processing` | Being ordered. Wait for `esim.order.ready`. |
+| `202` | `submitting` | We debited your wallet but did not hear back in time. We check within 30 minutes. If it was not ordered, the money comes back. |
+| `409` `price_changed` | `failed` | The price moved and nothing was bought. `data.price` is the new price; your wallet is refunded. Order again with a new reference. |
+| `409` `plan_unavailable` | `failed` | The plan is gone and nothing was bought; refunded. |
+| `202` | `attention` | We could not confirm the outcome. Your money is held while we check it, and we contact you. |
+
+These are refused before any money moves: `422` `insufficient_balance`, `422` `wallet_not_found`, `400` `esim_order_invalid`, and your limits (`partner_per_transaction_cap`, `partner_daily_cap`).
+
+## Top up
+
+`POST /v1/partner/esim/orders/{purchase_reference}/topups` (needs an `Idempotency-Key`)
+
+```json
+{ "partner_reference": "SHL-ESIM-1-TOP-1", "plan_id": "esim_1GB_7D_GB_V2", "amount_minor": 650000 }
+```
+
+The path names the **purchase**. The body carries a **new** reference for the top-up. The data always goes onto that purchase's own eSIM.
+
+If a top-up is refused after your wallet was debited (for example `price_changed`), it is **not** refunded automatically. It shows `attention`, and a Platnova person checks it and refunds it, because a top-up's data goes onto an eSIM that already exists.
+
+The purchase must be ready. Otherwise the request is refused before any money moves:
+- `404` `order_not_found`: no purchase has that reference.
+- `409` `not_topupable`: that reference is not a purchase.
+- `409` `not_ready`: the purchase is not ready yet.
+
+## The install link
+
+The `esim.order.ready` webhook carries:
+
+```json
+"install": { "install_url": "https://engine.platnova.com/v1/esim/install/<token>", "expires_at": "2026-10-25T10:00:00Z", "single_use": true }
+```
+
+- **Give the link only to your customer.** It is the eSIM. Do not log it.
+- Opening the link is safe: link previews in WhatsApp or Slack don't use it up. It is used up when your customer taps **Show my eSIM**. The page then shows the iPhone and Android install buttons, a QR code and the activation code.
+- **It works once, for 72 hours.** For a new one, call `GET /v1/partner/esim/orders/{partner_reference}/install-link` (or `POST`). Each new link stops the earlier unused ones from working.
+
+## Read an order and its data
+
+- `GET /v1/partner/esim/orders/{partner_reference}` returns `{partner_reference, kind: purchase|topup, parent_reference?, plan_id, status, order_id, amount_minor, currency, iccid_last4, transaction_ref, refund_minor}`.
+- `GET /v1/partner/esim/orders/{partner_reference}/usage` returns `{remaining_bytes, initial_bytes, unlimited, live, ends_at}`. It asks the network live, so it can take up to about 15 seconds; we give up at 30.
+
+`status` is `submitting`, `processing`, `ready`, `failed` (refunded) or `attention` (held while we check).
+
+## Webhooks
+
+Subscribe to `esim.order.*`:
+
+| Event | When | Money |
+|---|---|---|
+| `esim.order.ready` | The eSIM is ready. Carries `install`. | — |
+| `esim.order.topped_up` | A top-up was applied. | — |
+| `esim.order.failed` | Nothing was bought. | `refund` is already credited to your wallet. |
+| `esim.order.low_data` | Under 20% of the data is left. Sent once. | — |
+| `esim.order.finished` | Every plan on the eSIM has ended. It can still be topped up. | — |
+
+Each order is refunded at most once, however many times an event is delivered. **An order in `attention` is never refunded automatically.** The eSIM may have been issued, so a person checks it and contacts you.

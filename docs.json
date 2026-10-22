@@ -112,6 +112,18 @@
               "webhooks/signatures",
               "webhooks/delivery"
             ]
+          },
+          {
+            "group": "Partners",
+            "pages": [
+              "partners/overview",
+              "partners/payouts",
+              "partners/checkout",
+              "partners/travel",
+              "partners/esim",
+              "partners/webhooks",
+              "partners/errors"
+            ]
           }
         ]
       },

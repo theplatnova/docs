@@ -1,0 +1,131 @@
+---
+title: "Webhooks v2"
+slug: "partners-webhooks"
+description: "One signed envelope for every event, deduplicated by id, with delivery history and redelivery."
+---
+
+Partner endpoints receive webhooks in the **v2 envelope**. Platnova switches an endpoint to v2. Endpoints that are not switched keep the v1 body and v1 event names.
+
+## The envelope
+
+```json
+{
+  "id": "1f0c6c3e-7a8e-4b55-9f6b-5d7f2c9a1e40",
+  "type": "payout.succeeded",
+  "created_at": "2026-10-22T09:00:00.123456Z",
+  "partner_reference": "SL-PAYOUT-123",
+  "customer_id": "",
+  "data": { }
+}
+```
+
+- **`id`** is the event's own id. It is the same on every retry and every redelivery, and so is the whole body, byte for byte. **Deduplicate on `id`.**
+- **`created_at`** is when the event happened, not when this attempt was sent.
+- **`partner_reference`** is always present, though it may be `""`. It is the checkout's, refund's, travel order's or payout's reference. A refund made without its own reference carries the checkout's.
+- **`data`** is the event's own payload, unchanged from v1.
+
+## Headers
+
+| Header | Value |
+|---|---|
+| `X-Platnova-Signature` | `sha256=` followed by the lowercase hex HMAC-SHA256 of the **raw body**, keyed with your endpoint secret |
+| `X-Platnova-Event-Id` | The envelope's `id` |
+| `X-Webhook-Secret`, `X-Auth-Secret` | Legacy: the plain secret. These are still sent until **2027-01-01**. Do not rely on them. |
+
+## Verify the signature (Node.js / TypeScript)
+
+Compute the HMAC over the exact bytes you received, before any JSON parsing, and compare it in constant time.
+
+```typescript Express (TypeScript)
+import crypto from "node:crypto";
+import express from "express";
+
+const SECRET = process.env.PLATNOVA_WEBHOOK_SECRET!;
+const app = express();
+
+export function verifyPlatnovaSignature(rawBody: Buffer, header: string | undefined, secret = SECRET): boolean {
+  if (!header) return false;
+  const expected = "sha256=" + crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(header, "utf8");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// express.raw keeps the body as the bytes we signed.
+app.post("/webhooks/platnova", express.raw({ type: "application/json" }), async (req, res) => {
+  if (!verifyPlatnovaSignature(req.body as Buffer, req.get("X-Platnova-Signature"))) {
+    return res.sendStatus(401);
+  }
+  const event = JSON.parse((req.body as Buffer).toString("utf8")) as {
+    id: string; type: string; created_at: string; partner_reference: string; data: unknown;
+  };
+  if (await alreadyProcessed(event.id)) return res.sendStatus(200); // a retry or redelivery
+  await enqueue(event); // hand the work off; answer within a few seconds
+  await markProcessed(event.id);
+  return res.sendStatus(200);
+});
+
+declare function alreadyProcessed(id: string): Promise<boolean>;
+declare function markProcessed(id: string): Promise<void>;
+declare function enqueue(e: unknown): Promise<void>;
+```
+
+```typescript Next.js route handler
+import crypto from "node:crypto";
+
+export async function POST(req: Request) {
+  const raw = Buffer.from(await req.arrayBuffer());
+  const expected = "sha256=" + crypto.createHmac("sha256", process.env.PLATNOVA_WEBHOOK_SECRET!).update(raw).digest("hex");
+  const given = req.headers.get("x-platnova-signature") ?? "";
+  const ok = expected.length === given.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(given));
+  if (!ok) return new Response(null, { status: 401 });
+  const event = JSON.parse(raw.toString("utf8"));
+  // dedupe on event.id, then process
+  return new Response(null, { status: 200 });
+}
+```
+
+<Warning>
+Never verify a body you have re-serialised, such as `JSON.stringify(req.body)` after a JSON body parser has run. Key order and whitespace change, and the signature will not match.
+</Warning>
+
+To test your code: with the secret `whsec_test` and exactly the body `{"id":"evt_1","type":"payout.succeeded"}` (no spaces, no trailing newline), the header is:
+
+```text
+sha256=88271b69520199539f83fd84dc1cfd79900647d92ffa79b846551e94b26f85bf
+```
+
+Rotating secrets and the key id headers are covered in [Webhook signatures](/webhooks/signatures).
+
+## Event names
+
+v2 renames the payout events. All other events keep their v1 names. A subscription may list either name, and `payout.*` works.
+
+| v1 | v2 |
+|---|---|
+| `transfer.success` | `payout.succeeded` |
+| `transfer.failed` | `payout.failed` |
+| `transfer.reversed` | `payout.reversed` |
+
+Events a partner usually subscribes to:
+
+| Event | Carries |
+|---|---|
+| `checkout.paid`, `checkout.failed` | `partner_reference`, `line_items` |
+| `checkout.refunded`, `checkout.refund_failed` | `lines`, `partner_reference`, `checkout_partner_reference` |
+| `payout.succeeded`, `payout.failed`, `payout.reversed` | `data.metadata.partner_reference`, `data.metadata.name_check` |
+| `travel.order.confirmed`, `travel.order.failed`, `travel.order.cancelled`, `travel.order.changed` | See [Travel](/partners/travel#webhooks) |
+| `esim.order.ready`, `esim.order.topped_up`, `esim.order.failed`, `esim.order.low_data`, `esim.order.finished` | See [eSIM](/partners/esim#webhooks) |
+| `bill.success`, `bill.failed`, `bill.reversed` | See [Bills: betting](/bills/betting#webhooks) |
+
+## Delivery history
+
+`GET /v1/partner/webhooks/endpoints/{endpoint_id}/events` lists what was sent to an endpoint and how each attempt went.
+
+Filters: `status`, `event_type`, `start_date`, `end_date`, `event_id`. Pagination: `per_page`, `cursor`.
+
+## Redeliver an event
+
+`POST /v1/partner/webhooks/events/{event_id}/redeliver` sends one event again, whether or not it was delivered. The answer is `{ "event_id": "…", "status": "queued" }`. An unknown event answers `404` `event_not_found`.
+
+The redelivered body and signature are identical to the first ones, so your `id` dedupe treats a redelivery as a repeat.

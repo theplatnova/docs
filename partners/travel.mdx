@@ -1,0 +1,183 @@
+---
+title: "Travel"
+slug: "partners-travel"
+description: "Book flights for your customers, paid from your business wallet or a paid checkout, with refunds handled for you."
+---
+
+You search and price flights through Platnova, then book them. Each booking is paid from your NGN business wallet, or from a checkout your customer has already paid. If a booking cannot be completed, the money goes back to your wallet automatically.
+
+<Note>
+**Flights only for now.** Stays are coming soon: an order with `product: "stay"` answers `422` `product_not_available`. "Pay with Platnova" is not yet available for travel (`422` `payment_method_not_available`).
+</Note>
+
+Travel must be enabled for your business. Until it is, every travel route answers `403` `partner_product_disabled`. If the service is unavailable, routes answer `503` `travel_unavailable`.
+
+## How a booking works
+
+1. **Search.** `POST /v1/partner/travel/flights/search` returns offers.
+2. **Quote.** `POST /v1/partner/travel/flights/quote` with `{ "offer_id", "currency": "NGN" }` returns the price you pay, fee included, as `amount_minor`, along with `expires_at`.
+3. **Book.** `POST /v1/partner/travel/orders` with that exact `amount_minor`. Your wallet is debited at once and the answer is `202`, with the order `processing`.
+4. **Wait for the outcome.** You receive the `travel.order.confirmed` webhook with the booking reference (PNR), or you can poll `GET /v1/partner/travel/orders/{partner_reference}`.
+
+All amounts are integers in **minor units** (kobo for NGN). `100000` is ₦1,000.00.
+
+A travel `partner_reference` is stricter than other partner references: **1 to 64 letters, digits, `.`, `_` or `-`, and never `..`**. Anything else is refused with `422` `partner_reference_invalid`.
+
+## Search
+
+`POST /v1/partner/travel/flights/search`
+
+```json
+{
+  "slices": [ { "origin": "LOS", "destination": "LHR", "departure_date": "2026-12-20" } ],
+  "passengers": [ { "type": "adult" }, { "age": 1 } ],
+  "cabin_class": "economy"
+}
+```
+
+The answer is the offer request: its `offers`, each with an `id` and its `slices` and `passengers` (the passenger ids you book with). Prices in the search are the airline's own. **Always quote an offer before booking it.**
+
+## Quote
+
+`POST /v1/partner/travel/flights/quote`
+
+```json
+{ "offer_id": "off_0000AbC…", "currency": "NGN" }
+```
+
+```json
+{ "quote_id": "off_0000AbC…", "amount_minor": 123456700, "currency": "NGN", "fee_minor": 150000, "expires_at": "2026-10-22T10:30:00Z" }
+```
+
+## Book
+
+`POST /v1/partner/travel/orders` (needs an `Idempotency-Key`)
+
+```json
+{
+  "partner_reference": "SHL-123",
+  "product": "flight",
+  "offer_id": "off_0000AbC…",
+  "amount_minor": 123456700,
+  "currency": "NGN",
+  "payment": { "method": "wallet" },
+  "passengers": [
+    {
+      "id": "pas_0000…",
+      "title": "ms",
+      "given_name": "Ada",
+      "family_name": "Obi",
+      "gender": "f",
+      "born_on": "1990-01-01",
+      "email": "ada@example.com",
+      "phone_number": "+2348012345678",
+      "infant_passenger_id": "pas_0001…",
+      "identity_documents": [
+        { "unique_identifier": "A12345678", "type": "passport", "issuing_country_code": "NG", "expires_on": "2030-01-01" }
+      ]
+    },
+    { "id": "pas_0001…", "given_name": "Tobi", "family_name": "Obi", "born_on": "2026-01-10", "gender": "m", "title": "mr" }
+  ]
+}
+```
+
+- **Infants** travel on an adult's lap: put the infant's passenger id in that adult's `infant_passenger_id`.
+- **`payment.method`** is one of:
+  - `wallet`: your default wallet in `currency` is debited.
+  - `checkout`: send `payment.checkout_id` as well. The checkout must be one of yours, already paid, in the same currency, and for at least `amount_minor` less anything refunded from it. **A checkout pays for one booking only.** Your wallet is debited the booking amount; the checkout's payment is what funded it.
+
+### The answer
+
+| HTTP | `data.order.status` | Meaning |
+|---|---|---|
+| `202` | `processing` | Accepted and being booked. Wait for the webhook. |
+| `202` | `submitting` | We debited your wallet but did not hear back in time. We check within 30 minutes. If it was not booked, the money comes back. |
+| `409` `price_changed` | `failed` | The price moved. Nothing was booked and your wallet is already refunded. `data.quote` is the new price, so book again with a new `partner_reference`. |
+| `422` `offer_unavailable` (or another refusal code) | `failed` | Refused. Nothing was booked; already refunded. |
+
+Before any money moves, these are refused:
+
+| Refusal | When |
+|---|---|
+| `422` `insufficient_balance` | Your wallet does not hold `amount_minor`. |
+| `422` `wallet_not_found` | You have no wallet in `currency`. |
+| `422` `checkout_not_paid` | That checkout is not paid, or is not yours. |
+| `422` `checkout_amount_short` | The checkout was paid in another currency, or for less. |
+| `409` `checkout_already_used` | That checkout already paid for a booking. |
+| `400` `travel_order_invalid` | A field is missing or malformed. `message` says which. |
+| `422` `partner_per_transaction_cap` / `partner_daily_cap` / `partner_currency_not_enabled` | Your travel limits. |
+
+The order object:
+
+```json
+{
+  "partner_reference": "SHL-123",
+  "product": "flight",
+  "status": "booked",
+  "order_id": "…",
+  "amount_minor": 123456700,
+  "currency": "NGN",
+  "transaction_ref": "BPTRVL…",
+  "payment_method": "wallet",
+  "booking_reference": "ABC123",
+  "e_tickets": [ { "passenger_id": "pas_0000…", "ticket_number": "…" } ],
+  "refund_minor": 0,
+  "created_at": "…",
+  "updated_at": "…"
+}
+```
+
+`status` moves through:
+- `submitting`, then `processing`, then `booked`
+- or `failed` (refunded in full)
+- or `cancelled` (refunded what the airline returns)
+- or `attention`: something unexpected happened and a Platnova person is looking at it. Your money is held, not lost, and we contact you.
+
+## Cancel a booking
+
+1. `POST /v1/partner/travel/orders/{partner_reference}/cancellation-quote` tells you what comes back:
+
+   ```json
+   { "cancellation_id": "ore_…", "refund_minor": 98000000, "refund_currency": "NGN", "expires_at": "…" }
+   ```
+
+   The refund is the airline's refund at the rate you booked at. Our booking fee is not returned. A refund that the airline makes as credit or a voucher, or in another currency, shows as `0`.
+2. `POST /v1/partner/travel/orders/{partner_reference}/cancellation` with `{ "cancellation_id": "ore_…" }` (needs an `Idempotency-Key`) confirms it. The answer is the cancelled order, and `refund_minor` is already in your wallet.
+   - `202` `cancellation_pending`: the airline has not answered yet. Send the same call again shortly.
+   - `409` `cancellation_mismatch`: the id is not your latest quote.
+   - `409` `travel_order_not_cancellable`: only a booked order can be cancelled.
+
+## Webhooks
+
+Subscribe to `travel.order.*`. Each event carries the order:
+
+```json
+{
+  "id": "…",
+  "type": "travel.order.confirmed",
+  "created_at": "…",
+  "partner_reference": "SHL-123",
+  "data": {
+    "partner_reference": "SHL-123",
+    "order_id": "…",
+    "product": "flight",
+    "status": "booked",
+    "booking_reference": "ABC123",
+    "amount_minor": 123456700,
+    "currency": "NGN",
+    "transaction_ref": "BPTRVL…",
+    "details": { "booking_reference": "ABC123", "e_tickets": [ { "passenger_id": "pas_0000…", "ticket_number": "…" } ] }
+  }
+}
+```
+
+`details` holds, on `confirmed`, the airline order with its e-tickets, and on `failed` and `cancelled`, the reason and the refund.
+
+| Event | When | Money |
+|---|---|---|
+| `travel.order.confirmed` | The airline confirmed. `booking_reference` is the PNR. | — |
+| `travel.order.failed` | The airline refused. | `refund` is the full amount, already credited to your wallet. |
+| `travel.order.cancelled` | Cancelled by you or by the airline. | `refund` is what came back, already credited. |
+| `travel.order.changed` | The airline changed the schedule. Coming soon. | — |
+
+Each order is refunded at most once, however many times an event is delivered.

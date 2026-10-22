@@ -1,0 +1,99 @@
+---
+title: "Payouts"
+slug: "partners-payouts"
+description: "Pay out to Nigerian bank accounts by your own reference, one at a time or in bulk, with a name check before anything is sent."
+---
+
+## Send a payout
+
+`POST /v1/partner/payouts` (needs an `Idempotency-Key`)
+
+```bash
+curl -X POST https://api.platnova.com/v1/partner/payouts \
+  -H "X-API-Key: $PLATNOVA_API_KEY" \
+  -H "Idempotency-Key: 6f1c2b7e-payout-123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "partner_reference": "SL-PAYOUT-123",
+    "from_amount": 50000,
+    "from_wallet_id": "<your NGN wallet id>",
+    "to_currency": "NGN",
+    "payment_method": "bank_transfer",
+    "info": {
+      "account_number": "0123456789",
+      "bank_code": "058",
+      "account_name": "Ada Obi",
+      "narration": "Booking 123"
+    }
+  }'
+```
+
+The body is the same as `POST /v1/payments/send`, plus `partner_reference`. Partner payouts are same-currency and immediate. A scheduled or recurring payout is refused with `422` `partner_payout_immediate_only`.
+
+<Note>
+An API-key send through `/v1/payments/send` from a partner business meets the same limits and the same name check, and needs an `Idempotency-Key` there too.
+</Note>
+
+## The name check
+
+Before anything is sent, we ask the bank whose account it is and compare that name with `info.account_name`:
+
+| Result | Meaning |
+|---|---|
+| `exact` | The same words, in any order and any case. |
+| `close` | The shorter name has at least two words and all of them are in the longer one, or the two names share at least two words. |
+| `mismatch` | The names do not agree. |
+| `unverified` | No `account_name` was sent, or the bank could not be reached. |
+
+With name matching on (the default), `mismatch` is refused with `422` `name_mismatch` and `unverified` with `422` `name_unverified`. **Nothing is sent** in either case.
+
+## The answer
+
+```json
+{
+  "partner_reference": "SL-PAYOUT-123",
+  "status": "created",
+  "transaction_ref": "TRX…",
+  "transfer_status": "pending",
+  "amount": 50000,
+  "currency": "NGN",
+  "name_check": { "result": "exact", "expected_name": "Ada Obi", "resolved_name": "OBI ADA" }
+}
+```
+
+`status` is one of:
+- `created`: the payout is on its way.
+- `refused`: a refusal has the same shape, with `error: {code, message, fields}`.
+- `unknown`: the bank's answer was lost (`provider_unconfirmed`). Read the payout before sending again.
+
+The outcome arrives as the `payout.succeeded`, `payout.failed` or `payout.reversed` [webhook](/partners/webhooks).
+
+## Bulk payouts
+
+`POST /v1/partner/payouts/bulk` (needs an `Idempotency-Key`) with `{ "items": [ <payout body>, … ] }`.
+
+- A request takes at most 50 items.
+- Each item needs its own `partner_reference`. A duplicate within one request is refused with `400`.
+- Items run in order. Each item is idempotent on its own reference, so resending a bulk request that timed out is safe: items that already ran return their first result.
+
+The answer is `{ "items": [ <result>, … ], "created": 48, "not_created": 2 }`.
+
+## Read a payout
+
+`GET /v1/partner/payouts/{partner_reference}`
+
+```json
+{
+  "partner_reference": "SL-PAYOUT-123",
+  "kind": "payout",
+  "status": "succeeded",
+  "object_ref": "TRX…",
+  "amount": 50000,
+  "currency": "NGN",
+  "result": { "…": "the stored answer" },
+  "created_at": "…",
+  "updated_at": "…"
+}
+```
+
+`status` moves through `pending`, `created`, `refused`, `unknown`, `succeeded`, `failed` and `reversed`. An unknown reference answers `404` `not_found`.
