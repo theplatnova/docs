@@ -93,6 +93,24 @@ Every refusal carries a stable `data.code`. **Switch on the code, never on `mess
 | 409 | `price_changed` | The price moved. Nothing was bought. `data.price` has the new price. |
 | 409 | `plan_unavailable` | The plan is gone. Nothing was bought. |
 
+## Experiences
+
+| HTTP | `data.code` | Meaning |
+|---|---|---|
+| 503 | `experiences_unavailable` | Experiences are not available right now. Nothing was debited. |
+| 422 | `partner_reference_invalid` | 1 to 64 letters, digits, `.`, `_` or `-`, with no `..`. |
+| 422 | `experience_id_invalid` | `experience_id` is the id from the list. |
+| 400 | `experience_order_invalid` | A field is missing or malformed: tier, quantity (1 to 10), amount, guest name or email, or the currency is not NGN. |
+| 422 | `promo_not_supported` | Promo codes are not accepted on these orders. |
+| 422 | `insufficient_balance` | Your wallet does not hold the price. |
+| 404 | `order_not_found` | No ticket order with that reference. |
+| 409 | `not_ready` | The tickets are not issued yet, so there is no link. |
+| 409 | `price_changed` | The price moved. Nothing was bought. `data.price` has the new price. |
+| 409 | `sold_out` | Not enough tickets left. Nothing was bought. `data.available` says how many. |
+| 409 | `experience_unavailable` | The experience or tier is no longer on sale. Nothing was bought. |
+| 409 | `not_refundable` | The experience is going ahead, or a ticket was used. Only an experience its organiser cancelled is refunded. |
+| 409 | `not_cancellable` | The tickets were never issued. |
+
 ## Bills (betting)
 
 | HTTP | `data.code` | Meaning |
