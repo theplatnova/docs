@@ -1,0 +1,88 @@
+---
+title: "Partner API"
+slug: "partners-overview"
+description: "Rules every partner integration follows: authentication, idempotency, partner references and limits."
+---
+
+The partner API is for platforms that move money for their own customers through Platnova: payouts, checkouts with itemised bookings, line refunds, travel bookings and bill payments. It adds a few rules to the standard API. These rules apply only to businesses that Platnova has set up as partners.
+
+<Note>
+Partner access is enabled per business and per product by Platnova. If you are not set up as a partner, partner routes answer `403` with `data.code` `partner_product_disabled`. Contact [support@platnova.com](mailto:support@platnova.com) to be set up.
+</Note>
+
+## Base URLs
+
+| Environment | Base URL |
+|---|---|
+| **Production** | `https://api.platnova.com` |
+| **Sandbox** | `https://sandbox.api.platnova.co` |
+
+## Authentication: header only
+
+Send your API key in the `X-API-Key` header. On `/v1/partner/*` a key in the URL (`?api_key=`) is refused with `401` `api_key_in_query`, because URLs end up in proxy logs, CDN logs and browser history. Elsewhere it still works but is deprecated.
+
+```bash
+curl https://api.platnova.com/v1/partner/payouts/SL-PAYOUT-123 \
+  -H "X-API-Key: $PLATNOVA_API_KEY"
+```
+
+Partner routes accept API keys only. A dashboard session gets `403` `api_key_required`.
+
+## Responses
+
+Every response has the same shape:
+
+```json
+{ "status": false, "message": "A single payout may not exceed NGN 200000.", "data": { "code": "partner_per_transaction_cap" }, "error": [] }
+```
+
+**Switch on `data.code`, never on `message`.** Codes are a contract and do not change. Messages are written for people and may be reworded. See the [error catalogue](/partners/errors).
+
+## Idempotency-Key
+
+Every request that moves money needs an `Idempotency-Key` header: a payout, a bulk payout, a checkout, a travel order and a travel cancellation.
+
+- **Missing:** `400` `idempotency_key_required`.
+- **Same key, same body:** you get the first answer again, with the header `Idempotent-Replayed: true`. Nothing runs twice.
+- **Same key, different body:** `422` `idempotency_key_reused`.
+- **Same key while the first request is still running:** `409` `request_in_progress` with `Retry-After`. Nothing ran, so retry with the same key.
+
+Use one key for each action your user takes, and reuse it on every retry of that action.
+
+## partner_reference
+
+Every partner write carries your own `partner_reference`. It is 1 to 128 characters with no spaces, and it is unique within your business for each kind of write (checkout, payout, travel order). It is how you look the write up again and how support traces it.
+
+- **Same reference, same body:** returns the first result.
+- **Same reference, different body:** `409` `partner_reference_reused`.
+- **The first request with this reference is still running:** `409` `request_in_progress`.
+- **A refused payout or travel order keeps its reference.** To try again, send a new reference.
+
+Look a write up by its reference:
+- `GET /v1/partner/payouts/{partner_reference}`
+- `GET /v1/partner/checkouts/{partner_reference}`
+- `GET /v1/partner/travel/orders/{partner_reference}`
+
+## Limits
+
+Platnova sets these limits for each product (checkout, payout, refund, travel):
+
+| Limit | Refusal |
+|---|---|
+| The product is switched off | `403` `partner_product_disabled` |
+| The currency is not enabled (NGN at launch) | `422` `partner_currency_not_enabled` |
+| A single request is above the per-transaction cap | `422` `partner_per_transaction_cap` |
+| Today's total would pass the daily cap. The day resets at 00:00 Lagos time. | `422` `partner_daily_cap` |
+
+A refused request moves no money.
+
+## Products
+
+<CardGroup cols={2}>
+  <Card title="Payouts" href="/partners/payouts">Single and bulk bank payouts with a name check.</Card>
+  <Card title="Checkout and refunds" href="/partners/checkout">Itemised checkouts and refunds by line.</Card>
+  <Card title="Travel" href="/partners/travel">Book flights paid from your wallet or a paid checkout.</Card>
+  <Card title="Webhooks v2" href="/partners/webhooks">Signed events with one envelope, history and redelivery.</Card>
+</CardGroup>
+
+Betting wallet top-ups are documented in [Bills: betting](/bills/betting). They use the same API key and webhook endpoint.

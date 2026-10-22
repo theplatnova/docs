@@ -1,0 +1,86 @@
+---
+title: "Error catalogue"
+slug: "partners-errors"
+description: "Every stable data.code a partner integration can receive, what it means and what to do."
+---
+
+Every refusal carries a stable `data.code`. **Switch on the code, never on `message`.** A refusal before a write moves no money. If you are unsure whether a write happened, read it by its `partner_reference` before you send it again.
+
+## Every partner request
+
+| HTTP | `data.code` | Meaning | What to do |
+|---|---|---|---|
+| 401 | `api_key_in_query` | The API key was sent in the URL. | Send it in the `X-API-Key` header. |
+| 403 | `api_key_required` | A partner route was called without an API key, for example from a dashboard session. | Use your API key. |
+| 403 | `partner_product_disabled` | This product is off for your business, or you are not set up as a partner. | Contact support. |
+| 400 | `idempotency_key_required` | A money write was sent with no `Idempotency-Key`. | Add one, and reuse it on retries. |
+| 422 | `idempotency_key_reused` | That key was used with a different request. | Use a new key for a new action. |
+| 409 | `request_in_progress` | The same key or reference is still running. Nothing ran. | Retry after `Retry-After` with the same key. |
+| 400 | `partner_reference_required` | No `partner_reference`. | Send one. |
+| 409 | `partner_reference_reused` | That reference was used with a different request. | Use a new reference. |
+| 422 | `partner_currency_not_enabled` | The currency is not enabled for this product. | Use the enabled currency (NGN). |
+| 422 | `partner_per_transaction_cap` | Over the per-transaction limit. | Split it, or ask for a higher limit. |
+| 422 | `partner_daily_cap` | Today's limit would be passed. It resets at 00:00 Lagos time. | Wait, or ask for a higher limit. |
+| 404 | `not_found` | Nothing has that `partner_reference`. | Check the reference and the kind. |
+
+## Payouts
+
+| HTTP | `data.code` | Meaning |
+|---|---|---|
+| 422 | `name_mismatch` | The bank's name for the account does not match `account_name`. Nothing was sent. |
+| 422 | `name_unverified` | No `account_name` was sent, or the bank could not confirm the name. Nothing was sent. |
+| 422 | `partner_payout_immediate_only` | Partner payouts are immediate and same-currency. |
+| — | `provider_unconfirmed` | In `error.code` with `status: "unknown"`: the bank's answer was lost. Read the payout before sending again. |
+| — | `provider_unavailable` | The rail is unavailable. Nothing was sent. Retry later. |
+
+## Checkout and refunds
+
+| HTTP | `data.code` | Meaning |
+|---|---|---|
+| 400 | `line_items_invalid` | The lines do not add up to `amount`, a quantity or amount is out of range, or a line reference is missing or repeated. |
+| 400 | `redirect_url_not_allowed` | `success_url` or `cancel_url` is not `https` on one of your registered hosts. |
+| 422 | `line_amount_exceeds_refundable` | That line has less left to refund. `data.refundable` says how much. |
+| 422 | `refund_line_invalid` | Unknown or repeated `partner_line_reference`. |
+| 422 | `refund_lines_unavailable` | The checkout was created without lines. |
+| 422 | `amount_exceeds_refundable` | More than is left of the whole payment. |
+
+## Webhooks
+
+| HTTP | `data.code` | Meaning |
+|---|---|---|
+| 404 | `event_not_found` | No event with that id on your endpoints. |
+
+## Travel
+
+| HTTP | `data.code` | Meaning |
+|---|---|---|
+| 503 | `travel_unavailable` | Travel is not available right now. Nothing was debited. |
+| 422 | `partner_reference_invalid` | A travel reference is 1 to 64 letters, digits, `.`, `_` or `-`, with no `..`. |
+| 400 | `travel_order_invalid` | A field is missing or malformed. `message` says which. |
+| 422 | `product_not_available` | Stays are coming soon. |
+| 422 | `payment_method_not_available` | Pay with Platnova is not available for travel yet. |
+| 422 | `insufficient_balance` | Your wallet does not hold the booking amount. |
+| 422 | `wallet_not_found` | You have no wallet in that currency. |
+| 422 | `checkout_not_paid` | That checkout is not paid, or is not yours. |
+| 422 | `checkout_amount_short` | The checkout was paid in another currency, or for less than the booking. |
+| 409 | `checkout_already_used` | That checkout already paid for a booking. |
+| 409 | `price_changed` | The price moved. Nothing was booked; already refunded. `data.quote` has the new price. |
+| 422 | `offer_unavailable` | The offer is gone. Nothing was booked; already refunded. |
+| 409 | `travel_order_not_cancellable`, `not_cancellable` | Only a booked order can be cancelled. |
+| 409 | `cancellation_mismatch` | The cancellation id is not your latest quote. |
+| 202 | `cancellation_pending` | The airline has not answered yet. Send the same cancellation again. |
+
+## Bills (betting)
+
+| HTTP | `data.code` | Meaning |
+|---|---|---|
+| 404 | `bill_not_found` | No top-up with that id or reference. |
+| 409 | `duplicate_reference` | The reference is already used. The existing top-up is in `data.bill`. |
+| 422 | `unknown_biller` | The biller is not on the list. |
+| 422 | `invalid_customer` | The biller refused the customer ID. |
+| 422 | `customer_cannot_vend` | The biller will not accept a top-up for this account. |
+| 422 | `customer_name_mismatch` | `customer_name_confirmation` does not match the biller's name. |
+| 422 | `amount_out_of_range` | The amount is outside the biller's range. |
+| 422 | `insufficient_funds` | Your NGN wallet does not cover the amount and the fee. |
+| 422 | `wallet_not_available` | Your business has no NGN wallet. |
+| 503 | `provider_unavailable` | Top-ups are temporarily unavailable. Nothing was debited. |
