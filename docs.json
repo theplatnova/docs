@@ -102,7 +102,9 @@
           {
             "group": "Webhooks",
             "pages": [
-              "webhooks/overview"
+              "webhooks/overview",
+              "webhooks/signatures",
+              "webhooks/delivery"
             ]
           },
           {
