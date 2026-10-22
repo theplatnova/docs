@@ -70,6 +70,21 @@ Every refusal carries a stable `data.code`. **Switch on the code, never on `mess
 | 409 | `cancellation_mismatch` | The cancellation id is not your latest quote. |
 | 202 | `cancellation_pending` | The airline has not answered yet. Send the same cancellation again. |
 
+## eSIM
+
+| HTTP | `data.code` | Meaning |
+|---|---|---|
+| 503 | `esim_unavailable` | eSIMs are not available right now. Nothing was debited. |
+| 422 | `partner_reference_invalid` | 1 to 64 letters, digits, `.`, `_` or `-`, with no `..`. |
+| 422 | `country_invalid` | `country` is a two-letter ISO code in capitals. |
+| 400 | `esim_order_invalid` | A field is missing or malformed, or the currency is not NGN. |
+| 422 | `insufficient_balance` | Your wallet does not hold the price. |
+| 404 | `order_not_found` | No eSIM order with that reference. |
+| 409 | `not_topupable` | Only a purchase can be topped up, or have a link or usage. |
+| 409 | `not_ready` | The purchase is not ready yet. |
+| 409 | `price_changed` | The price moved. Nothing was bought. `data.price` has the new price. |
+| 409 | `plan_unavailable` | The plan is gone. Nothing was bought. |
+
 ## Bills (betting)
 
 | HTTP | `data.code` | Meaning |

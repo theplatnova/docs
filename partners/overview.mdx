@@ -40,7 +40,7 @@ Every response has the same shape:
 
 ## Idempotency-Key
 
-Every request that moves money needs an `Idempotency-Key` header: a payout, a bulk payout, a checkout, a travel order and a travel cancellation.
+Every request that moves money needs an `Idempotency-Key` header: a payout, a bulk payout, a checkout, a travel order, a travel cancellation and an eSIM purchase or top-up.
 
 - **Missing:** `400` `idempotency_key_required`.
 - **Same key, same body:** you get the first answer again, with the header `Idempotent-Replayed: true`. Nothing runs twice.
@@ -65,7 +65,7 @@ Look a write up by its reference:
 
 ## Limits
 
-Platnova sets these limits for each product (checkout, payout, refund, travel):
+Platnova sets these limits for each product (checkout, payout, refund, travel, eSIM):
 
 | Limit | Refusal |
 |---|---|
@@ -82,6 +82,7 @@ A refused request moves no money.
   <Card title="Payouts" href="/partners/payouts">Single and bulk bank payouts with a name check.</Card>
   <Card title="Checkout and refunds" href="/partners/checkout">Itemised checkouts and refunds by line.</Card>
   <Card title="Travel" href="/partners/travel">Book flights paid from your wallet or a paid checkout.</Card>
+  <Card title="eSIM" href="/partners/esim">Sell data eSIMs with a single-use install link.</Card>
   <Card title="Webhooks v2" href="/partners/webhooks">Signed events with one envelope, history and redelivery.</Card>
 </CardGroup>
 

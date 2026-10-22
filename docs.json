@@ -112,6 +112,7 @@
               "partners/payouts",
               "partners/checkout",
               "partners/travel",
+              "partners/esim",
               "partners/webhooks",
               "partners/errors"
             ]
