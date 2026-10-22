@@ -66,4 +66,6 @@ When the payment lands you get the `checkout.paid` webhook. It carries `partner_
 | `422` `refund_lines_unavailable` | The checkout was created without lines. |
 | `422` `amount_exceeds_refundable` | More than what is left of the whole payment. |
 
+**A refund by bank transfer is a payout, and its fee follows the payout minimum.** Bank transfer, Pay with Bank, USSD and OPay refunds are paid out to a bank account. Their payout fee is charged to your wallet and is never below the transfer's cost: the greater of cost + 3% and cost + ₦50, plus VAT (see [Payouts: fees](/partners/payouts#fees-never-below-what-the-transfer-costs)). The refunded amount itself is never more than the payment was.
+
 The refund carries `lines` and `partner_reference`. Its webhooks are `checkout.refunded` and `checkout.refund_failed`, and they also carry `checkout_partner_reference`.

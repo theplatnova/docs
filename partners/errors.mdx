@@ -6,6 +6,14 @@ description: "Every stable data.code a partner integration can receive, what it 
 
 Every refusal carries a stable `data.code`. **Switch on the code, never on `message`.** A refusal before a write moves no money. If you are unsure whether a write happened, read it by its `partner_reference` before you send it again.
 
+## Fields that explain a price
+
+| Field | Where | Meaning |
+|---|---|---|
+| `fee`, `charges` | A payout's transaction (`GET /v1/transactions/{id}`); `data.fee` (VAT not included) on payout webhooks | The fee and VAT actually charged. They may be higher than your normal tier: payouts are never charged below the transfer's cost. See [Payouts: fees](/partners/payouts#fees-never-below-what-the-transfer-costs). |
+| `cost_floor_applied` | Flight quotes (`/v1/partner/travel/flights/quote`) | `true` when the fee was raised so the booking covers its cost. Left out otherwise. |
+| `amount_minor` | Travel quotes and eSIM plans | Already includes any raised fee. Book or buy at exactly this amount. |
+
 ## Every partner request
 
 | HTTP | `data.code` | Meaning | What to do |
