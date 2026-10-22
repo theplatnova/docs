@@ -121,6 +121,7 @@
               "partners/checkout",
               "partners/travel",
               "partners/esim",
+              "partners/experiences",
               "partners/webhooks",
               "partners/errors"
             ]
