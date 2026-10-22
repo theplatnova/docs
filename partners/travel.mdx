@@ -46,8 +46,12 @@ The answer is the offer request: its `offers`, each with an `id` and its `slices
 ```
 
 ```json
-{ "quote_id": "off_0000AbC…", "amount_minor": 123456700, "currency": "NGN", "fee_minor": 150000, "expires_at": "2026-10-22T10:30:00Z" }
+{ "quote_id": "off_0000AbC…", "amount_minor": 123456700, "currency": "NGN", "fee_minor": 150000, "expires_at": "2026-10-22T10:30:00Z", "cost_floor_applied": true }
 ```
+
+**A booking is never priced below what it costs Platnova.** The quote's fee (`fee_minor`, included in `amount_minor`) must cover the airline's fare, the booking provider's order fee, the exchange cost and a minimum margin. When the normal fee falls short, the fee is raised and `cost_floor_applied: true` appears; otherwise the field is left out. The fare itself is never changed. If the cost can't be worked out, the offer is refused as `offer_unavailable`, never sold at a guess.
+
+Book with exactly the quoted `amount_minor`. The order is priced the same way, so a quote and its order agree.
 
 ## Book
 

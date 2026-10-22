@@ -68,6 +68,30 @@ With name matching on (the default), `mismatch` is refused with `422` `name_mism
 
 The outcome arrives as the `payout.succeeded`, `payout.failed` or `payout.reversed` [webhook](/partners/webhooks).
 
+## Fees: never below what the transfer costs
+
+A partner payout is never charged less than it costs Platnova to send. Your normal fee for the amount applies. **If that fee is below the transfer's cost, it is raised** to the greater of:
+- the cost plus 3%;
+- the cost plus ₦50.
+
+VAT is then charged on the raised fee.
+
+| Rail | Cost per transfer |
+|---|---|
+| PalmPay | ₦100 |
+| Paga | ₦107.50 |
+| Any other, or not yet known | ₦107.50 |
+
+For example, a ₦3,000 payout routed through PalmPay would normally cost ₦25 + ₦1.87 VAT. It is charged **₦150 + ₦11.25 VAT**. The rail is chosen by Platnova per corridor. If the rail isn't known when the payout is priced, the dearest cost is used.
+
+This applies to every payout made with your API key: `/v1/partner/payouts`, each item of `/payouts/bulk`, and `/v1/payments/send`. Your wallet must hold the amount plus the raised fee and VAT. If it doesn't, the payout is refused `insufficient funds` and nothing is sent.
+
+**Where you see it:** the fee and VAT actually charged are on the payout's transaction (`fee`, and the `charges` breakdown on `GET /v1/transactions/{id}`). They are also on the payout webhooks.
+
+<Warning>
+`POST /v1/payments/quote` does **not** apply the minimum yet. For a small payout it can show a lower fee than the one charged. Until that is fixed, work out the fee as max(normal fee, cost + 3%, cost + ₦50), plus VAT, or read it from the transaction after sending.
+</Warning>
+
 ## Bulk payouts
 
 `POST /v1/partner/payouts/bulk` (needs an `Idempotency-Key`) with `{ "items": [ <payout body>, … ] }`.
