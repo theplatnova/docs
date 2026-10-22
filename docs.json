@@ -100,6 +100,12 @@
             ]
           },
           {
+            "group": "Bills",
+            "pages": [
+              "bills/betting"
+            ]
+          },
+          {
             "group": "Webhooks",
             "pages": [
               "webhooks/overview",
@@ -195,6 +201,16 @@
               "api-reference/invoices/get",
               "api-reference/invoices/list",
               "api-reference/invoices/update-status"
+            ]
+          },
+          {
+            "group": "Bills",
+            "pages": [
+              "api-reference/bills/list-billers",
+              "api-reference/bills/validate",
+              "api-reference/bills/purchase",
+              "api-reference/bills/get",
+              "api-reference/bills/list"
             ]
           },
           {

@@ -52,6 +52,10 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `defi.payment` | Crypto Checkout Payment |
 | `checkout.refunded` | Checkout Refund Succeeded |
 | `checkout.refund_failed` | Checkout Refund Failed |
+| `bill.*` | All Bill Events |
+| `bill.success` | Bill Payment Succeeded |
+| `bill.failed` | Bill Payment Failed |
+| `bill.reversed` | Bill Payment Reversed |
 
 ## Event Payloads
 
@@ -615,6 +619,10 @@ Sent as a crypto checkout payment progresses: when the payer's transfer is seen,
 ### checkout.refunded and checkout.refund_failed
 
 Sent when a [checkout refund](/checkout/refunds) succeeds or fails. Payloads and fields are on the [Refunds](/checkout/refunds#webhooks) page.
+
+### bill.success, bill.failed and bill.reversed
+
+Sent when a [betting top-up](/bills/betting) is delivered, refused (the amount and fee are back in your wallet), or reversed after it could not be confirmed. Payloads and fields are on the [Betting top-ups](/bills/betting#webhooks) page.
 
 ## Best Practices
 

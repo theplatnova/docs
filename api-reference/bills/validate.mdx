@@ -1,0 +1,8 @@
+---
+title: "Validate Betting Customer"
+openapi: "POST /v1/bills/betting/validate"
+---
+
+## Overview
+
+Ask the biller who owns a customer ID. **Show the returned `customer_name` to the payer and have them confirm it before creating a top-up**: a mistyped ID is often someone else's real account. The ID's format depends on the biller (SportyBet takes a phone number); a refused ID answers `422 invalid_customer` with the biller's reason in `message`.
