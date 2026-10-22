@@ -68,6 +68,8 @@ These are refused before any money moves: `422` `insufficient_balance`, `422` `w
 
 The path names the **purchase**. The body carries a **new** reference for the top-up. The data always goes onto that purchase's own eSIM.
 
+If a top-up is refused after your wallet was debited (for example `price_changed`), it is **not** refunded automatically. It shows `attention`, and a Platnova person checks it and refunds it, because a top-up's data goes onto an eSIM that already exists.
+
 The purchase must be ready. Otherwise the request is refused before any money moves:
 - `404` `order_not_found`: no purchase has that reference.
 - `409` `not_topupable`: that reference is not a purchase.
