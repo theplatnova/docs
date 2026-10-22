@@ -7,13 +7,13 @@ Receive real-time notifications for card activity, virtual account funding, and 
 
 ## How Webhooks Work
 
-1. **Configure your endpoint** – In the dashboard, set the URL that will receive webhook events.
-2. **Set your secret** – Provide a secret value used to sign each request. Use it to verify that events come from Platnova.
-3. **Receive events** – We send a POST request to your URL for each subscribed event. Your endpoint must respond with **HTTP 200** to acknowledge receipt.
-4. **Retries** – If your endpoint does not return 200, we retry the delivery up to **5 times** at intermittent intervals until successful.
+1. **Configure your endpoint**: in the dashboard, set the URL that will receive webhook events (it must be `https` and publicly reachable; see [Endpoint URLs](/webhooks/delivery#endpoint-urls)) and choose the events you want. You can supply a secret, or leave it blank and we generate one. Either way, the secret is shown **once**, when the endpoint is created. Store it then.
+2. **Receive events**: we send a POST request to your URL for each subscribed event. Answer with any **2xx** status within 30 seconds to acknowledge it.
+3. **Verify every call**: check the `X-Platnova-Signature` header against the raw body with your secret. See [Verifying webhooks](/webhooks/signatures).
+4. **Retries and recovery**: each event gets 3 attempts (the first plus 2 retries). An endpoint that keeps failing is paused, and you are emailed. It resumes by itself once it answers again, and nothing recorded in the meantime is lost. See [Delivery, retries and pausing](/webhooks/delivery).
 
 <Warning>
-Your endpoint must return HTTP 200 for the request to be considered delivered. Non-2xx responses (including 4xx and 5xx) trigger retries.
+We judge a delivery by your HTTP status alone. Any 2xx means delivered, and that event is never sent again. If your signature check fails, answer with a non-2xx status such as `401`, not `200` with an error in the body.
 </Warning>
 
 ## Request Details
@@ -22,10 +22,9 @@ Your endpoint must return HTTP 200 for the request to be considered delivered. N
 |----------|-------------|
 | **Method** | `POST` |
 | **URL** | The endpoint URL you configure in the dashboard |
-| **Headers** | `X-WEBHOOK-SECRET`: the secret value you provided when configuring the webhook |
+| **Content-Type** | `application/json` |
+| **Headers** | `X-Platnova-Signature` and `X-Platnova-Key-Id` on signed endpoints, plus the legacy plain-text `X-Webhook-Secret` / `X-Auth-Secret` (see [Verifying webhooks](/webhooks/signatures#the-headers-we-send)), and any custom headers you configured |
 | **Body** | JSON payload (see event payloads below) |
-
-Always validate the `X-WEBHOOK-SECRET` header in your handler to ensure the request is from Platnova and has not been tampered with.
 
 ## Supported Events
 
@@ -324,6 +323,7 @@ Sent when a virtual account receives funds.
   "customer_id": "user_id",
   "data": {
     "virtual_account_id": "va_uid",
+    "virtual_account_number": "0123456789",
     "amount": 495.00,
     "paid_amount": 500.00,
     "fee": 5.00,
@@ -333,6 +333,8 @@ Sent when a virtual account receives funds.
   }
 }
 ```
+
+`virtual_account_number` is the account number the payer paid into, so you can match a deposit to the account you gave them without looking up `virtual_account_id`. It is omitted when the deposit did not arrive through a virtual account.
 
 ### account.issued
 
@@ -624,9 +626,10 @@ Sent when a [betting top-up](/bills/betting) is delivered, refused (the amount a
 
 ## Best Practices
 
-- **Verify the secret** – Always check `X-WEBHOOK-SECRET` against your configured value before processing.
-- **Respond quickly** – Return 200 as soon as you have received and validated the payload; process asynchronously if needed.
-- **Handle duplicates** – Use `transaction_ref` or event idempotency keys to avoid processing the same event more than once.
-- **Log for debugging** – Log incoming webhook requests and responses to troubleshoot delivery or retry issues.
+- **Verify the signature**: check `X-Platnova-Signature` over the raw body, in constant time, before processing. See [Verifying webhooks](/webhooks/signatures). Endpoints created before 24 September 2026 that are not signed should check `X-Webhook-Secret` until they are.
+- **Respond quickly**: return 2xx as soon as you have verified and stored the payload, and process it asynchronously.
+- **Handle duplicates**: an event can arrive more than once, and backlogs are redelivered after a pause. Deduplicate on `transaction_ref` or `reference`.
+- **Test your receiver**: use **Send test event** in the dashboard to see the status, latency and response body your endpoint returns for a signed call.
+- **Log for debugging**: log incoming webhook requests and your responses, so you can troubleshoot delivery and retry issues.
 
 Webhook endpoints are created and managed in the [dashboard](https://business.platnova.com); there is no API-key endpoint for managing them.

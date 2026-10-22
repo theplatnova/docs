@@ -5967,6 +5967,239 @@
         }
       }
     },
+    "/v1/cards/{card_id}/terminate": {
+      "parameters": [
+        {
+          "name": "card_id",
+          "in": "path",
+          "required": true,
+          "description": "unique id of the customers card",
+          "example": "18ee492a-617c-4878-958a-2ee08dc20ff4",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Terminate card",
+        "description": "Close a card permanently. The card stops working at once and cannot be reactivated. Any balance on it is returned by the card issuer and credited back automatically, usually within a minute; `balance_refund` in the response says whether that is still to come. Terminating a card that is already terminated returns 200 with `already_terminated: true`, so the call is safe to retry.",
+        "operationId": "terminateCard",
+        "tags": [
+          "Card"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "headers": {
+              "Access-Control-Allow-Credentials": {
+                "schema": {
+                  "type": "boolean"
+                },
+                "example": "true"
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, Api-Version, Platform"
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "POST, OPTIONS, GET, PUT, PATCH, DELETE"
+              },
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "application/json"
+              },
+              "X-Ratelimit-Limit": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "4"
+              },
+              "X-Ratelimit-Remaining": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "3"
+              },
+              "X-Ratelimit-Reset": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1757349949"
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Mon, 08 Sep 2025 16:44:51 GMT"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "73"
+              }
+            },
+            "description": "200 - Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "card_id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Always `cancelled`."
+                        },
+                        "already_terminated": {
+                          "type": "boolean",
+                          "description": "True when the card was already terminated before this request."
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "balance": {
+                          "type": "number",
+                          "description": "The balance on the card when it was terminated."
+                        },
+                        "balance_refund": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "pending",
+                            "refunded"
+                          ],
+                          "description": "`none`: nothing was on the card. `pending`: the balance is on its way back and a `card.termination_refund` webhook follows when it lands. `refunded`: it was credited in this request."
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": true,
+                  "data": {
+                    "card_id": "8c69ef84-891e-4a50-b03d-8e42d0733e8d",
+                    "status": "cancelled",
+                    "already_terminated": false,
+                    "currency": "usd",
+                    "balance": 0.58,
+                    "balance_refund": "pending"
+                  },
+                  "error": [],
+                  "message": "operation was successful"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 - card_frozen_by_platnova",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": false,
+                  "data": {
+                    "code": "card_frozen_by_platnova"
+                  },
+                  "error": [
+                    "card_frozen_by_platnova"
+                  ],
+                  "message": "this card was frozen by Platnova and can't be unfrozen here. Please contact support"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - card_not_found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": false,
+                  "data": {
+                    "code": "card_not_found"
+                  },
+                  "error": [
+                    "card_not_found"
+                  ],
+                  "message": "card not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 - The card cannot be terminated in its current state",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "card_not_issued": {
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "card_not_issued"
+                      },
+                      "error": [
+                        "card_not_issued"
+                      ],
+                      "message": "this card was never issued, so there is nothing to terminate"
+                    }
+                  },
+                  "card_movement_pending": {
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "card_movement_pending"
+                      },
+                      "error": [
+                        "card_movement_pending"
+                      ],
+                      "message": "a funding or withdrawal on this card is still processing; terminate it once that has settled"
+                    }
+                  },
+                  "card_cannot_be_terminated": {
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "card_cannot_be_terminated"
+                      },
+                      "error": [
+                        "card_cannot_be_terminated"
+                      ],
+                      "message": "this card can't be terminated through the API. Please contact support"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/bills/betting/billers": {
       "get": {
         "summary": "List betting billers",

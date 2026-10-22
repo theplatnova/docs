@@ -38,6 +38,17 @@ curl -X PUT https://api.platnova.com/v1/cards/{card_id}/unfreeze \
 
 The card status will change back to "active" and normal usage can resume.
 
+## Terminating Cards
+
+Terminate a card to close it permanently. It cannot be reactivated. Any balance left on it, including amounts below the USD 1.00 a withdrawal must leave, is returned and credited back automatically.
+
+```bash
+curl -X PUT https://api.platnova.com/v1/cards/{card_id}/terminate \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+The card status changes to "cancelled", and you receive the `card.terminated` webhook. If there was a balance, `balance_refund` in the response is `pending` and `card.termination_refund` follows when it lands, usually within a minute. See [Terminate Card](/api-reference/cards/terminate) for the cases where a card cannot be terminated.
+
 ## Checking Card Status
 
 Retrieve the current status of a card:

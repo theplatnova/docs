@@ -108,7 +108,9 @@
           {
             "group": "Webhooks",
             "pages": [
-              "webhooks/overview"
+              "webhooks/overview",
+              "webhooks/signatures",
+              "webhooks/delivery"
             ]
           }
         ]
@@ -141,6 +143,7 @@
               "api-reference/cards/withdraw",
               "api-reference/cards/freeze",
               "api-reference/cards/unfreeze",
+              "api-reference/cards/terminate",
               "api-reference/cards/reveal",
               "api-reference/cards/events"
             ]
