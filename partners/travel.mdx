@@ -1,13 +1,13 @@
 ---
 title: "Travel"
 slug: "partners-travel"
-description: "Book flights for your customers, paid from your business wallet or a paid checkout, with refunds handled for you."
+description: "Book flights and hotels for your customers, paid from your business wallet or a paid checkout, with refunds handled for you."
 ---
 
-You search and price flights through Platnova, then book them. Each booking is paid from your NGN business wallet, or from a checkout your customer has already paid. If a booking cannot be completed, the money goes back to your wallet automatically.
+You search and price flights and hotel stays through Platnova, then book them. Each booking is paid from your NGN business wallet, or from a checkout your customer has already paid. If a booking cannot be completed, the money goes back to your wallet automatically.
 
 <Note>
-**Flights only for now.** Stays are coming soon: an order with `product: "stay"` answers `422` `product_not_available`. "Pay with Platnova" is not yet available for travel (`422` `payment_method_not_available`).
+"Pay with Platnova" is not yet available for travel (`422` `payment_method_not_available`).
 </Note>
 
 Travel must be enabled for your business. Until it is, every travel route answers `403` `partner_product_disabled`. If the service is unavailable, routes answer `503` `travel_unavailable`.
@@ -137,6 +137,100 @@ The order object:
 - or `cancelled` (refunded what the airline returns)
 - or `attention`: something unexpected happened and a Platnova person is looking at it. Your money is held, not lost, and we contact you.
 
+## Hotels (stays)
+
+A stay follows the same steps and the same order routes as a flight: search, quote, book with `POST /v1/partner/travel/orders`, then read, cancel and receive webhooks by `partner_reference`.
+
+### Search
+
+`POST /v1/partner/travel/stays/search`
+
+```json
+{
+  "rooms": 1,
+  "guests": [ { "type": "adult" }, { "type": "child", "age": 7 } ],
+  "location": { "radius": 5, "geographic_coordinates": { "latitude": 6.4281, "longitude": 3.4219 } },
+  "check_in_date": "2026-12-12",
+  "check_out_date": "2026-12-14",
+  "currency": "NGN"
+}
+```
+
+The answer lists `results`, each a property with a search result `id`, its `accommodation` (name, address, photos, rating, amenities) and its cheapest rate. With `currency`, each result also carries `cheapest_amount_minor`: an indicative price in your currency, fee included. **The quote is the price you pay.**
+
+### Rates
+
+`POST /v1/partner/travel/stays/rates` with `{ "search_result_id": "ssr_…" }` returns every room and rate for that property. Each rate has an `id`, its `cancellation_timeline` and its `conditions`. Prices there are the property's own; quote a rate for yours.
+
+### Quote
+
+`POST /v1/partner/travel/stays/quote`
+
+```json
+{ "rate_id": "rat_…", "currency": "NGN" }
+```
+
+```json
+{
+  "quote_id": "quo_…",
+  "amount_minor": 31500000,
+  "currency": "NGN",
+  "fee_minor": 1500000,
+  "due_at_accommodation_amount": "12.00",
+  "due_at_accommodation_currency": "USD",
+  "check_in_date": "2026-12-12",
+  "check_out_date": "2026-12-14",
+  "rooms": 1,
+  "accommodation_id": "acc_…",
+  "accommodation_name": "…",
+  "cancellation_timeline": [
+    { "before": "2026-12-01T12:00:00Z", "refund_minor": 30000000 },
+    { "before": "2026-12-10T12:00:00Z", "refund_minor": 15000000 }
+  ],
+  "expires_at": "2026-10-22T12:00:00Z"
+}
+```
+
+- **A quote is yours alone** and lasts until `expires_at` (two hours). Book it before then.
+- **`due_at_accommodation_amount`**, when present, is paid by the guest at the property, in its own currency. It is not in `amount_minor`. Tell your guest.
+- **`cancellation_timeline`** is the refund if the booking is cancelled before each `before`, in your currency, at the price you pay now. Our booking fee is never refunded. An empty timeline means the room is non-refundable.
+
+### Book
+
+`POST /v1/partner/travel/orders` (needs an `Idempotency-Key`)
+
+```json
+{
+  "partner_reference": "SHL-STAY-1",
+  "product": "stay",
+  "quote_id": "quo_…",
+  "amount_minor": 31500000,
+  "currency": "NGN",
+  "payment": { "method": "wallet" },
+  "guests": [ { "given_name": "Ada", "family_name": "Obi" } ],
+  "email": "ada@example.com",
+  "phone_number": "+2348012345678",
+  "special_requests": "Late check-in"
+}
+```
+
+A stay needs `quote_id`, at least one guest, `email` and `phone_number`, and takes no `offer_id` or `passengers`. `payment` works as for flights. The answers are the flight answers, plus:
+
+| HTTP | Meaning |
+|---|---|
+| `422` `quote_expired` | The quote is older than two hours, or was not made for your business. Nothing was booked; already refunded. Quote again. |
+| `422` `rate_unavailable` | The room is no longer available. Nothing was booked; already refunded. |
+
+`booking_reference` on the order and on `travel.order.confirmed` is the property's confirmation code.
+
+### Cancel a stay
+
+The same two calls as a flight. The refund comes from the quote's `cancellation_timeline`: the best step whose `before` is still more than five minutes away.
+
+- The cancellation quote's `expires_at` is when that step runs out, or 15 minutes, whichever is sooner.
+- Confirming after it answers `409` `cancellation_expired`. Ask for a new quote.
+- `202` `cancellation_pending` means the property has not answered yet. Send the same call again.
+
 ## Cancel a booking
 
 1. `POST /v1/partner/travel/orders/{partner_reference}/cancellation-quote` tells you what comes back:
@@ -145,7 +239,7 @@ The order object:
    { "cancellation_id": "ore_…", "refund_minor": 98000000, "refund_currency": "NGN", "expires_at": "…" }
    ```
 
-   The refund is the airline's refund at the rate you booked at. Our booking fee is not returned. A refund that the airline makes as credit or a voucher, or in another currency, shows as `0`.
+   For a flight, the refund is the airline's refund at the rate you booked at. Our booking fee is not returned. A refund that the airline makes as credit or a voucher, or in another currency, shows as `0`.
 2. `POST /v1/partner/travel/orders/{partner_reference}/cancellation` with `{ "cancellation_id": "ore_…" }` (needs an `Idempotency-Key`) confirms it. The answer is the cancelled order, and `refund_minor` is already in your wallet.
    - `202` `cancellation_pending`: the airline has not answered yet. Send the same call again shortly.
    - `409` `cancellation_mismatch`: the id is not your latest quote.
@@ -179,9 +273,9 @@ Subscribe to `travel.order.*`. Each event carries the order:
 
 | Event | When | Money |
 |---|---|---|
-| `travel.order.confirmed` | The airline confirmed. `booking_reference` is the PNR. | — |
-| `travel.order.failed` | The airline refused. | `refund` is the full amount, already credited to your wallet. |
-| `travel.order.cancelled` | Cancelled by you or by the airline. | `refund` is what came back, already credited. |
+| `travel.order.confirmed` | The airline or property confirmed. `booking_reference` is the PNR, or the property's confirmation code. | — |
+| `travel.order.failed` | The airline or property refused. | `refund` is the full amount, already credited to your wallet. |
+| `travel.order.cancelled` | Cancelled by you, the airline or the property. | `refund` is what came back, already credited. |
 | `travel.order.changed` | The airline changed the schedule. Coming soon. | — |
 
-Each order is refunded at most once, however many times an event is delivered.
+`data.product` is `flight` or `stay`. Each order is refunded at most once, however many times an event is delivered.

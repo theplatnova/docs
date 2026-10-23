@@ -65,7 +65,8 @@ Every refusal carries a stable `data.code`. **Switch on the code, never on `mess
 | 503 | `travel_unavailable` | Travel is not available right now. Nothing was debited. |
 | 422 | `partner_reference_invalid` | A travel reference is 1 to 64 letters, digits, `.`, `_` or `-`, with no `..`. |
 | 400 | `travel_order_invalid` | A field is missing or malformed. `message` says which. |
-| 422 | `product_not_available` | Stays are coming soon. |
+| 422 | `quote_expired` | A stay quote is older than two hours, or was not made for your business. Already refunded; quote again. |
+| 409 / 422 | `rate_unavailable` | The room is no longer available. Search again. |
 | 422 | `payment_method_not_available` | Pay with Platnova is not available for travel yet. |
 | 422 | `insufficient_balance` | Your wallet does not hold the booking amount. |
 | 422 | `wallet_not_found` | You have no wallet in that currency. |
@@ -76,7 +77,8 @@ Every refusal carries a stable `data.code`. **Switch on the code, never on `mess
 | 422 | `offer_unavailable` | The offer is gone. Nothing was booked; already refunded. |
 | 409 | `travel_order_not_cancellable`, `not_cancellable` | Only a booked order can be cancelled. |
 | 409 | `cancellation_mismatch` | The cancellation id is not your latest quote. |
-| 202 | `cancellation_pending` | The airline has not answered yet. Send the same cancellation again. |
+| 409 | `cancellation_expired` | A stay's cancellation quote has run out. Ask for a new one. |
+| 202 | `cancellation_pending` | The airline or property has not answered yet. Send the same cancellation again. |
 
 ## eSIM
 
