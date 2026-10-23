@@ -64,6 +64,7 @@ Every refusal carries a stable `data.code`. **Switch on the code, never on `mess
 |---|---|---|
 | 503 | `travel_unavailable` | Travel is not available right now. Nothing was debited. |
 | 422 | `partner_reference_invalid` | A travel reference is 1 to 64 letters, digits, `.`, `_` or `-`, with no `..`. |
+| 422 | `query_invalid` | A place search `query` must be 2 to 64 characters. |
 | 400 | `travel_order_invalid` | A field is missing or malformed. `message` says which. |
 | 422 | `quote_expired` | A stay quote is older than two hours, or was not made for your business. Already refunded; quote again. |
 | 409 / 422 | `rate_unavailable` | The room is no longer available. Search again. |
@@ -86,7 +87,7 @@ Every refusal carries a stable `data.code`. **Switch on the code, never on `mess
 |---|---|---|
 | 503 | `esim_unavailable` | eSIMs are not available right now. Nothing was debited. |
 | 422 | `partner_reference_invalid` | 1 to 64 letters, digits, `.`, `_` or `-`, with no `..`. |
-| 422 | `country_invalid` | `country` is a two-letter ISO code in capitals. |
+| 422 | `country_invalid` | `country` is a two-letter ISO code, for example `GB`. |
 | 400 | `esim_order_invalid` | A field is missing or malformed, or the currency is not NGN. |
 | 422 | `insufficient_balance` | Your wallet does not hold the price. |
 | 404 | `order_not_found` | No eSIM order with that reference. |
