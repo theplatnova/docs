@@ -14,7 +14,7 @@ Travel must be enabled for your business. Until it is, every travel route answer
 
 ## How a booking works
 
-1. **Search.** `POST /v1/partner/travel/flights/search` returns offers.
+1. **Search.** `POST /v1/partner/travel/flights/search` returns offers. To fill the origin and destination, look airports and cities up with `GET /v1/partner/travel/places`.
 2. **Quote.** `POST /v1/partner/travel/flights/quote` with `{ "offer_id", "currency": "NGN" }` returns the price you pay, fee included, as `amount_minor`, along with `expires_at`.
 3. **Book.** `POST /v1/partner/travel/orders` with that exact `amount_minor`. Your wallet is debited at once and the answer is `202`, with the order `processing`.
 4. **Wait for the outcome.** You receive the `travel.order.confirmed` webhook with the booking reference (PNR), or you can poll `GET /v1/partner/travel/orders/{partner_reference}`.
@@ -22,6 +22,30 @@ Travel must be enabled for your business. Until it is, every travel route answer
 All amounts are integers in **minor units** (kobo for NGN). `100000` is ₦1,000.00.
 
 A travel `partner_reference` is stricter than other partner references: **1 to 64 letters, digits, `.`, `_` or `-`, and never `..`**. Anything else is refused with `422` `partner_reference_invalid`.
+
+## Find airports and cities
+
+`GET /v1/partner/travel/places?query=lon`
+
+Use this for an origin or destination box as your customer types. `query` is part of a city or airport name, or an IATA code, from 2 to 64 characters. Spaces at either end are ignored. A shorter or longer `query` is refused with `422` `query_invalid`.
+
+```json
+[
+  { "type": "city", "iata_code": "LON", "name": "London", "country_code": "GB" },
+  { "type": "airport", "iata_code": "LHR", "name": "Heathrow Airport", "city_name": "London", "country_code": "GB" },
+  { "type": "airport", "iata_code": "LGW", "name": "Gatwick Airport", "city_name": "London", "country_code": "GB" }
+]
+```
+
+| Field | |
+|---|---|
+| `type` | `airport` or `city`. A city code covers all of that city's airports. |
+| `iata_code` | The code to send as a slice's `origin` or `destination` in a search. |
+| `name` | The airport's or city's name. |
+| `city_name` | The city an airport serves. It is left out for a city. |
+| `country_code` | ISO 3166 alpha-2. |
+
+You get at most 20 results, and `[]` when nothing matches. If place search is down, you get `502` `travel_unavailable`. Try again.
 
 ## Search
 

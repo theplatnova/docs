@@ -21,7 +21,7 @@ All amounts are integers in kobo. A `partner_reference` here is **1 to 64 letter
 
 `GET /v1/partner/esim/plans?country=GB`
 
-`country` is a two-letter ISO code in capitals. Leave it out to list every plan.
+`country` is a two-letter ISO code (`GB` or `gb`). Leave it out to list every plan. Each plan's `countries` are in capitals.
 
 **Every plan's price covers what it costs Platnova**: the network's price at our exchange cost, plus a minimum margin. Where the normal price falls short, the plan is listed at the raised price. A plan whose cost can't be worked out is not offered. Always buy at the `amount_minor` the list shows; a different amount is refused `price_changed`.
 
