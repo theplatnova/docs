@@ -393,7 +393,7 @@ Sent when a card that was being created will never be issued.
 - **`card.kyc_failed`**: the card issuer could not verify the cardholder's identity. `reason` says what to check. Fix the customer's details and create a new card.
 - **`card.cancelled`**: the card was cancelled before it was issued, for example because the issuer refused it, the cardholder already holds as many cards as the issuer allows, or the cardholder's identity details were incomplete. A card that fails KYC sends `card.kyc_failed` only, not both.
 
-`transaction_ref` is the card creation's reference. `refunded` is `true` when the creation charge went back to your wallet with this event; `refunded_amount` and `refunded_currency` say how much.
+`transaction_ref` is the card creation's reference. `refunded` is `true` when the creation charge is back in your wallet; `refunded_amount` and `refunded_currency` say how much.
 
 ```json
 {
