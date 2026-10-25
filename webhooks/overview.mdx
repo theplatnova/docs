@@ -41,10 +41,17 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `card.refund` | Card Refund |
 | `card.funded` | Card Funded |
 | `card.declined` | Card Declined |
+| `card.frozen` | Card Frozen |
+| `card.unfrozen` | Card Unfrozen |
+| `card.funding.failed` | Card Funding Failed |
+| `card.kyc_failed` | Card KYC Failed |
+| `card.cancelled` | Card Cancelled Before Issue |
 | `account.issued` | Virtual Account Issued |
 | `account.funded` | Account Funded |
 | `customer.approved` | Customer Approved |
 | `customer.rejected` | Customer Rejected |
+| `customer.paused` | Customer Paused |
+| `customer.*` | All Customer Events |
 | `transfer.success` | Transfer Success |
 | `transfer.failed` | Transfer Failed |
 | `checkout.paid` | Checkout Paid |
@@ -114,7 +121,7 @@ Sent when a new card is created.
 
 ### card.terminated
 
-Sent when a card is terminated.
+Sent when a card is closed for good: by the business (`DELETE /v1/cards/:id` or `PUT /v1/cards/:id/terminate`), by the card issuer on its own, or by Platnova. `by` says which (`business`, `issuer` or `platnova`) and `reason` says why in a sentence you can show. A card the issuer closed reads `"reason": "Card closed by the card issuer"`; the issuer gives no further reason. The card's balance comes back with `card.termination.refund`.
 
 ```json
 {
@@ -124,7 +131,7 @@ Sent when a card is terminated.
   "data": {
     "card_id": "card_uid",
     "card_holder_name": "John Doe",
-    "card_status": "terminated",
+    "card_status": "canceled",
     "currency": "USD",
     "amount": 0.00,
     "card_info": {
@@ -141,6 +148,8 @@ Sent when a card is terminated.
       "zip_code": "10001"
     },
     "transaction_ref": "TXN123456",
+    "reason": "Card terminated at the business's request",
+    "by": "business",
     "metadata": {
       "merchant": null,
       "terminal": null,
@@ -312,6 +321,101 @@ Sent when a card transaction is declined.
 }
 ```
 
+### card.frozen and card.unfrozen
+
+Sent once each time a customer card is actually frozen or unfrozen. Freezing a card that is already frozen sends nothing. `by` is who did it:
+
+| `by` | When |
+|------|------|
+| `business` | Your dashboard or API key froze or unfroze it (`PUT /v1/cards/:id/freeze` / `unfreeze`) |
+| `platnova` | Platnova froze or unfroze it (support or compliance). You can't unfreeze a card Platnova froze; contact support |
+| `issuer` | The card issuer froze or unfroze it, and we have brought our record into line |
+
+```json
+{
+  "event": "card.frozen",
+  "timestamp": "2026-10-24T12:00:00Z",
+  "customer_id": "cus_123",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "inactive",
+    "currency": "usd",
+    "card_info": {
+      "masked_pan": "**** **** **** 1234",
+      "last4": "1234",
+      "expiry_month": "12",
+      "expiry_year": "28",
+      "type": "virtual",
+      "brand": "visa",
+      "name_on_card": "John Doe"
+    },
+    "reason": "Frozen by the business",
+    "by": "business"
+  }
+}
+```
+
+`card.unfrozen` has the same shape, with `"card_status": "active"` and a reason such as `"Unfrozen by Platnova"`.
+
+### card.funding.failed
+
+Sent when a card deposit that was accepted (`POST /v1/cards/:id/deposit` answered `processing`) did not fund the card and was reversed. The money is back in your wallet. `transaction_ref` is the reference the deposit answered with. `amount` and `fee` are what was taken from your wallet, in `debit_currency`; `refunded_amount` is what went back, in `refunded_currency`. `currency` is the card's currency.
+
+```json
+{
+  "event": "card.funding.failed",
+  "timestamp": "2026-10-24T12:00:00Z",
+  "customer_id": "cus_123",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "currency": "usd",
+    "amount": 50.00,
+    "fee": 1.00,
+    "debit_currency": "usd",
+    "transaction_ref": "UCRDCRD123456",
+    "transaction_status": "failed",
+    "refund_reference": "BRVSL123456",
+    "refunded_amount": 50.00,
+    "refunded_currency": "usd",
+    "reason": "The card could not be funded. The amount is back in your wallet."
+  }
+}
+```
+
+In the rare case we can't tell which card a reversed deposit was for, `card_id` and `card_holder_name` are empty; match on `transaction_ref`.
+
+### card.kyc_failed and card.cancelled
+
+Sent when a card that was being created will never be issued.
+
+- **`card.kyc_failed`**: the card issuer could not verify the cardholder's identity. `reason` says what to check. Fix the customer's details and create a new card.
+- **`card.cancelled`**: the card was cancelled before it was issued, for example because the issuer refused it, the cardholder already holds as many cards as the issuer allows, or the cardholder's identity details were incomplete. A card that fails KYC sends `card.kyc_failed` only, not both.
+
+`transaction_ref` is the card creation's reference. `refunded` is `true` when the creation charge is back in your wallet; `refunded_amount` and `refunded_currency` say how much.
+
+```json
+{
+  "event": "card.kyc_failed",
+  "timestamp": "2026-10-24T12:00:00Z",
+  "customer_id": "cus_123",
+  "data": {
+    "card_id": "card_uid",
+    "card_status": "kyc_failed",
+    "currency": "usd",
+    "reason": "Our card partner couldn't verify the cardholder's identity details: the date of birth didn't match the ID. Check them, then try again.",
+    "by": "issuer",
+    "transaction_ref": "UCRTCRD123456",
+    "refunded": true,
+    "refunded_amount": 5.00,
+    "refunded_currency": "usd"
+  }
+}
+```
+
+`card.cancelled` has the same shape, with `"card_status": "canceled"`. `by` is `issuer` when the issuer refused or cancelled the card, and `platnova` when we stopped it before asking the issuer (incomplete cardholder details).
+
 ### account.funded
 
 Sent when a virtual account receives funds.
@@ -396,6 +500,26 @@ Sent when a customer's documents are rejected for virtual account creation.
     "email": "john@example.com",
     "phone": "+1234567890",
     "reason": "Document is blurry"
+  }
+}
+```
+
+### customer.paused
+
+Sent when a customer's account is paused by our account partner. `reason` says why.
+
+```json
+{
+  "event": "customer.paused",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "cus_123",
+  "data": {
+    "id": "cus_123",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "reason": "Account under review"
   }
 }
 ```
