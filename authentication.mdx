@@ -3,58 +3,56 @@ title: "Authentication"
 slug: "authentication"
 ---
 
-Start using Platnova's Business API by working with our support and compliance team. We'll help you get set up with the right plan and ensure all compliance requirements are met.
+Every server-to-server call to the Platnova Business API is authenticated with your **API key**, sent in the `X-API-Key` header.
 
-## Getting Started
+## Get your API key
 
-Our onboarding process is handled by our dedicated support and compliance team to ensure proper verification and setup. Contact us to begin your integration journey.
+Create a key in your dashboard under [Settings → Developers](https://business.platnova.com/settings/developer). Keys work only once your business is live; until then calls that move money answer `403 entity_not_active` (see [Going live](/going-live)).
 
-<Info>
-All new accounts go through our compliance verification process to ensure secure and compliant financial operations.
-</Info>
-
-## Set Up Your Workspace
-
-Once your account is created by our team, you'll have access to your workspace where you can manage your API keys, view usage analytics, and configure your integration settings.
-
-<Info>
-For business accounts and enterprise integrations, our team provides dedicated onboarding support to ensure a smooth setup process.
-</Info>
-
-## Get Your API Key
-
-Create an API key for your workspace. You can find it in the [API Keys section](https://business.platnova.com/settings/developer) of your dashboard.
-
-<Tip>
-Contact our support team at [support@platnova.com](mailto:support@platnova.com) for personalized onboarding assistance, especially if you're integrating with high transaction volumes or need custom configurations.
-</Tip>
-
-### Using Your API Key
-
-Include your API key in the `Authorization` header of your requests:
+## Send it in `X-API-Key`
 
 ```bash
-curl -X POST https://api.platnova.com/v1/cards \
-  -H "X-API-KEY: YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "user_123", "spending_limit": 1000}'
+curl https://api.platnova.com/v1/wallets \
+  -H "X-API-Key: YOUR_API_KEY"
 ```
 
-## Security Best Practices
+That is the only supported way to send an API key.
 
-- **Keep your API key secure** - Never expose it in client-side code or public repositories
-- **Use environment variables** - Store your API key in secure environment variables
-- **Rotate keys regularly** - Generate new keys periodically for enhanced security
-- **Monitor usage** - Check your dashboard regularly for unusual activity
-- **Use webhooks securely** - Validate webhook signatures to ensure data integrity
+<Warning>
+- **Do not send your API key as `Authorization: Bearer ...`.** `Authorization` is for dashboard sessions; an API key there is refused with `401 un-authorized access`.
+- **Do not send a dashboard session token alongside your API key.** A request that carries both is treated as the signed-in dashboard user, not your integration. On `POST /v1/checkout` that turns a sale into a top-up of your own wallet (see [Initiating Checkout](/checkout/initiating-checkout)).
+- **Do not put the key in the URL.** The query parameter `api_key` still works on some routes but is **deprecated** (since 22 October 2026) because URLs end up in proxy, CDN and browser logs. Partner routes already refuse it.
+</Warning>
 
-## Rate Limits
+## Keep the key secret
 
-Account creation is free. Paid plans include higher limits and priority processing. Check your current plan in the [dashboard](https://business.platnova.com/settings/billing).
+- Keep it on your server. Never put it in a browser, a mobile app or a public repository.
+- Store it in an environment variable or a secrets manager.
+- If a key may have leaked, create a new one in the dashboard and delete the old one.
+- Check your dashboard regularly for activity you don't recognise.
+- [Verify webhook signatures](/webhooks/signatures) before acting on an event.
 
-## Need Help?
+## Failed authentication
 
-- **Onboarding**: Contact [support@platnova.com](mailto:support@platnova.com) to start your account setup and compliance verification
-- **Documentation**: Explore our [API reference](./api-reference) for detailed examples
-- **Support**: Reach out to [support@platnova.com](mailto:support@platnova.com) for technical assistance and integration help
-- **Community**: Join our [Slack](https://slack.platnova.com) for developer discussions
+A missing, unknown or deleted key answers `401`:
+
+```json
+{ "status": false, "data": {}, "error": [], "message": "un-authorized access" }
+```
+
+## Rate limits
+
+Some routes are rate limited per client IP per minute (for example payment creation on a checkout). A throttled call answers `429` with the message `please wait for few minutes, try again later`, and these headers:
+
+| Header | Meaning |
+|---|---|
+| `X-RateLimit-Limit` | Calls allowed per minute on that route |
+| `X-RateLimit-Remaining` | Calls left in the current minute |
+| `X-RateLimit-Reset` | Unix time when the window resets |
+
+Back off until `X-RateLimit-Reset` before retrying.
+
+## Need help?
+
+- **Onboarding and keys**: [support@platnova.com](mailto:support@platnova.com)
+- **Reference**: the [API reference](/api-reference/introduction) and the downloadable [OpenAPI spec and Postman collection](/api-reference/introduction#openapi-spec-and-postman-collection)

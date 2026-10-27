@@ -1,0 +1,160 @@
+---
+title: "PHP quickstart (WooCommerce and other carts)"
+slug: "plugins/php-quickstart"
+---
+
+This walks through everything a cart plugin needs, in plain PHP with cURL: create a checkout for an order, send the customer to pay, receive and verify the `checkout.paid` webhook, confirm the payment, and refund. It runs on PHP 7.4 or later and adapts directly to a WooCommerce payment gateway (`process_payment` for step 2, a `woocommerce_api_*` endpoint for step 3).
+
+Keep your API key and webhook secret in your server's configuration, never in the browser.
+
+```php
+<?php
+const PLATNOVA_BASE = 'https://api.platnova.com';          // sandbox: https://sandbox.api.platnova.co
+$apiKey        = getenv('PLATNOVA_API_KEY');
+$webhookSecret = getenv('PLATNOVA_WEBHOOK_SECRET');
+```
+
+## 1. A small API helper
+
+```php
+<?php
+function platnova(string $method, string $path, ?array $body = null, array $headers = []): array
+{
+    $ch = curl_init(PLATNOVA_BASE . $path);
+    $h = array_merge(['X-API-Key: ' . getenv('PLATNOVA_API_KEY'), 'Accept: application/json'], $headers);
+    if ($body !== null) {
+        $h[] = 'Content-Type: application/json';
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+    }
+    curl_setopt_array($ch, [
+        CURLOPT_CUSTOMREQUEST  => $method,
+        CURLOPT_HTTPHEADER     => $h,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+    ]);
+    $raw = curl_exec($ch);
+    if ($raw === false) {
+        throw new RuntimeException('Platnova unreachable: ' . curl_error($ch));
+    }
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    return ['status' => $status, 'body' => json_decode($raw, true)];
+}
+```
+
+Never send an `Authorization` header: the API key goes only in `X-API-Key` (see [Authentication](/authentication)).
+
+## 2. Create a checkout and redirect
+
+```php
+<?php
+function start_payment(array $order): string
+{
+    $res = platnova('POST', '/v1/checkout', [
+        'email'             => $order['email'],
+        'first_name'        => $order['first_name'],
+        'last_name'         => $order['last_name'],
+        'amount'            => round($order['total'], 2),       // major units, e.g. 25000.00 naira
+        'currency'          => strtolower($order['currency']),  // e.g. "ngn"
+        'partner_reference' => (string) $order['id'],           // your order id, echoed in checkout.paid
+        'success_url'       => 'https://shop.example.com/checkout/order-received/' . $order['id'],
+        'cancel_url'        => 'https://shop.example.com/cart',
+    ], ['Idempotency-Key: order-' . $order['id'] . '-attempt-' . $order['attempt']]);
+
+    if ($res['status'] === 403 && ($res['body']['data']['code'] ?? '') === 'entity_not_active') {
+        throw new RuntimeException('This store has not finished going live on Platnova.');
+    }
+    if ($res['status'] !== 200 || empty($res['body']['data']['id'])) {
+        throw new RuntimeException('Could not start payment: ' . ($res['body']['message'] ?? 'HTTP ' . $res['status']));
+    }
+
+    $checkout = $res['body']['data'];
+    save_order_meta($order['id'], 'platnova_checkout_id', $checkout['id']); // keep it: you verify and refund with it
+    return $checkout['url'];                                               // redirect the customer here
+}
+```
+
+If the request times out, call `start_payment` again with the **same** attempt number: the `Idempotency-Key` returns the first checkout instead of creating a second.
+
+## 3. Receive the webhook
+
+Register `https://shop.example.com/?wc-api=platnova` (or your own URL) under **Settings → Webhooks** in the dashboard and copy its secret.
+
+```php
+<?php
+$raw   = file_get_contents('php://input');                     // the raw body, before any json_decode
+$given = $_SERVER['HTTP_X_PLATNOVA_SIGNATURE'] ?? '';
+$expected = 'sha256=' . hash_hmac('sha256', $raw, getenv('PLATNOVA_WEBHOOK_SECRET'));
+
+if (!hash_equals($expected, $given)) {
+    http_response_code(401);                                   // not 200: we want Platnova to retry and warn us
+    exit;
+}
+
+$event = json_decode($raw, true);
+if (($event['event'] ?? '') === 'checkout.paid') {
+    queue_payment_check($event['data']['checkout_id'], $event['data']['partner_reference'] ?? null);
+}
+http_response_code(200);                                       // answer fast; do the work in step 4
+```
+
+Answer within 25 seconds. A non-2xx answer is retried; see [Delivery](/webhooks/delivery).
+
+## 4. Verify, then fulfil once
+
+Never fulfil from the webhook body alone. Ask Platnova:
+
+```php
+<?php
+function confirm_payment(string $orderId): bool
+{
+    $checkoutId = get_order_meta($orderId, 'platnova_checkout_id');
+    $order      = load_order($orderId);
+
+    $res = platnova('POST', '/v1/payments/verify', ['reference' => $checkoutId]);
+    if ($res['status'] !== 200) {
+        return false;                                          // 400 "payment not found": not paid yet
+    }
+    $p = $res['body']['data'];
+
+    $paid = $p['status'] === 'success'
+        && $p['checkout_id'] === $checkoutId
+        && strcasecmp($p['currency'], $order['currency']) === 0
+        && abs($p['amount'] - round($order['total'], 2)) < 0.005;   // default fee_bearer: you get the full amount
+
+    if ($paid) {
+        mark_order_paid_once($orderId, $checkoutId, $p['ref']);     // unique on checkout id: a repeat does nothing
+    }
+    return $paid;
+}
+```
+
+Run the same check when the customer lands on your `success_url`, so the order shows paid even if the webhook is still on its way.
+
+## 5. Refund
+
+```php
+<?php
+function refund(string $orderId, ?float $amount, string $reason): array
+{
+    $checkoutId = get_order_meta($orderId, 'platnova_checkout_id');
+    $body = ['reason' => $reason, 'idempotency_key' => 'order-' . $orderId . '-refund-1'];
+    if ($amount !== null) {
+        $body['amount'] = round($amount, 2);                   // omit for a full refund
+    }
+    $res = platnova('POST', '/v1/checkout/' . rawurlencode($checkoutId) . '/refund', $body);
+    if ($res['status'] >= 400) {
+        throw new RuntimeException($res['body']['message'] ?? 'Refund refused');
+    }
+    return $res['body']['data'];                               // status: pending | processing | succeeded | failed
+}
+```
+
+The final result arrives as `checkout.refunded` or `checkout.refund_failed`. Codes and rules are on [Refunds](/checkout/refunds).
+
+## Checklist before you ship
+
+- Keys only on the server; `X-API-Key` only, no `Authorization` header.
+- Every create and refund carries an idempotency key tied to the order.
+- Webhook signature checked over the raw body with `hash_equals`; non-2xx on failure.
+- Orders marked paid only after `POST /v1/payments/verify`, compared on amount and currency (case-insensitive), and only once per checkout id.
+- A clear message when a merchant's calls answer `entity_not_active` (see [Going live](/going-live)).

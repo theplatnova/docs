@@ -3,7 +3,7 @@
   "info": {
     "title": "API",
     "version": "1.0.0",
-    "description": "Platnova's Business API allows businesses to issue virtual accounts and cards to their employees, vendors, or retail customers. It allows businesses to streamline the process of issuing cards, manage spending, and track transactions. The API documentation provides information on how to integrate our virtual card issuing system into a business's existing systems and outlines the features and functionalities of the API, including card and account creation, management, and reporting. It also provides technical specifications, such as API requests, responses, and authentication processes.\n\nThe API documentation is intended for developers and IT teams to use in order to effectively implement Platnova solutions into their business processes.\n\n# Authentication/Authorization\n\nTo access any of the resources on the `{BaseUrl}/v1/`, the client has to pass pre-defined headers for authentication and authorization.\n\nThe API is secure and only authorized clients can consume the service. There are API keys assigned to every business and JWT tokens assigned to every account for authentication/authorization.\n\n## Bearer Token\n\nRequests may accept jwt tokens as below.\n\n``` json\nAuthorization: Bearer <jwt token>\n\n ```\n\n## API Key\n\nRequests may acccept an api key either in the request headers or as a query parameter. Some requests cannot be authorized using an API key.\n\n``` json\nX-API-KEY: <api key>\n\n ```\n\nOR\n\n``` json\n?api-key=<api key>\n\n ```\n\n# Base URL\n\n[https://sandbox.api.platnova.co](https://sandbox.api.platnova.co)\n\n# Errors\n\nUnauthorized API key\n\n``` json\n{\n    \"status\": false,\n    \"data\": {},\n    \"error\": [],\n    \"message\": \"unauthorized access\"\n}\n\n ```\n\nPermission Denied\n\n``` json\n{\n    \"status\": false,\n    \"data\": {},\n    \"error\": [],\n    \"message\": \"unauthorized access: permission denied\"\n}\n\n ```"
+    "description": "Platnova's Business API: collect payments with hosted checkout, issue virtual accounts and cards, send payouts, and receive webhooks.\n\n# Authentication\n\nSend your API key in the `X-API-Key` header on every request. Do not send it as `Authorization: Bearer`, and do not send a dashboard session token alongside it. The `api_key` query parameter is deprecated.\n\n# Base URLs\n\n- Live: https://api.platnova.com\n- Sandbox: https://sandbox.api.platnova.co\n\n# Errors\n\nMost responses are `{status: boolean, data, error: [], message}`; branch on the HTTP status and `data.code`. Validation failures are HTTP 422 `{status: \"error\", message: \"Validation failed\", errors: {field: [messages]}}`. A missing or invalid key is 401 `un-authorized access`. See https://docs.platnova.com/errors."
   },
   "servers": [
     {
@@ -3741,7 +3741,7 @@
     "/v1/payments/verify": {
       "post": {
         "summary": "Verify payment",
-        "description": "Check the status and details of a payment by its reference.",
+        "description": "Confirm a payment by the checkout id, the checkout.paid reference, or a payout reference. 400 `payment not found` means not paid yet or not yours.",
         "operationId": "verifyPayment",
         "tags": [
           "Payment"
@@ -3761,7 +3761,7 @@
         },
         "responses": {
           "200": {
-            "description": "Payment details retrieved successfully",
+            "description": "The payment",
             "content": {
               "application/json": {
                 "schema": {
@@ -3771,45 +3771,7 @@
                       "type": "boolean"
                     },
                     "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "reference": {
-                          "type": "string",
-                          "description": "Transaction or payment reference"
-                        },
-                        "currency": {
-                          "type": "string"
-                        },
-                        "amount": {
-                          "type": "number"
-                        },
-                        "fee": {
-                          "type": "number"
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "entry": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "created_at": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updated_at": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      }
+                      "$ref": "#/components/schemas/VerifyPaymentResponse"
                     },
                     "error": {
                       "type": "array",
@@ -3824,7 +3786,7 @@
             }
           },
           "400": {
-            "description": "Payment not found or invalid reference",
+            "description": "payment not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3832,6 +3794,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotActive"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
           }
         }
       }
@@ -4109,75 +4080,37 @@
     "/v1/checkout": {
       "post": {
         "summary": "Create checkout",
-        "description": "Initiate a hosted checkout session for a customer.",
         "operationId": "createCheckout",
         "tags": [
           "Checkout"
+        ],
+        "description": "Create a hosted checkout for a sale. Authenticate with X-API-Key only: a dashboard session makes a self top-up instead.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "email",
-                  "amount",
-                  "currency",
-                  "payment_options"
-                ],
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "amount": {
-                    "type": "number"
-                  },
-                  "currency": {
-                    "type": "string"
-                  },
-                  "payment_options": {
-                    "type": "array",
-                    "description": "Optional. The ways the payer may pay. Omit it to offer every method that is live for the currency (recommended). Methods not live for the currency are left off the page even if listed.",
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "id"
-                      ],
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "enum": [
-                            "tag_transfer",
-                            "bank_transfer",
-                            "card",
-                            "apple_pay",
-                            "google_pay",
-                            "opay",
-                            "bank_account",
-                            "ussd",
-                            "mobile_money",
-                            "crypto"
-                          ],
-                          "description": "Payment method id. `novatag` and `defi` are accepted as older spellings of `tag_transfer` and `crypto`."
-                        }
-                      }
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/CreateCheckoutRequest"
               },
               "example": {
-                "email": "jonathanemma121@gmail.com",
-                "amount": 2000.15,
-                "currency": "ngn"
+                "email": "ada@example.com",
+                "amount": 25000,
+                "currency": "ngn",
+                "partner_reference": "order-1042",
+                "success_url": "https://shop.example.com/orders/1042/paid",
+                "cancel_url": "https://shop.example.com/orders/1042"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Checkout initiated successfully",
+            "description": "Checkout created",
             "content": {
               "application/json": {
                 "schema": {
@@ -4187,107 +4120,7 @@
                       "type": "boolean"
                     },
                     "data": {
-                      "type": "object",
-                      "properties": {
-                        "amount": {
-                          "type": "number"
-                        },
-                        "currency": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "email": {
-                          "type": "string",
-                          "format": "email"
-                        },
-                        "url": {
-                          "type": "string",
-                          "format": "uri"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "success_url": {
-                          "type": "string",
-                          "format": "uri"
-                        },
-                        "cancel_url": {
-                          "type": "string",
-                          "format": "uri"
-                        },
-                        "source": {
-                          "type": "string"
-                        },
-                        "entity": {
-                          "type": "object",
-                          "properties": {
-                            "category": {
-                              "type": "string"
-                            },
-                            "country_code": {
-                              "type": "string"
-                            },
-                            "created_at": {
-                              "type": "string",
-                              "format": "date-time"
-                            },
-                            "description": {
-                              "type": "string"
-                            },
-                            "dial_code": {
-                              "type": "string"
-                            },
-                            "id": {
-                              "type": "string"
-                            },
-                            "legal_name": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "phone": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string"
-                            },
-                            "username": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "payment_options": {
-                          "type": "array",
-                          "description": "The methods this checkout offers. Filled in from what is live for the currency when the request sent none.",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "enum": [
-                                  "tag_transfer",
-                                  "bank_transfer",
-                                  "card",
-                                  "apple_pay",
-                                  "google_pay",
-                                  "opay",
-                                  "bank_account",
-                                  "ussd",
-                                  "mobile_money",
-                                  "crypto"
-                                ]
-                              }
-                            }
-                          }
-                        },
-                        "created_at": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      }
+                      "$ref": "#/components/schemas/Checkout"
                     },
                     "error": {
                       "type": "array",
@@ -4297,62 +4130,12 @@
                       "type": "string"
                     }
                   }
-                },
-                "example": {
-                  "status": true,
-                  "data": {
-                    "amount": 2000.15,
-                    "currency": "ngn",
-                    "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
-                    "email": "jonathanemma121@gmail.com",
-                    "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
-                    "status": "pending",
-                    "success_url": "https://platnova.com/process?status=successful",
-                    "cancel_url": "https://platnova.com/process?status=cancelled",
-                    "source": "platform",
-                    "entity": {
-                      "category": "Technology",
-                      "country_code": "NG",
-                      "created_at": "2025-09-14T20:00:41.114031Z",
-                      "description": "A leading technology solutions provider g",
-                      "dial_code": "+234",
-                      "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
-                      "legal_name": "Techies 2 Ltd",
-                      "name": "Techies 2 Ltd",
-                      "phone": "8012345678",
-                      "status": "ACTIVE",
-                      "username": "techies2ltd"
-                    },
-                    "payment_options": [
-                      {
-                        "id": "tag_transfer"
-                      },
-                      {
-                        "id": "bank_transfer"
-                      },
-                      {
-                        "id": "card"
-                      },
-                      {
-                        "id": "opay"
-                      },
-                      {
-                        "id": "ussd"
-                      },
-                      {
-                        "id": "crypto"
-                      }
-                    ],
-                    "created_at": "2026-05-05T15:57:19Z"
-                  },
-                  "error": [],
-                  "message": "operation was successful"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Refused: unsupported currency, invalid success_url/cancel_url, or `line_items_invalid`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4360,215 +4143,18 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/v1/checkout/{id}": {
-      "get": {
-        "summary": "Get checkout",
-        "description": "Retrieve checkout details by checkout ID.",
-        "operationId": "getCheckout",
-        "tags": [
-          "Checkout"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Checkout ID",
-            "schema": {
-              "type": "string"
-            },
-            "example": "3e584f08-6a55-4b15-a97f-364a7d21071e"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Checkout retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "amount": {
-                          "type": "number"
-                        },
-                        "currency": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "email": {
-                          "type": "string",
-                          "format": "email"
-                        },
-                        "url": {
-                          "type": "string",
-                          "format": "uri"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "success_url": {
-                          "type": "string",
-                          "format": "uri"
-                        },
-                        "cancel_url": {
-                          "type": "string",
-                          "format": "uri"
-                        },
-                        "source": {
-                          "type": "string"
-                        },
-                        "entity": {
-                          "type": "object",
-                          "properties": {
-                            "category": {
-                              "type": "string"
-                            },
-                            "country_code": {
-                              "type": "string"
-                            },
-                            "created_at": {
-                              "type": "string",
-                              "format": "date-time"
-                            },
-                            "description": {
-                              "type": "string"
-                            },
-                            "dial_code": {
-                              "type": "string"
-                            },
-                            "id": {
-                              "type": "string"
-                            },
-                            "legal_name": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "phone": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string"
-                            },
-                            "username": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "payment_options": {
-                          "type": "array",
-                          "description": "The methods this checkout offers. Filled in from what is live for the currency when the request sent none.",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "enum": [
-                                  "tag_transfer",
-                                  "bank_transfer",
-                                  "card",
-                                  "apple_pay",
-                                  "google_pay",
-                                  "opay",
-                                  "bank_account",
-                                  "ussd",
-                                  "mobile_money",
-                                  "crypto"
-                                ]
-                              }
-                            }
-                          }
-                        },
-                        "created_at": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      }
-                    },
-                    "error": {
-                      "type": "array",
-                      "items": {}
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "status": true,
-                  "data": {
-                    "amount": 2000.15,
-                    "currency": "ngn",
-                    "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
-                    "email": "jonathanemma121@gmail.com",
-                    "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
-                    "status": "pending",
-                    "success_url": "https://platnova.com/process?status=successful",
-                    "cancel_url": "https://platnova.com/process?status=cancelled",
-                    "source": "platform",
-                    "entity": {
-                      "category": "Technology",
-                      "country_code": "NG",
-                      "created_at": "2025-09-14T20:00:41.114031Z",
-                      "description": "A leading technology solutions provider g",
-                      "dial_code": "+234",
-                      "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
-                      "legal_name": "Techies 2 Ltd",
-                      "name": "Techies 2 Ltd",
-                      "phone": "8012345678",
-                      "status": "ACTIVE",
-                      "username": "techies2ltd"
-                    },
-                    "payment_options": [
-                      {
-                        "id": "tag_transfer"
-                      },
-                      {
-                        "id": "bank_transfer"
-                      },
-                      {
-                        "id": "card"
-                      },
-                      {
-                        "id": "opay"
-                      },
-                      {
-                        "id": "ussd"
-                      },
-                      {
-                        "id": "crypto"
-                      }
-                    ],
-                    "created_at": "2026-05-05T15:57:19Z"
-                  },
-                  "error": [],
-                  "message": "operation was successful"
-                }
-              }
-            }
           },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotActive"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
           }
         }
       }
@@ -6758,6 +6344,324 @@
           }
         }
       }
+    },
+    "/v1/checkout/{checkout_id}": {
+      "get": {
+        "summary": "Get checkout",
+        "operationId": "getCheckout",
+        "tags": [
+          "Checkout"
+        ],
+        "security": [],
+        "description": "Needs no authentication. Returns 404 once the checkout is more than 7 days old, paid or not; confirm payments with POST /v1/payments/verify.",
+        "parameters": [
+          {
+            "name": "checkout_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The checkout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Checkout"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "checkout not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkout/{checkout_id}/refund": {
+      "post": {
+        "summary": "Refund a checkout",
+        "operationId": "createRefund",
+        "tags": [
+          "Refunds"
+        ],
+        "parameters": [
+          {
+            "name": "checkout_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefundRequest"
+              },
+              "example": {
+                "amount": 2500,
+                "reason": "Customer returned item",
+                "idempotency_key": "order-1042-refund-1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Refund created (or replayed for a repeated idempotency_key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Refund"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Waiting for a teammate's approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Refund"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "checkout_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "idempotency_key_reused or refund_in_progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failure or a refund refusal code (see docs: checkout_not_paid, amount_exceeds_refundable, insufficient_balance, ...)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError422"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooMany"
+          }
+        }
+      }
+    },
+    "/v1/checkout/{checkout_id}/refunds": {
+      "get": {
+        "summary": "List a checkout's refunds",
+        "operationId": "listRefunds",
+        "tags": [
+          "Refunds"
+        ],
+        "parameters": [
+          {
+            "name": "checkout_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Refund"
+                      }
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "checkout_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refunds/{refund_id}": {
+      "get": {
+        "summary": "Retrieve a refund",
+        "operationId": "getRefund",
+        "tags": [
+          "Refunds"
+        ],
+        "parameters": [
+          {
+            "name": "refund_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The refund",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Refund"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "refund_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6766,34 +6670,53 @@
         "type": "object",
         "properties": {
           "status": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": false
           },
           "data": {
-            "type": "object"
+            "type": "object",
+            "description": "Often empty. On coded errors holds `code` and details.",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "request_in_progress"
+              }
+            }
           },
           "error": {
             "type": "array",
-            "items": {}
+            "items": {
+              "type": "string"
+            }
           },
           "message": {
             "type": "string",
-            "description": "Error message"
+            "description": "For people; don't parse."
           }
         }
       },
       "ValidationError422": {
         "type": "object",
-        "description": "Validation error response (422). Keys are request body field names.",
+        "description": "Validation failure (HTTP 422). Note: `status` is the string \"error\".",
         "properties": {
-          "error": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "error"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Validation failed"
+          },
+          "errors": {
             "type": "object",
             "additionalProperties": {
               "type": "array",
               "items": {
                 "type": "string"
               }
-            },
-            "description": "Field name to list of error messages"
+            }
           }
         }
       },
@@ -7585,14 +7508,555 @@
             "format": "date-time"
           }
         }
+      },
+      "LineItem": {
+        "type": "object",
+        "required": [
+          "name",
+          "quantity",
+          "unit_amount",
+          "partner_line_reference"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "unit_amount": {
+            "type": "number",
+            "description": "More than 0, at most two decimals."
+          },
+          "partner_line_reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "CreateCheckoutRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "amount",
+          "currency"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Major units (naira, dollars). At most two decimals."
+          },
+          "currency": {
+            "type": "string",
+            "description": "Lowercase wallet currency, e.g. ngn, usd, gbp, eur, kes, ghs."
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "partner_reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Your order id. Echoed on GET checkout and in checkout.paid."
+          },
+          "success_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Absolute http(s) URL."
+          },
+          "cancel_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Absolute http(s) URL."
+          },
+          "fee_bearer": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "merchant"
+            ],
+            "default": "customer"
+          },
+          "line_items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/LineItem"
+            },
+            "description": "quantity × unit_amount over all lines must equal amount."
+          },
+          "payment_options": {
+            "type": "array",
+            "deprecated": true,
+            "description": "Ignored: every live method is offered.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "tag_transfer",
+                    "bank_transfer",
+                    "card",
+                    "apple_pay",
+                    "google_pay",
+                    "opay",
+                    "bank_account",
+                    "ussd",
+                    "mobile_money",
+                    "crypto"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "Checkout": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Send the customer here."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Lowercase."
+          },
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "partner_reference": {
+            "type": "string"
+          },
+          "line_items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineItem"
+            }
+          },
+          "success_url": {
+            "type": "string"
+          },
+          "cancel_url": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "`api` for a sale made with an API key; `platform` for a dashboard self top-up."
+          },
+          "purpose": {
+            "type": "string",
+            "description": "`self_deposit` for a self top-up; absent for a sale."
+          },
+          "fee_bearer": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "merchant"
+            ]
+          },
+          "payment_options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "tag_transfer",
+                    "bank_transfer",
+                    "card",
+                    "apple_pay",
+                    "google_pay",
+                    "opay",
+                    "bank_account",
+                    "ussd",
+                    "mobile_money",
+                    "crypto"
+                  ]
+                }
+              }
+            }
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Set when status is success."
+          },
+          "payment_reference": {
+            "type": "string",
+            "description": "Set when status is success."
+          },
+          "entity": {
+            "type": "object"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VerifyPaymentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A payout's id; empty for a checkout payment."
+          },
+          "ref": {
+            "type": "string",
+            "description": "The payment's transaction reference."
+          },
+          "currency": {
+            "type": "string",
+            "description": "Uppercase."
+          },
+          "amount": {
+            "type": "number",
+            "description": "What you were credited (checkout) or sent (payout)."
+          },
+          "paid_amount": {
+            "type": "number",
+            "description": "Checkout payments: what the payer sent."
+          },
+          "fee": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string",
+            "example": "receive_payment"
+          },
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "entry": {
+            "type": "string",
+            "enum": [
+              "credit",
+              "debit"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "checkout_id": {
+            "type": "string"
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": [
+              "tag_transfer",
+              "bank_transfer",
+              "card",
+              "apple_pay",
+              "google_pay",
+              "opay",
+              "bank_account",
+              "ussd",
+              "mobile_money",
+              "crypto"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RefundDestination": {
+        "type": "object",
+        "properties": {
+          "account_number": {
+            "type": "string"
+          },
+          "bank_code": {
+            "type": "string"
+          },
+          "account_name": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "CreateRefundRequest": {
+        "type": "object",
+        "required": [
+          "reason",
+          "idempotency_key"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Omit for the full refundable amount."
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "destination": {
+            "$ref": "#/components/schemas/RefundDestination"
+          },
+          "approver": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "partner_line_reference": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "partner_reference": {
+            "type": "string",
+            "maxLength": 128
+          }
+        }
+      },
+      "Refund": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "checkout_id": {
+            "type": "string"
+          },
+          "payment_reference": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "failure_reason": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RefundDestination"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payout_reference": {
+            "type": "string"
+          },
+          "provider_reference": {
+            "type": "string"
+          },
+          "awaiting_approval": {
+            "type": "boolean"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "partner_reference": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
       }
     },
     "securitySchemes": {
       "apiKeyAuth": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-API-KEY",
+        "name": "X-API-Key",
         "description": "API key for authentication."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid API key (`un-authorized access`).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotActive": {
+        "description": "The business is not live: `data.code` = `entity_not_active`, `data.missing` lists what is left.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "A request with the same Idempotency-Key is still running (`request_in_progress`). Retry after Retry-After.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Validation": {
+        "description": "Validation failed, or Idempotency-Key reused for a different request.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ValidationError422"
+                },
+                {
+                  "$ref": "#/components/schemas/Error"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "TooMany": {
+        "description": "Rate limited.",
+        "headers": {
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/X-RateLimit-Limit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/X-RateLimit-Remaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/X-RateLimit-Reset"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "headers": {
+      "X-RateLimit-Limit": {
+        "description": "Requests allowed per minute on this route",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "X-RateLimit-Remaining": {
+        "description": "Requests left this minute",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "X-RateLimit-Reset": {
+        "description": "Unix time the window resets",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        "description": "Makes a retry safe: the same key and body replays the first answer."
       }
     }
   },
@@ -7640,6 +8104,9 @@
     {
       "name": "Bills",
       "description": "Betting wallet top-ups"
+    },
+    {
+      "name": "Refunds"
     }
   ]
 }

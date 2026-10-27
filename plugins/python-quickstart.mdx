@@ -1,0 +1,101 @@
+---
+title: "Python quickstart"
+slug: "plugins/python-quickstart"
+---
+
+The same flow as the [PHP quickstart](/plugins/php-quickstart), in Python 3.9+ with `requests` and Flask: create a checkout, verify the webhook, confirm the payment, refund.
+
+```python
+import hashlib, hmac, os
+import requests
+from flask import Flask, request, abort
+
+BASE = "https://api.platnova.com"          # sandbox: https://sandbox.api.platnova.co
+API_KEY = os.environ["PLATNOVA_API_KEY"]
+WEBHOOK_SECRET = os.environ["PLATNOVA_WEBHOOK_SECRET"]
+
+
+def platnova(method, path, body=None, idempotency_key=None):
+    headers = {"X-API-Key": API_KEY, "Accept": "application/json"}
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+    r = requests.request(method, BASE + path, json=body, headers=headers, timeout=30)
+    return r.status_code, r.json()
+```
+
+## Create a checkout
+
+```python
+def start_payment(order):
+    status, res = platnova("POST", "/v1/checkout", {
+        "email": order["email"],
+        "amount": round(order["total"], 2),            # major units
+        "currency": order["currency"].lower(),
+        "partner_reference": str(order["id"]),        # your order id
+        "success_url": f"https://shop.example.com/orders/{order['id']}/paid",
+        "cancel_url": "https://shop.example.com/cart",
+    }, idempotency_key=f"order-{order['id']}-attempt-{order['attempt']}")
+    if status == 403 and res.get("data", {}).get("code") == "entity_not_active":
+        raise RuntimeError("This store has not finished going live on Platnova.")
+    if status != 200:
+        raise RuntimeError(res.get("message", f"HTTP {status}"))
+    save_checkout_id(order["id"], res["data"]["id"])
+    return res["data"]["url"]                         # redirect the customer here
+```
+
+## Receive the webhook
+
+```python
+app = Flask(__name__)
+
+
+def signature_ok(raw: bytes, given: str) -> bool:
+    expected = "sha256=" + hmac.new(WEBHOOK_SECRET.encode(), raw, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, given)
+
+
+@app.post("/platnova/webhook")
+def webhook():
+    raw = request.get_data()                          # raw bytes, before parsing
+    if not signature_ok(raw, request.headers.get("X-Platnova-Signature", "")):
+        abort(401)                                    # non-2xx, so it is retried and you are warned
+    event = request.get_json()
+    if event.get("event") == "checkout.paid":
+        queue_payment_check(event["data"]["checkout_id"])
+    return "", 200
+```
+
+## Verify, then fulfil once
+
+```python
+def confirm_payment(order):
+    checkout_id = load_checkout_id(order["id"])
+    status, res = platnova("POST", "/v1/payments/verify", {"reference": checkout_id})
+    if status != 200:
+        return False                                  # "payment not found": not paid yet
+    p = res["data"]
+    paid = (
+        p["status"] == "success"
+        and p["checkout_id"] == checkout_id
+        and p["currency"].lower() == order["currency"].lower()
+        and abs(p["amount"] - round(order["total"], 2)) < 0.005
+    )
+    if paid:
+        mark_order_paid_once(order["id"], checkout_id, p["ref"])
+    return paid
+```
+
+## Refund
+
+```python
+def refund(order, amount=None, reason="Customer request"):
+    body = {"reason": reason, "idempotency_key": f"order-{order['id']}-refund-1"}
+    if amount is not None:
+        body["amount"] = round(amount, 2)
+    status, res = platnova("POST", f"/v1/checkout/{load_checkout_id(order['id'])}/refund", body)
+    if status >= 400:
+        raise RuntimeError(res.get("message", "Refund refused"))
+    return res["data"]
+```
+
+See [Verifying a payment](/payments/verification), [Refunds](/checkout/refunds) and [Errors](/errors) for the details behind each step.

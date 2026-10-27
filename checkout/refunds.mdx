@@ -90,6 +90,8 @@ A bank-transfer refund back to the account the customer paid from goes out strai
 - **idempotency_key**: Required, up to 128 characters. See [Idempotency](#idempotency).
 - **destination**: Optional. An NGN bank account to send a bank-transfer refund to: `account_number` and `bank_code`. Used only for `bank_transfer`, `bank_account`, `ussd` and `opay` payments, and only when we do not have the account the payment came from. If we need it and it is missing, the request is rejected with `422 refund_destination_required`. It is ignored for card refunds, and ignored when we hold the account the payment came from: the money goes back where it came from. A destination is checked with the customer's bank before anything is sent.
 - **approver**: Optional. The ID of a teammate who can approve payments. Needed only when a team member who cannot approve payments refunds to a `destination` (see [Approval](#approval-for-refunds-to-another-account)).
+- **lines**: Optional. Refund named lines of a checkout created with [`line_items`](/checkout/initiating-checkout#request-fields): a list of `partner_line_reference` and `amount`, at most 100.
+- **partner_reference**: Optional, up to 128 characters. Your own id for the refund, returned on the Refund object.
 
 ### Example request
 
@@ -162,6 +164,9 @@ With a destination account, for a bank-transfer payment whose source account we 
 | `reason` | The reason you gave. |
 | `failure_reason` | Why the refund failed. Present only when `status` is `failed`. |
 | `idempotency_key` | The key you sent. |
+| `lines` | The lines refunded, when you sent `lines`. |
+| `partner_reference` | Your id for the refund, when you sent one. |
+| `awaiting_approval` | `true` while a bank-transfer refund waits for a teammate's approval. |
 | `destination` | Bank-transfer refunds: the account the money was sent to, with `account_number`, `bank_code` and `account_name`. `null` for card refunds. |
 | `payout_reference` | Bank-transfer refunds: the reference of the payout that carried the refund. |
 | `provider_reference` | Card refunds: the card provider's reference for the refund. |
@@ -260,7 +265,8 @@ A refund request that cannot be made returns `status: false` with a machine-read
 | 422 | `payouts_not_enabled` | Bank-transfer refunds need payouts, which are not enabled on your business. |
 | 409 | `idempotency_key_reused` | This `idempotency_key` was already used for a different checkout or amount. |
 | 409 | `refund_in_progress` | The first request with this `idempotency_key` is still being processed. Retry shortly. |
-| 400 | — | A field is missing or invalid. Same shape as other [validation errors](/errors#field-validation-errors). |
+| 422 | — | A field is missing or has the wrong type. [Validation shape](/errors#2-validation-failure-http-422): `status` is `"error"` and details are in `errors`. |
+| 400 | — | The request body is empty. |
 
 None of these errors debits your wallet.
 

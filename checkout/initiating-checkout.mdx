@@ -3,19 +3,26 @@ title: "Initiating Checkout"
 slug: "checkout/initiating-checkout"
 ---
 
-Start a checkout session with `POST /v1/checkout`. This creates a hosted payment page and returns a checkout `id` and `url`.
+Start a checkout with `POST /v1/checkout`, authenticated with your API key. It creates a hosted payment page and returns a checkout `id` and `url`. Send your customer to the `url`; you are told the result by the [`checkout.paid` webhook](/webhooks/overview), and you [verify](/payments/verification) it before fulfilling the order.
+
+<Warning>
+**Authenticate with `X-API-Key` only.** Do not send a dashboard `Authorization: Bearer` token on this call. A checkout created with a signed-in dashboard session is a **top-up of your own wallet**, not a sale: the money lands in your business wallet, the response says `"source": "platform"` and `"purpose": "self_deposit"`, and it cannot be refunded to a customer. A sale made with your API key says `"source": "api"`.
+</Warning>
 
 ## Example request
 
 ```bash
-curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
-  --header 'X-API-KEY: YOUR_API_KEY' \
-  --header 'Content-Type: application/json' \
-  --header 'Authorization: Bearer YOUR_JWT_TOKEN' \
-  --data-raw '{
-    "email": "jonathanemma121@gmail.com",
-    "amount": 2000.15,
+curl -X POST 'https://api.platnova.com/v1/checkout' \
+  -H 'X-API-Key: YOUR_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: order-1042-attempt-1' \
+  -d '{
+    "email": "ada@example.com",
+    "first_name": "Ada",
+    "last_name": "Obi",
+    "amount": 25000,
     "currency": "ngn",
+    "partner_reference": "order-1042",
     "success_url": "https://shop.example.com/orders/1042/paid",
     "cancel_url": "https://shop.example.com/orders/1042"
   }'
@@ -23,12 +30,36 @@ curl --location 'https://sandbox.api.platnova.co/v1/checkout' \
 
 ## Request fields
 
-- **email**: Customer email for the checkout.
-- **amount**: Amount to collect.
-- **currency**: Currency code (for example `ngn`). It must be a currency Platnova holds wallets in, such as `ngn`, `usd`, `gbp`, `eur`, `kes` or `ghs`; any other code is refused with `400 currency is not supported for checkout`.
-- **success_url**: Optional. Where the customer is sent after a successful payment, exactly as you send it.
-- **cancel_url**: Optional, but send it. The hosted checkout's **Cancel and return** action sends a customer who decides not to pay to this URL, exactly as you send it. If you leave it out, the checkout shows no return action and customers can only close the tab.
-- **payment_options**: Ignored. Every checkout offers every payment method that is live for its currency, and new methods reach your payers as we switch them on. The field is still accepted, so existing integrations keep working, but a checkout cannot be restricted to some methods. The response's `payment_options` lists what the checkout actually offers.
+| Field | Required | Description |
+|---|---|---|
+| `email` | Yes | The customer's email. It is shown on the payment page and returned as `customer_email` in `checkout.paid`. |
+| `amount` | Yes | The amount to collect, in **major units** (naira, dollars), not kobo or cents. Must be more than `0`. Send at most two decimal places. |
+| `currency` | Yes | A currency Platnova holds wallets in: `ngn`, `usd`, `gbp`, `eur`, `cad`, `kes`, `ghs`, `ugx`, `tzs`, `rwf`, `zar`, `aud`, `aed`, `cny`, `chf`, `try`, `myr`, `hkd`, `sar`, `mad`, `inr`, `sgd`, `dkk`, `qar`, `pln`. Any other code is refused with `400 currency is not supported for checkout`. Which payment methods are offered depends on the currency (see below). |
+| `first_name`, `last_name` | No | The customer's name, shown on the payment page. |
+| `partner_reference` | No | **Your order id.** 1 to 128 characters, no spaces or control characters. It is returned on `GET /v1/checkout/{id}` and echoed in `checkout.paid`, so you can match a payment to an order without parsing URLs. |
+| `success_url` | No | Where the customer is sent after a successful payment, exactly as you send it. Must be an absolute `http` or `https` URL; anything else is refused with `400 invalid success_url`. |
+| `cancel_url` | No, but send it | Where **Cancel and return** sends a customer who decides not to pay. Same rules as `success_url` (`400 invalid cancel_url`). Without it the page shows no return action. |
+| `fee_bearer` | No | `customer` (default: the payer pays the fee on top) or `merchant` (you absorb it). See [Who pays the fee](/checkout/pay-with-platnova-button#who-pays-the-fee). |
+| `line_items` | No | What the payment is for. Each line has `name` (up to 200 characters), `quantity` (1 to 10,000), `unit_amount` (more than 0, at most two decimals) and `partner_line_reference` (1 to 128 characters, unique in the checkout). At most 100 lines, and `quantity × unit_amount` over all lines must equal `amount` exactly, or the request is refused with `400` and `data.code` `line_items_invalid`. Refunds can name lines by `partner_line_reference`. |
+| `payment_options` | No | Ignored. Every checkout offers every method that is live for its currency. Still accepted so older integrations keep working. |
+
+<Note>
+`partner_reference` is not checked for uniqueness for ordinary merchants: two checkouts can carry the same value. Use the `Idempotency-Key` header (below) to make retries safe. Approved [partners](/partners/checkout) get a stricter contract where one `partner_reference` is always one checkout.
+</Note>
+
+## Making retries safe: `Idempotency-Key`
+
+Send an `Idempotency-Key` header (1 to 255 letters, digits, `_`, `.`, `:` or `-`) so that a retry after a timeout never creates a second checkout:
+
+- The same key with the same body returns the first answer again, with the header `Idempotent-Replayed: true`.
+- The same key while the first request is still running answers `409` with `data.code` `request_in_progress`. Nothing ran; retry after the `Retry-After` header (seconds).
+- The same key with a different body answers `422` with `data.code` `idempotency_key_reused`.
+
+Use one key per order attempt, for example `order-1042-attempt-1`.
+
+## Before you can take payments
+
+A business that has not finished verification cannot create checkouts. `POST /v1/checkout` answers `403` with `data.code` `entity_not_active` and `data.missing` listing what is left. See [Going live](/going-live).
 
 ## Payment methods offered
 
@@ -51,7 +82,7 @@ A method is offered only while it is live for the checkout's currency. Card, App
 
 The payer is shown an invoice in coins for the checkout amount. What arrives can differ slightly: wallets and networks shave off fees, and payers sometimes send a little less or more. Platnova values the coins that actually arrived at the market rate when the payment settles, and never credits more than the crypto processor delivered. A payment that covers the invoice is booked as successful even if the processor calls it `partially_paid`. One that falls short is booked as partially completed, and you are credited what arrived.
 
-Each crypto deposit records the breakdown: the amount requested, the coins received and their coin, what those coins were worth, the rate, the fee and the amount credited. You can see it in the transaction details on the dashboard, in the transaction CSV export (the `Requested`, `Received`, `Coins`, `Pay Currency` and `Rate` columns) and in the [`defi.payment` webhook](/webhooks/overview#defi-payment) (`booking_status`, `requested_amount`, `rate`).
+Each crypto deposit records the breakdown: the amount requested, the coins received and their coin, what those coins were worth, the rate, the fee and the amount credited. You can see it in the transaction details on the dashboard, in the transaction CSV export and in the [`defi.payment` webhook](/webhooks/overview#defi-payment).
 
 ## Example response
 
@@ -59,27 +90,25 @@ Each crypto deposit records the breakdown: the amount requested, the coins recei
 {
   "status": true,
   "data": {
-    "amount": 2000.15,
-    "currency": "ngn",
     "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
-    "email": "jonathanemma121@gmail.com",
     "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
     "status": "pending",
-    "success_url": "https://platnova.com/process?status=successful",
-    "cancel_url": "https://platnova.com/process?status=cancelled",
-    "source": "platform",
+    "amount": 25000,
+    "currency": "ngn",
+    "email": "ada@example.com",
+    "first_name": "Ada",
+    "last_name": "Obi",
+    "partner_reference": "order-1042",
+    "success_url": "https://shop.example.com/orders/1042/paid",
+    "cancel_url": "https://shop.example.com/orders/1042",
+    "source": "api",
     "entity": {
-      "category": "Technology",
-      "country_code": "NG",
-      "created_at": "2025-09-14T20:00:41.114031Z",
-      "description": "A leading technology solutions provider g",
-      "dial_code": "+234",
       "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
-      "legal_name": "Techies 2 Ltd",
       "name": "Techies 2 Ltd",
-      "phone": "8012345678",
-      "status": "ACTIVE",
-      "username": "techies2ltd"
+      "legal_name": "Techies 2 Ltd",
+      "username": "techies2ltd",
+      "country_code": "NG",
+      "status": "ACTIVE"
     },
     "payment_options": [
       { "id": "tag_transfer" },
@@ -87,15 +116,22 @@ Each crypto deposit records the breakdown: the amount requested, the coins recei
       { "id": "ussd" },
       { "id": "opay" },
       { "id": "bank_account" },
-      { "id": "mobile_money" },
       { "id": "card" },
       { "id": "crypto" }
     ],
-    "created_at": "2026-05-05T15:57:19Z"
+    "created_at": "2026-10-27T15:57:19Z"
   },
   "error": [],
   "message": "operation was successful"
 }
 ```
 
-Use `data.url` to redirect your customer to complete payment. Keep `data.id` so you can retrieve this checkout later with the get endpoint.
+Redirect your customer to `data.url`. Store `data.id` against the order: it is how you [verify](/payments/verification) and [refund](/checkout/refunds) the payment.
+
+<Note>
+**Currency case.** Checkout responses use lowercase codes (`"ngn"`), while `checkout.paid`, verification and refunds use uppercase (`"NGN"`). Compare currencies case-insensitively.
+</Note>
+
+## How long a checkout lives
+
+The checkout page can be opened and paid for **7 days**. After that `GET /v1/checkout/{id}` answers `404 checkout not found`, even for a checkout that was paid. A paid checkout's payment stays verifiable for good with [`POST /v1/payments/verify`](/payments/verification), using the checkout `id`.

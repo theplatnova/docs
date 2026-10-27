@@ -1,0 +1,62 @@
+---
+title: "Going live"
+slug: "going-live"
+---
+
+Your business can explore the dashboard and the sandbox straight away, but it collects and moves real money only once it is **live**. Until then, routes that collect or move money (creating a checkout, sending a payment, verifying, refunds) answer `403`.
+
+## The steps
+
+<Steps>
+<Step title="Sign up and verify your business">
+Create your business on the [dashboard](https://business.platnova.com) and complete **Verification**: business details and address, registration documents, proof of address, and the directors and owners.
+</Step>
+<Step title="Owners verify their own identity">
+Every owner completes their own identity check. Directors outside the business's sign-in are sent a link to verify.
+</Step>
+<Step title="Review">
+We review the business. Reviewing is free.
+</Step>
+<Step title="Pay the verification fee">
+After the business is approved, pay the one-time verification fee from the dashboard. Paying it takes the business live. Some plans waive it.
+</Step>
+<Step title="Create a live API key and webhook endpoint">
+Create a live key under **Settings → Developers** and register your live webhook endpoint under **Settings → Webhooks**. Point your integration at `https://api.platnova.com`.
+</Step>
+</Steps>
+
+## What a business that isn't live gets
+
+```json
+{
+  "status": false,
+  "data": {
+    "code": "entity_not_active",
+    "missing": ["owners.5f3c.identity", "fee"]
+  },
+  "error": ["entity_not_active"],
+  "message": "organization is not verified"
+}
+```
+
+with HTTP `403`. `data.missing` lists the requirements still open, by key. Typical keys:
+
+| Key | What is left |
+|---|---|
+| `business.details`, `business.address` | Business information |
+| `business.proof_of_address` | The business's proof of address |
+| `business_documents.<name>` | A registration document |
+| `people.directors`, `people.owners` | Adding directors or owners |
+| `directors.<id>.identity`, `owners.<id>.identity` | That person's identity check |
+| `directors.<id>.proof_of_address` | That director's proof of address |
+| `fee` | The verification fee, once the review has passed |
+
+Show the list to the merchant, or send them to the dashboard's **Verification** page, which shows the same steps. New keys can be added; treat an unknown key as "something is left to do".
+
+<Tip>
+**Building a plugin?** When a merchant enters their keys, make one cheap call (for example `GET /v1/wallets`) and a test `POST /v1/checkout` in the sandbox, and show a clear "finish verification on Platnova" message if live calls answer `entity_not_active`.
+</Tip>
+
+## Refunds to bank accounts
+
+Refunds of bank-transfer payments go out as payouts, so payouts must be enabled on your business. Otherwise a refund answers `422 payouts_not_enabled`. Ask [support@platnova.com](mailto:support@platnova.com) to enable them.

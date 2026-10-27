@@ -1,0 +1,1540 @@
+{
+  "info": {
+    "name": "Platnova Business API",
+    "description": "Generated from https://docs.platnova.com/api-reference/openapi.json. Set the baseUrl and apiKey collection variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sandbox.api.platnova.co"
+    },
+    {
+      "key": "apiKey",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Customer",
+      "item": [
+        {
+          "name": "Create customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "customers"
+              ],
+              "variable": []
+            },
+            "description": "Create a new individual customer profile with identification details, address information, and KYC compliance data.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"johndoe06@email.com\",\n  \"phone\": \"+23490123456789\",\n  \"country_code\": \"NG\",\n  \"date_of_birth\": \"1970-12-28\",\n  \"gender\": \"male\",\n  \"documents\": [\n    {\n      \"id_type\": \"national_id\",\n      \"id_number\": \"1096277890\",\n      \"front_doc\": \"<base64-encoded image>\"\n    }\n  ],\n  \"address\": {\n    \"street\": \"12 Lekki Lane\",\n    \"city\": \"Lekki\",\n    \"state\": \"Lagos\",\n    \"postal_code\": \"200123\",\n    \"country\": \"Nigeria\",\n    \"document\": \"<base64-encoded proof of address>\"\n  },\n  \"proof_of_funds\": {\n    \"employment_status\": \"employed\",\n    \"occupation\": \"151252\",\n    \"primary_purpose\": \"payments_to_friends_or_family_abroad\",\n    \"source_of_funds\": \"salary\",\n    \"expected_monthly_pay\": \"0_4999\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "customers"
+              ],
+              "variable": []
+            },
+            "description": "Retrieve a paginated list of customers."
+          }
+        },
+        {
+          "name": "Get customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/customers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Retrieve a specific customer by ID."
+          }
+        },
+        {
+          "name": "Update customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/customers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Partially update a customer. All body fields are optional; include only fields you want to change. Use documents and proof_of_funds for KYC updates.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Jane\",\n  \"phone\": \"+2348012345678\",\n  \"documents\": [\n    {\n      \"id_type\": \"passport\",\n      \"id_number\": \"A12345678\",\n      \"front_doc\": \"<base64-encoded image>\"\n    }\n  ],\n  \"proof_of_funds\": {\n    \"employment_status\": \"employed\",\n    \"occupation\": \"151252\",\n    \"primary_purpose\": \"payments_to_friends_or_family_abroad\",\n    \"source_of_funds\": \"salary\",\n    \"expected_monthly_pay\": \"0_4999\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Virtual Account",
+      "item": [
+        {
+          "name": "Create virtual account (customer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/virtual-accounts/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "virtual-accounts",
+                "create"
+              ],
+              "variable": []
+            },
+            "description": "Create a virtual bank account for a customer in the specified currency. Requires customer_id and currency. For NGN, id_number (BVN) may be required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currency\": \"NGN\",\n  \"customer_id\": \"43a2b75e-5c59-429e-872a-2a54c7b17e34\",\n  \"id_number\": \"22123456789\",\n  \"codes\": [\n    \"058\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Generate single-use virtual account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/virtual-accounts/dynamic",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "virtual-accounts",
+                "dynamic"
+              ],
+              "variable": []
+            },
+            "description": "Generate a dynamic, single-use virtual account for a customer with a fixed amount and configurable expiry. The account automatically expires after the specified lifespan and can only receive a payment matching the exact amount.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"aad8aff0-00db-48b0-9bb0-9b399c313438\",\n  \"amount\": 200,\n  \"lifespan_minutes\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create virtual account (business)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/virtual-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "virtual-accounts"
+              ],
+              "variable": []
+            },
+            "description": "Create a virtual bank account for the business entity in the specified currency. Requires wallet_id; optionally pass bank codes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wallet_id\": \"43a2b75e-5c59-429e-872a-2a54c7b17e37\",\n  \"codes\": [\n    \"CHASUS33\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List virtual accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/virtual-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "virtual-accounts"
+              ],
+              "variable": []
+            },
+            "description": "Retrieve a list of virtual accounts, optionally filtered by currency or customer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Card",
+      "item": [
+        {
+          "name": "Create card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                "create"
+              ],
+              "variable": []
+            },
+            "description": "Create a virtual card for a customer with optional initial funding.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"43a2b75e-5c59-429e-872a-2a54c7b17e34\",\n  \"currency\": \"ngn\",\n  \"brand\": \"mastercard\",\n  \"amount\": 15000,\n  \"wallet_id\": \"43a2b75e-5c59-429e-872a-2a54c7b17e37\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List cards",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards"
+              ],
+              "variable": []
+            },
+            "description": "Retrieve a list of cards, optionally filtered by customer."
+          }
+        },
+        {
+          "name": "Deposit to card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:card_id/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":card_id",
+                "deposit"
+              ],
+              "variable": [
+                {
+                  "key": "card_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Add funds to a card from your wallet.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"1000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Withdraw from card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:card_id/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":card_id",
+                "withdraw"
+              ],
+              "variable": [
+                {
+                  "key": "card_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Withdraw funds from a card back to your wallet.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currency\": \"ngn\",\n  \"amount\": 200\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Freeze card",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:card_id/freeze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":card_id",
+                "freeze"
+              ],
+              "variable": [
+                {
+                  "key": "card_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Temporarily disable a card so it cannot be used for purchases."
+          }
+        },
+        {
+          "name": "Unfreeze card",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:card_id/unfreeze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":card_id",
+                "unfreeze"
+              ],
+              "variable": [
+                {
+                  "key": "card_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Restore a frozen card so it can be used again."
+          }
+        },
+        {
+          "name": "Get card",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Retrieve a specific card by ID including balance and status."
+          }
+        },
+        {
+          "name": "List card events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:card_id/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":card_id",
+                "events"
+              ],
+              "variable": [
+                {
+                  "key": "card_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Retrieve transaction and event history for a card."
+          }
+        },
+        {
+          "name": "Reveal card details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:card_id/reveal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":card_id",
+                "reveal"
+              ],
+              "variable": [
+                {
+                  "key": "card_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Retrieve full card number and CVV. Rate-limited for security."
+          }
+        },
+        {
+          "name": "Terminate card",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cards/:card_id/terminate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cards",
+                ":card_id",
+                "terminate"
+              ],
+              "variable": [
+                {
+                  "key": "card_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Close a card permanently. The card stops working at once and cannot be reactivated. Any balance on it is returned by the card issuer and credited back automatically, usually within a minute; `balance_refund` in the response says whether that is still to come. Terminating a card that is already terminated returns 200 with `already_terminated: true`, so the call is safe to retry."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Send payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payments",
+                "send"
+              ],
+              "variable": []
+            },
+            "description": "Initiate a payment transfer. Supports instant, scheduled, and recurring payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_amount\": 100.5,\n  \"from_wallet_id\": \"43a2b75e-5c59-429e-872a-2a54c7b17e37\",\n  \"to_currency\": \"NGN\",\n  \"payment_method\": \"bank_transfer\",\n  \"info\": {\n    \"account_number\": \"0123456789\",\n    \"bank_code\": \"058\",\n    \"account_name\": \"John Doe\"\n  },\n  \"is_save_to_beneficiary\": false,\n  \"reference\": \"txn-001\",\n  \"payment_type\": {\n    \"type\": \"instant\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payments",
+                "verify"
+              ],
+              "variable": []
+            },
+            "description": "Confirm a payment by the checkout id, the checkout.paid reference, or a payout reference. 400 `payment not found` means not paid yet or not yours.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transaction",
+      "item": [
+        {
+          "name": "List transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "transactions"
+              ],
+              "variable": []
+            },
+            "description": "Retrieve a paginated list of transactions for the entity. Supports filtering by customer, sorting, and optional CSV export."
+          }
+        },
+        {
+          "name": "Generate receipt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/transactions/:id/receipt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "transactions",
+                ":id",
+                "receipt"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Generate a receipt for a transaction by ID. Returns base64-encoded receipt data (e.g. PDF)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Checkout",
+      "item": [
+        {
+          "name": "Create checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "description": "Makes a retry safe"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "checkout"
+              ],
+              "variable": []
+            },
+            "description": "Create a hosted checkout for a sale. Authenticate with X-API-Key only: a dashboard session makes a self top-up instead.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ada@example.com\",\n  \"amount\": 25000,\n  \"currency\": \"ngn\",\n  \"partner_reference\": \"order-1042\",\n  \"success_url\": \"https://shop.example.com/orders/1042/paid\",\n  \"cancel_url\": \"https://shop.example.com/orders/1042\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get checkout",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/checkout/:checkout_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                ":checkout_id"
+              ],
+              "variable": [
+                {
+                  "key": "checkout_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Needs no authentication. Returns 404 once the checkout is more than 7 days old, paid or not; confirm payments with POST /v1/payments/verify."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Link",
+      "item": [
+        {
+          "name": "Create payment link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "links"
+              ],
+              "variable": []
+            },
+            "description": "Create a shareable payment link",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Invoice #1001\",\n  \"description\": \"Payment for services\",\n  \"amount\": 50000,\n  \"currency\": \"NGN\",\n  \"expires_at\": \"2026-02-28T23:59:59Z\",\n  \"customer\": {\n    \"can_set_price\": false\n  },\n  \"payment\": {\n    \"limit\": 1,\n    \"payment_methods\": [\n      {\n        \"id\": \"bank_transfer\",\n        \"value\": \"058\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List payment links",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "links"
+              ],
+              "variable": []
+            },
+            "description": "Retrieve a paginated list of payment links for the authenticated entity."
+          }
+        },
+        {
+          "name": "Get payment link (with stats)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/links/:uid/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "links",
+                ":uid",
+                "stats"
+              ],
+              "variable": [
+                {
+                  "key": "uid",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Retrieve a payment link by UID including statistics (total_revenue, total_transactions, total_users, total_views, payment_details)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoice",
+      "item": [
+        {
+          "name": "Create invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "invoices"
+              ],
+              "variable": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"note\": \"Thank you for your business\",\n  \"items\": [\n    {\n      \"name\": \"Consulting\",\n      \"unit_price\": 150,\n      \"quantity\": 2,\n      \"currency\": \"NGN\",\n      \"total\": 300\n    },\n    {\n      \"name\": \"Setup fee\",\n      \"unit_price\": 50,\n      \"quantity\": 1,\n      \"currency\": \"NGN\",\n      \"total\": 50\n    }\n  ],\n  \"charges\": {\n    \"discount\": {\n      \"amount\": \"0\",\n      \"type\": \"flat\",\n      \"enabled\": false\n    },\n    \"tax\": {\n      \"amount\": \"7.5\",\n      \"type\": \"percentage\",\n      \"enabled\": true\n    },\n    \"fee\": {\n      \"amount\": \"0\",\n      \"type\": \"flat\",\n      \"enabled\": false\n    },\n    \"shipping\": {\n      \"amount\": \"0\",\n      \"type\": \"flat\",\n      \"enabled\": false\n    }\n  },\n  \"payment_schedule\": {\n    \"type\": \"one_time\",\n    \"due_date\": \"2026-02-15T23:59:59Z\",\n    \"send_date\": \"2026-01-30T00:00:00Z\",\n    \"payment_methods\": [\n      {\n        \"id\": \"bank_transfer\",\n        \"value\": \"058\"\n      }\n    ],\n    \"reminders\": true,\n    \"reminder_timing\": {\n      \"type\": \"before_due_date\",\n      \"days\": 3\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "invoices"
+              ],
+              "variable": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Get invoice by number",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invoices/view/:number",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "invoices",
+                "view",
+                ":number"
+              ],
+              "variable": [
+                {
+                  "key": "number",
+                  "value": ""
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Update invoice status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invoices/:uid/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "invoices",
+                ":uid",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "uid",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "List wallets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "wallets"
+              ],
+              "variable": []
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bank",
+      "item": [
+        {
+          "name": "List banks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/banks/:country_code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "banks",
+                ":country_code"
+              ],
+              "variable": [
+                {
+                  "key": "country_code",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Banks you can send to in a country, with the bank_code each one needs. Codes are specific to our payment provider for that country: a Nigerian bank's code here can differ from its CBN code, so always take the code from this list. Cache it for at most a day."
+          }
+        },
+        {
+          "name": "List bank branches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/banks/:country_code/:bank_code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "banks",
+                ":country_code",
+                ":bank_code"
+              ],
+              "variable": [
+                {
+                  "key": "country_code",
+                  "value": ""
+                },
+                {
+                  "key": "bank_code",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Branches of a bank, for countries whose transfers need a branch_code (Ghana and Kenya do; Nigeria does not). The branch code goes into info.branch_code on the send request."
+          }
+        },
+        {
+          "name": "Verify a bank account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/banks/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "banks",
+                "verify"
+              ],
+              "variable": []
+            },
+            "description": "Resolves an account number at a bank to the account holder's name so you can show it before sending. Call this before every bank transfer; a wrong bank_code or account number is refused here rather than after the money has moved.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Suggest banks for an account number",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/banks/suggest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "banks",
+                "suggest"
+              ],
+              "variable": []
+            },
+            "description": "When you have an account number but not the bank: returns banks we have previously paid this account number through. A hint, not a lookup; still call verify with the code you pick.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bills",
+      "item": [
+        {
+          "name": "List betting billers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bills/betting/billers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bills",
+                "betting",
+                "billers"
+              ],
+              "variable": []
+            },
+            "description": "The betting billers you can top up. Cache for up to an hour."
+          }
+        },
+        {
+          "name": "Validate a betting customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bills/betting/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bills",
+                "betting",
+                "validate"
+              ],
+              "variable": []
+            },
+            "description": "Ask the biller who owns a customer ID. Show `customer_name` to the payer and have them confirm it before you create a top-up.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create a betting top-up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bills/betting",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bills",
+                "betting"
+              ],
+              "variable": []
+            },
+            "description": "Debits your NGN wallet `amount + fee` and tops up the customer's betting wallet. Answers 202 with `status: processing`; the outcome arrives as `bill.success`, `bill.failed` or `bill.reversed`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List betting top-ups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bills/betting",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bills",
+                "betting"
+              ],
+              "variable": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Get a betting top-up",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bills/betting/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bills",
+                "betting",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Refunds",
+      "item": [
+        {
+          "name": "Refund a checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/checkout/:checkout_id/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                ":checkout_id",
+                "refund"
+              ],
+              "variable": [
+                {
+                  "key": "checkout_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 2500,\n  \"reason\": \"Customer returned item\",\n  \"idempotency_key\": \"order-1042-refund-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List a checkout's refunds",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/checkout/:checkout_id/refunds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                ":checkout_id",
+                "refunds"
+              ],
+              "variable": [
+                {
+                  "key": "checkout_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Retrieve a refund",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/refunds/:refund_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "refunds",
+                ":refund_id"
+              ],
+              "variable": [
+                {
+                  "key": "refund_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    }
+  ]
+}

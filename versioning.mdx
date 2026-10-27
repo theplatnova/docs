@@ -1,0 +1,28 @@
+---
+title: "Versioning and deprecations"
+slug: "versioning"
+---
+
+Every endpoint lives under `/v1`. There is no version header to send.
+
+## What we change without notice
+
+These are **not** breaking changes, and your integration must tolerate them:
+
+- New endpoints.
+- New fields in responses and webhook payloads. **Ignore fields you don't know.**
+- New values in lists you receive: new event types, new payment method ids, new `data.code` values, new keys in `data.missing`. Treat an unknown value as "not handled", not as an error.
+- New optional request fields.
+- Changes to the wording of `message`. Branch on HTTP status and `data.code`, never on `message`.
+
+## Breaking changes
+
+Removing or renaming a field, endpoint or header, or changing what an existing field means, is breaking. We announce it to your business's developers by email and list it below before it takes effect, so you have time to move.
+
+## Current deprecations
+
+| What | Use instead | Since | Ends |
+|---|---|---|---|
+| API key in the URL query (`?api_key=`) | The `X-API-Key` header | 22 October 2026 | To be announced. Partner routes already refuse it. |
+| Plain-text webhook secret headers `X-Webhook-Secret` and `X-Auth-Secret` on signed endpoints | Verify `X-Platnova-Signature` ([how](/webhooks/signatures)) | 24 September 2026 | 1 January 2027 |
+| `payment_options` on `POST /v1/checkout` | Nothing: every live method is offered. The field is accepted and ignored. | — | — |
