@@ -10,9 +10,9 @@ Every webhook endpoint has a **secret**. When the endpoint is signed, every call
 | Header | Sent when | Value |
 |---|---|---|
 | `X-Platnova-Signature` | The endpoint is signed | `sha256=` followed by the lowercase hex HMAC-SHA256 of the raw request body, keyed with the endpoint secret |
-| `X-Platnova-Key-Id` | The endpoint is signed | The first 8 hex characters of SHA-256 of the secret that produced `X-Platnova-Signature` (see [Key id](#key-id)) |
-| `X-Platnova-Signature-Previous` | The endpoint is signed and a [rotation](#rotating-the-secret) is in its overlap window | The same signature, computed with the **previous** secret |
-| `X-Platnova-Key-Id-Previous` | Same as above | The key id of the previous secret |
+| `X-Platnova-Key-Id` | **Coming soon.** The endpoint is signed | The first 8 hex characters of SHA-256 of the secret that produced `X-Platnova-Signature` (see [Key id](#key-id)) |
+| `X-Platnova-Signature-Previous` | **Coming soon.** The endpoint is signed and a [rotation](#rotating-the-secret) is in its overlap window | The same signature, computed with the **previous** secret |
+| `X-Platnova-Key-Id-Previous` | **Coming soon.** Same as above | The key id of the previous secret |
 | `X-Webhook-Secret`, `X-Auth-Secret` | Every endpoint, until **1 January 2027** for signed endpoints | The endpoint secret itself, in plain text. This is the legacy check and is being retired |
 
 **Which endpoints are signed.** Every endpoint created on or after **24 September 2026** is signed. Endpoints created before that date are not signed unless we have switched signing on for you. Until then they receive only the plain-text `X-Webhook-Secret` and `X-Auth-Secret` headers, with no end date. To have an older endpoint signed, contact support, or delete it and create it again.
@@ -26,7 +26,7 @@ Every webhook endpoint has a **secret**. When the endpoint is signed, every call
 1. **Read the raw request body** as bytes, before any JSON parsing. Do not parse the JSON and serialise it again: any difference in spacing, key order or escaping changes the signature, and verification fails even though the call is genuine.
 2. **Compute** `"sha256=" + hex(HMAC-SHA256(key = your secret as UTF-8, message = raw body))`, using lowercase hex.
 3. **Compare** it with `X-Platnova-Signature` in **constant time**, using one of the functions below, never `==`.
-4. **If they match, accept the call.** During a rotation, also accept a match on `X-Platnova-Signature-Previous`.
+4. **If they match, accept the call.** (Once [rotation](#rotating-the-secret) ships: during a rotation, also accept a match on `X-Platnova-Signature-Previous`.)
 5. **If neither matches, answer with a non-2xx status**, such as `401`. See [Answer honestly](#answer-honestly).
 
 <CodeGroup>
@@ -122,6 +122,10 @@ So if your verification fails, **answer with a non-2xx status** (for example `40
 
 ## Key id
 
+<Note>
+**Coming soon.** This feature is not live yet; this section describes how it will work. Until it ships, only `X-Platnova-Signature` (and the legacy plain-text headers) are sent.
+</Note>
+
 `X-Platnova-Key-Id` names the secret that produced the signature. It is the first 8 hex characters of SHA-256 of the secret, so it identifies a secret without revealing it. It is not secret itself, and it is safe to log.
 
 Use it when you hold more than one Platnova secret. For example, two Platnova businesses might post to one URL, or you might be part-way through a [rotation](#rotating-the-secret). Look up the secret by key id, then verify with that secret. Do not try each secret in turn.
@@ -135,6 +139,10 @@ printf %s "$SECRET" | shasum -a 256 | cut -c1-8
 The dashboard and `GET /v1/webhooks` show each endpoint's `key_id` (and `previous_key_id` during a rotation), so you can match what you hold against what we send.
 
 ## Rotating the secret
+
+<Note>
+**Coming soon.** This feature is not live yet; this section describes how it will work. Until it ships, only `X-Platnova-Signature` (and the legacy plain-text headers) are sent.
+</Note>
 
 Rotate an endpoint's secret from the dashboard: **Settings → Webhooks → the endpoint's menu → Rotate secret**. The dashboard calls `POST /v1/webhooks/{id}/rotate-secret`, which needs a signed-in session with permission to update webhooks; it cannot be called with an API key.
 
@@ -174,6 +182,10 @@ Rotating again during an overlap window drops the oldest secret. Only the curren
 When you create an endpoint, the response also returns its secret once. That is the secret you supplied, or, if you left it blank, the one we generated.
 
 ## Sending a test event
+
+<Note>
+**Coming soon.** This feature is not live yet; this section describes how it will work. Until it ships, only `X-Platnova-Signature` (and the legacy plain-text headers) are sent.
+</Note>
 
 To check your receiver end to end, use **Send test event** in the endpoint's menu. The dashboard calls `POST /v1/webhooks/{id}/test`, which sends this body straight away, signed exactly like a real delivery:
 

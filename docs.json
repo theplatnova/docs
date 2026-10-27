@@ -19,7 +19,16 @@
               "index",
               "authentication",
               "environments",
-              "errors"
+              "going-live",
+              "errors",
+              "versioning"
+            ]
+          },
+          {
+            "group": "Plugins",
+            "pages": [
+              "plugins/php-quickstart",
+              "plugins/python-quickstart"
             ]
           },
           {
@@ -205,6 +214,14 @@
             "pages": [
               "api-reference/checkout/create",
               "api-reference/checkout/get"
+            ]
+          },
+          {
+            "group": "Refunds",
+            "pages": [
+              "api-reference/refunds/create",
+              "api-reference/refunds/list",
+              "api-reference/refunds/get"
             ]
           },
           {

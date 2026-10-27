@@ -1,141 +1,89 @@
 ---
-title: "Payment Verification"
+title: "Verifying a Payment"
 slug: "payments/verification"
 ---
 
-Verify payment status and track payment processing. This guide covers how to check payment status and handle payment verification.
+Before you mark an order paid and ship anything, confirm the payment with Platnova from your server. A webhook tells you something happened; verification proves it.
 
-## Verifying Payment Status
-
-Check the status of a payment using its reference:
+## `POST /v1/payments/verify`
 
 ```bash
 curl -X POST https://api.platnova.com/v1/payments/verify \
-  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "reference": "PAY001"
-  }'
+  -d '{"reference": "3e584f08-6a55-4b15-a97f-364a7d21071e"}'
 ```
 
-## Verification Response
+`reference` can be any of:
+
+- **the checkout `id`** you got when you created the checkout (best for plugins: you already stored it against the order);
+- **the payment `reference`** from the `checkout.paid` webhook;
+- **the reference of a payout** you sent with [`POST /v1/payments/send`](/payments/sending-payments).
+
+Verification only ever finds your own business's payments, and it keeps working after the checkout itself has expired.
+
+## Response: a paid checkout
 
 ```json
 {
   "status": true,
   "data": {
-    "transaction_id": "txn_123",
-    "payment_reference": "PAY001",
-    "amount": "500.00",
-    "currency": "USD",
-    "recipient_account_number": "1234567890",
-    "recipient_name": "Jane Smith",
+    "id": "",
+    "ref": "the payment's transaction reference",
+    "currency": "NGN",
+    "amount": 25000,
+    "paid_amount": 25375,
+    "fee": 375,
+    "type": "receive_payment",
     "status": "success",
-    "processed_at": "2025-01-30T10:05:00Z",
-    "created_at": "2025-01-30T10:00:00Z"
+    "entry": "credit",
+    "message": "Checkout payment received",
+    "checkout_id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+    "payment_method": "bank_transfer",
+    "created_at": "2026-10-27T16:02:11Z",
+    "updated_at": "2026-10-27T16:02:11Z"
   },
-  "message": "Payment verified successfully"
+  "error": [],
+  "message": "operation was successful"
 }
 ```
 
-## Payment Statuses
+| Field | Meaning |
+|---|---|
+| `id` | A payout's id. Empty for a checkout payment. |
+| `ref` | The payment's transaction reference. Quote it to support. |
+| `amount` | What **you** were credited, in `currency`. |
+| `paid_amount` | What the payer sent. The difference is `fee`. |
+| `fee` | Platnova's fee on this payment. |
+| `currency` | Uppercase currency code. |
+| `status` | `success` for a received checkout payment. For a payout it is the payout's status. |
+| `checkout_id` | The checkout this payment settled. |
+| `payment_method` | How the payer paid: one of the [payment method ids](/checkout/initiating-checkout#payment-methods-offered). |
+| `type`, `entry` | `receive_payment` / `credit` for a checkout payment. |
 
-### Processing
+## Response: not paid (or not yours)
 
-Payment has been initiated and is being processed. This is the initial status for most payments.
+A checkout that has not been paid, or a reference that is not one of your payments, answers `400`:
 
 ```json
-{
-  "status": "processing",
-  "message": "Payment is being processed"
-}
+{ "status": false, "data": {}, "error": [], "message": "payment not found" }
 ```
 
-### Success
+Verification cannot tell "not paid yet" apart from "no such payment". If you need to know whether a checkout still exists, read it with [`GET /v1/checkout/{id}`](/checkout/retrieving-checkout) (`pending` = exists, not paid).
 
-Payment completed successfully. Funds have been transferred to the recipient.
+## Fulfil an order safely
 
-```json
-{
-  "status": "success",
-  "processed_at": "2025-01-30T10:05:00Z"
-}
-```
-
-### Failed
-
-Payment failed. Check error details for the reason.
-
-```json
-{
-  "status": "failed",
-  "error": "Insufficient funds",
-  "error_code": "INSUFFICIENT_FUNDS"
-}
-```
-
-## Common Failure Reasons
-
-- **Insufficient Funds** - Not enough balance in source wallet
-- **Invalid Account** - Recipient account number or bank code invalid
-- **Account Mismatch** - Account name doesn't match account number
-- **Bank Rejection** - Recipient bank rejected the payment
-- **Network Error** - Temporary network or processing error
-
-## Verification Best Practices
-
-### When to Verify
-
-- After sending a payment
-- Periodically for pending payments
-- Before showing payment confirmation to users
-- When handling payment webhooks
-
-### Verification Frequency
-
-- Check immediately after sending
-- Retry failed verifications after a delay
-- Don't poll too frequently (respect rate limits)
-- Use webhooks for real-time updates when possible
-
-## Handling Payment Status
-
-### Processing Payments
-
-- Show "processing" status to users
-- Set up retry logic for status checks
-- Don't mark as complete until status is "success"
-
-### Successful Payments
-
-- Update your records
-- Send confirmation to users
-- Generate receipts if needed
-
-### Failed Payments
-
-- Log error details
-- Notify users of failure
-- Provide retry options if appropriate
-- Handle refunds if needed
-
-## Webhook Integration
-
-Set up webhooks to receive real-time payment status updates:
-
-```json
-{
-  "event": "payment.status.updated",
-  "data": {
-    "transaction_id": "txn_123",
-    "payment_reference": "PAY001",
-    "status": "success",
-    "processed_at": "2025-01-30T10:05:00Z"
-  }
-}
-```
-
-## Next Steps
-
-- Learn about [Sending Payments](/payments/sending-payments) for initiating transfers
-- Explore the [Payments API Reference](/api-reference/payments/verify) for detailed documentation
+<Steps>
+<Step title="Receive checkout.paid">
+Check the [signature](/webhooks/signatures), store the event, answer `200`.
+</Step>
+<Step title="Verify">
+Call `POST /v1/payments/verify` with the checkout `id` you stored against the order.
+</Step>
+<Step title="Compare">
+Require `status` = `success`, `checkout_id` = your stored id, and `currency` (case-insensitive) and the amount to match the order. With `fee_bearer` `customer` (the default) you are credited the full checkout `amount`; with `merchant` you are credited `amount` less `fee`.
+</Step>
+<Step title="Fulfil once">
+Mark the order paid in the same database transaction as a unique record of the checkout id, so a repeated webhook can never fulfil twice.
+</Step>
+</Steps>

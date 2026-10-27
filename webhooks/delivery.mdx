@@ -3,83 +3,49 @@ title: "Delivery, retries and pausing"
 slug: "webhooks/delivery"
 ---
 
-This page covers what happens to an event between us recording it and your endpoint acknowledging it. It explains how we retry, when an endpoint is paused, and how a paused endpoint recovers without losing anything.
+This page covers what happens to an event between us recording it and your endpoint acknowledging it: how we retry, when an endpoint is paused, and how to get it going again.
 
 ## Acknowledging an event
 
-An event is **delivered** when your endpoint answers our `POST` with any **2xx** status within **30 seconds**. Anything else counts as a failed attempt: a non-2xx status (including a 3xx redirect, which we do not follow), a timeout, a refused connection, or a DNS or TLS error.
+An event is **delivered** when your endpoint answers our `POST` with any **2xx** status within **25 seconds**. Anything else is a failed attempt: a non-2xx status (including a 3xx redirect, which we do not follow), a timeout, a refused connection, or a DNS or TLS error.
 
 - **Answer quickly.** Verify the [signature](/webhooks/signatures), store or queue the event, answer `200`, and do the work afterwards.
-- **Answer non-2xx when you have not accepted the event**, for example when verification fails. A `200` is final: an event you answered 2xx is never sent again. See [Answer honestly](/webhooks/signatures#answer-honestly).
-
-## Endpoint URLs
-
-The URL you save, when creating or updating an endpoint, must:
-
-- use **`https`**, and
-- resolve only to **public internet addresses**. URLs that resolve to private, loopback, link-local (including cloud metadata) or carrier-grade NAT (`100.64.0.0/10`) addresses are refused.
-
-We check this when the URL is saved and again on every call, so a hostname that later starts resolving to a private address stops receiving deliveries. Those attempts fail with "destination address is not allowed". **Redirects are not followed**: a 3xx answer counts as a failed delivery, so give us the final URL.
-
-Endpoints saved with an `http` URL before this rule keep receiving deliveries. Change them to `https` when you next edit them; an update must use `https`.
+- **Answer non-2xx when you have not accepted the event**, for example when the signature doesn't verify. A `200` is final: an event you answered 2xx is not sent again. See [Answer honestly](/webhooks/signatures#answer-honestly).
 
 ## Retries
 
-Each event gets **3 attempts in total**: the first, plus up to 2 retries spaced out over a few minutes. If all three fail, the event is marked `failed`. You can send it again from the dashboard: **Retry** on one event, or **Retry failed** for every failed event on the endpoint.
+| Your endpoint... | Attempts in total |
+|---|---|
+| answers with a non-2xx status | **3** (the first, plus 2 retries) |
+| can't be reached (timeout, refused connection, DNS or TLS error) | **4** (the first, plus 3 retries) |
+
+Retries are spaced out over a few minutes. If every attempt fails, the event is marked `failed`. Resend it from the dashboard (**Settings → Webhooks → the endpoint → events**): **Retry** on one event, or **Retry failed** for every failed event on the endpoint.
 
 ## Paused endpoints
 
-If your endpoint fails **5 deliveries in a row** (non-2xx answers, timeouts and refused connections all count) and **none** of its deliveries has succeeded in the last 24 hours, we pause it. An endpoint that has been working recently is not paused for a short bad patch. Its owners and developers are emailed instead.
+Each event that exhausts its attempts counts as one failure against the endpoint. A successful delivery resets the count. When an endpoint reaches **5 failed events in a row** and **none** of its deliveries has succeeded in the last 24 hours, we **pause** it:
 
-When an endpoint is paused:
+- Your business's developers are emailed. Before that, while an endpoint keeps failing, they get at most one warning email a day.
+- While paused, new events are **recorded but not sent**. They appear in the endpoint's event history.
+- **A paused endpoint stays paused until you resume it.** Fix your receiver, then set the endpoint back to active in the dashboard, or with `PATCH /v1/webhooks/{id}` setting its status to `active` from a signed-in dashboard session.
+- Events recorded while the endpoint was paused are **not** sent automatically when you resume. Resend them from the event history with **Retry**.
 
-- **Your business's owners and developers are emailed**, and Platnova's operations team is alerted.
-- **Nothing is lost.** New events keep being recorded against the endpoint as `pending`. They are just not sent while it is paused.
-- The dashboard shows the endpoint as **Paused**, with when and why, and how many events are waiting.
+<Note>
+**Coming soon:** automatic recovery of paused endpoints (we retry the oldest waiting event on a schedule and resume the endpoint by ourselves when it succeeds), automatic redelivery of the backlog on resume, and extra status fields on `GET /v1/webhooks` (`paused_at`, `paused_reason`, `next_retry_at`, `pending_events`, `failed_events`, `last_success_at`, `last_failure_at`). This page will say when they are live.
+</Note>
 
-### Automatic recovery
+## Order and duplicates
 
-You do not have to do anything to un-pause an endpoint. While it is paused, we periodically try to deliver its **oldest undelivered event**:
+- **Events can arrive out of order**, and a retried event can arrive after a newer one. Order by the payload's own fields (`timestamp`), not by arrival.
+- **The same event can reach you twice**, for example if your server did the work but timed out before answering. Make your receiver idempotent:
+  - for `checkout.paid` and `checkout.failed`, deduplicate on **`data.checkout_id` + `event`**;
+  - for other events, on the event name plus the payload's own reference (`data.reference` or `data.transaction_ref`).
+- [Partners](/partners/webhooks) on the version 2 envelope also get an `X-Platnova-Event-Id` header, unique per event, to deduplicate on.
 
-| Attempt | When |
-|---|---|
-| First | About 15 minutes after the pause |
-| Then | 30 minutes, 1 hour, 2 hours, 4 hours after the previous attempt |
-| After that | Every 6 hours |
+## Endpoint URLs
 
-As soon as one of those attempts gets a 2xx, the endpoint is **resumed** and its backlog is redelivered.
+Use an `https` URL that is reachable from the public internet, and give us the final URL: redirects are not followed.
 
-A paused endpoint with nothing waiting to be delivered is not tried at all. The first new event recorded for it starts the schedule again.
-
-### Resuming by hand
-
-Fixed the problem and don't want to wait? Choose **Resume** on the endpoint in the dashboard, or set its status to `active` with `PATCH /v1/webhooks/{id}`. The endpoint is resumed and its backlog is redelivered straight away.
-
-### How the backlog is redelivered
-
-On resume, every undelivered event is sent again: all `pending` events, plus `failed` events from the **last 7 days**. They are sent **oldest first, at about 50 a minute**. If a redelivery fails, the backlog stops there and is picked up again later, so we do not hammer a receiver that is still struggling. Use **Retry failed** for failed events older than 7 days.
-
-- **An event that has already been delivered is never resent** by a redelivery. If two redeliveries overlap, each event is still sent only once.
-- **New events are not held back** while a backlog drains, so they can arrive before older ones. Order and deduplicate by the payload's own fields, such as `timestamp`, `reference` and `transaction_ref`, not by arrival order.
-- **Make your receiver idempotent.** If your server times out after doing the work but before answering, the same event can reach you twice.
-
-## Endpoint status
-
-`GET /v1/webhooks` (and the webhooks page in the dashboard) returns, for each endpoint:
-
-| Field | Description |
-|---|---|
-| `status` | `active`, `paused` (stopped by us after repeated failures) or `inactive` (switched off by you) |
-| `paused_at` | When the endpoint was paused. Empty unless `status` is `paused` |
-| `paused_reason` | Why it was paused, including the last failure we saw. Written for a person to read; do not parse it |
-| `next_retry_at` | When we will next try to deliver to a paused endpoint |
-| `pending_events` | Events recorded but not yet delivered |
-| `failed_events` | Events whose every attempt failed, over the last 7 days |
-| `last_success_at` | When a delivery to this endpoint last succeeded |
-| `last_failure_at` | When a delivery to this endpoint last failed |
-| `signed` | Whether calls to this endpoint carry `X-Platnova-Signature` |
-| `key_id` | The [key id](/webhooks/signatures#key-id) of the current secret |
-| `previous_key_id` | During a [rotation](/webhooks/signatures#rotating-the-secret), the key id of the secret still being honoured |
-| `previous_secret_expires_at` | When the previous secret stops being honoured |
-
-The secret itself is never returned.
+<Note>
+**Coming soon:** enforcement of `https` and public-address-only endpoint URLs when an endpoint is saved and on every call.
+</Note>

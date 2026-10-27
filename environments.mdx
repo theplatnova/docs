@@ -3,92 +3,51 @@ title: "Environments"
 slug: "environments"
 ---
 
-Platnova provides two distinct environments to support your development workflow: a sandbox environment for testing and a live environment for production use.
+Platnova has two environments: a **sandbox** for building and testing, and **live** for real money.
 
-## Environment Comparison
-
-| Feature | Sandbox Environment | Live Environment |
-|---------|-------------------|------------------|
+| | Sandbox | Live |
+|---|---|---|
 | **Base URL** | `https://sandbox.api.platnova.co` | `https://api.platnova.com` |
-| **Purpose** | Development, testing, and integration | Production use with real transactions |
-| **Data Type** | Test data (simulated) | Real data (actual money and accounts) |
-| **Approval** | No approval needed | Production approval required |
+| **Money** | Test only | Real |
+| **Keys** | Sandbox keys | Live keys, from your dashboard once your business is live |
 
-<Tip>
-Always test your integration thoroughly in the sandbox environment before moving to production.
-</Tip>
-
-<Warning>
-Only use the live environment after thorough testing in sandbox and receiving approval from our compliance team.
-</Warning>
+Sandbox and live keys are separate: a sandbox key does not work on live, and a live key does not work on the sandbox. Every example in these docs uses `X-API-Key` (see [Authentication](/authentication)); swap the base URL to switch environments.
 
 <Tabs>
 <Tab title="Sandbox">
 ```bash
-# Sandbox API calls
-curl -X POST https://sandbox.api.platnova.co/v1/cards \
-  -H "Authorization: Bearer YOUR_SANDBOX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "test_user_123", "spending_limit": 1000}'
+curl https://sandbox.api.platnova.co/v1/wallets \
+  -H "X-API-Key: YOUR_SANDBOX_API_KEY"
 ```
 </Tab>
-
 <Tab title="Live">
 ```bash
-# Live API calls
-curl -X POST https://api.platnova.com/v1/cards \
-  -H "Authorization: Bearer YOUR_LIVE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "user_123", "spending_limit": 1000}'
+curl https://api.platnova.com/v1/wallets \
+  -H "X-API-Key: YOUR_LIVE_API_KEY"
 ```
 </Tab>
 </Tabs>
 
-## API Keys
+## Sandbox
 
-Each environment requires separate API keys. Your sandbox and live API keys are managed independently in your dashboard.
+<Note>
+The sandbox is being brought up to date with live. Until this note is removed, some newer endpoints may answer `404` there, including payment verification and checkout refunds. Ask [support@platnova.com](mailto:support@platnova.com) for sandbox keys; test cards and simulated bank-transfer payments will be listed here when they are available.
+</Note>
 
-<Info>
-Sandbox API keys are clearly marked and cannot be used in the live environment. Similarly, live API keys cannot be used in sandbox.
-</Info>
-
-## Webhooks
-
-Both environments support Webhooks.
-
-<Check>
-Configure webhooks for both environments to ensure your integration works seamlessly when moving to production.
-</Check>
-
-## Rate Limits
-
-Rate limits are more generous in the sandbox environment to support development and testing:
-
-- **Sandbox**: Higher limits for testing and development
-- **Live**: Standard production limits based on your plan
-
-## Getting Started
+## Moving to live
 
 <Steps>
-<Step title="Contact Support">
-Reach out to [support@platnova.com](mailto:support@platnova.com) to begin your onboarding process and get access to both environments.
+<Step title="Build against the sandbox">
+Create checkouts, handle `checkout.paid`, verify payments and test refunds.
 </Step>
-
-<Step title="Sandbox Testing">
-Start with the sandbox environment to test your integration and verify all functionality works as expected.
+<Step title="Finish going live">
+Complete business verification and pay the verification fee. See [Going live](/going-live).
 </Step>
-
-<Step title="Compliance Review">
-Complete all compliance requirements and receive approval for live environment access.
-</Step>
-
-<Step title="Production Deployment">
-Once approved, deploy your integration using the live environment for real transactions.
+<Step title="Switch keys and URL">
+Create a live API key in the dashboard, point your integration at `https://api.platnova.com`, and register your live webhook endpoint.
 </Step>
 </Steps>
 
-## Need Help?
+## Webhooks
 
-- **Environment Setup**: Contact [support@platnova.com](mailto:support@platnova.com) for environment access
-- **Testing Support**: Get help with sandbox testing and integration verification
-- **Production Approval**: Work with our compliance team for live environment access
+Both environments send webhooks. Register a separate endpoint (and keep a separate secret) for each.

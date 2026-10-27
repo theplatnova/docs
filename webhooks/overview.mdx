@@ -8,7 +8,7 @@ Receive real-time notifications for card activity, virtual account funding, and 
 ## How Webhooks Work
 
 1. **Configure your endpoint**: in the dashboard, set the URL that will receive webhook events (it must be `https` and publicly reachable; see [Endpoint URLs](/webhooks/delivery#endpoint-urls)) and choose the events you want. You can supply a secret, or leave it blank and we generate one. Either way, the secret is shown **once**, when the endpoint is created. Store it then.
-2. **Receive events**: we send a POST request to your URL for each subscribed event. Answer with any **2xx** status within 30 seconds to acknowledge it.
+2. **Receive events**: we send a POST request to your URL for each subscribed event. Answer with any **2xx** status within 25 seconds to acknowledge it.
 3. **Verify every call**: check the `X-Platnova-Signature` header against the raw body with your secret. See [Verifying webhooks](/webhooks/signatures).
 4. **Retries and recovery**: each event gets 3 attempts (the first plus 2 retries). An endpoint that keeps failing is paused, and you are emailed. It resumes by itself once it answers again, and nothing recorded in the meantime is lost. See [Delivery, retries and pausing](/webhooks/delivery).
 
@@ -654,7 +654,8 @@ Sent when a checkout (including one opened from a payment link) is settled. Chec
     "currency": "NGN",
     "payment_method": "bank_transfer",
     "customer_email": "payer@example.com",
-    "status": "success"
+    "status": "success",
+    "partner_reference": "order-1042"
   }
 }
 ```
@@ -668,8 +669,10 @@ Sent when a checkout (including one opened from a payment link) is settled. Chec
 - **payment_method** – One of `bank_transfer`, `tag_transfer`, `crypto`, `card`, `ussd`, `opay`, `bank_account`, `mobile_money`, `apple_pay`, `google_pay`.
 - **customer_email** – The email the payer entered at checkout. Omitted when none was given.
 - **status** – `success`.
+- **partner_reference** – Your order id, if you sent one when creating the checkout. Omitted otherwise.
+- **line_items** – The lines you sent when creating the checkout (`name`, `quantity`, `unit_amount`, `partner_line_reference`). Omitted when you sent none.
 
-By the time this event is sent, the payment can also be confirmed with [Verify payment](/api-reference/payments/verify) or [Get checkout](/api-reference/checkout/get).
+Before fulfilling, confirm the payment with [Verify payment](/payments/verification) using the `checkout_id`. Deduplicate this event on `checkout_id` + `event`: v1 events carry no event id.
 
 ### checkout.failed
 
@@ -752,8 +755,8 @@ Sent when a [betting top-up](/bills/betting) is delivered, refused (the amount a
 
 - **Verify the signature**: check `X-Platnova-Signature` over the raw body, in constant time, before processing. See [Verifying webhooks](/webhooks/signatures). Endpoints created before 24 September 2026 that are not signed should check `X-Webhook-Secret` until they are.
 - **Respond quickly**: return 2xx as soon as you have verified and stored the payload, and process it asynchronously.
-- **Handle duplicates**: an event can arrive more than once, and backlogs are redelivered after a pause. Deduplicate on `transaction_ref` or `reference`.
-- **Test your receiver**: use **Send test event** in the dashboard to see the status, latency and response body your endpoint returns for a signed call.
+- **Handle duplicates**: an event can arrive more than once. Deduplicate checkout events on `data.checkout_id` + `event`, and other events on the event name plus `data.reference` or `data.transaction_ref`. See [Order and duplicates](/webhooks/delivery#order-and-duplicates).
+- **Test your receiver**: create a real checkout in the sandbox and pay it. (A **Send test event** button is [coming soon](/webhooks/signatures#sending-a-test-event).)
 - **Log for debugging**: log incoming webhook requests and your responses, so you can troubleshoot delivery and retry issues.
 
 Webhook endpoints are created and managed in the [dashboard](https://business.platnova.com); there is no API-key endpoint for managing them.

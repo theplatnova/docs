@@ -5,4 +5,8 @@ openapi: "POST /v1/checkout"
 
 ## Overview
 
+<Warning>
+Authenticate with `X-API-Key` only. A dashboard `Authorization: Bearer` token makes this a top-up of your own wallet, not a sale.
+</Warning>
+
 Create a hosted checkout session for a customer. This endpoint returns a checkout ID and checkout URL that you can use to redirect the customer and complete payment.

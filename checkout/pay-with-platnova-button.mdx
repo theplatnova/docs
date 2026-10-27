@@ -214,7 +214,7 @@ After a successful payment, the checkout shows a confirmation and then sends the
 Confirm the payment from your server before you fulfil the order. Use either or both of these:
 
 - **Webhook (recommended).** [Configure a webhook](/webhooks/overview) for `checkout.paid`, and `checkout.failed` if you want to hear about payments that did not settle. The event's `data.checkout_id` matches the `id` you saved in step 1. `data.amount` is what you are credited, `data.paid_amount` is what the customer paid, and `data.reference` is the payment reference.
-- **Retrieve the checkout.** Call [`GET /v1/checkout/{id}`](/checkout/retrieving-checkout). A paid checkout has `status: "success"` with `paid_at` and `payment_reference`. An unpaid one stays `pending`.
+- **Retrieve the checkout.** Call [`GET /v1/checkout/{id}`](/checkout/retrieving-checkout). A paid checkout has `status: "success"` with `paid_at` and `payment_reference`. An unpaid one stays `pending`. After 7 days the checkout is gone and this answers `404`, paid or not, so confirm payments with [Verify payment](/payments/verification) using the checkout `id`, which keeps working.
 
 Check that the amount and currency match your order before you mark it paid.
 

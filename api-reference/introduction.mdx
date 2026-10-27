@@ -21,25 +21,24 @@ https://sandbox.api.platnova.co
 
 ## Authentication
 
-All API requests require authentication using your API key. You can include it either in the request headers or as a query parameter.
+Send your API key in the `X-API-Key` header on every request. See the [Authentication guide](/authentication).
 
-### Header Authentication (Recommended)
 ```bash
-X-API-KEY: YOUR_API_KEY
+X-API-Key: YOUR_API_KEY
 ```
 
-### Query Parameter Authentication
-```bash
-?api-key=YOUR_API_KEY
-```
+Do not send it as `Authorization: Bearer`, and don't send a dashboard session token alongside it. Putting the key in the URL (`?api_key=`) is deprecated; see [Versioning](/versioning).
 
-Some endpoints require JWT authentication in addition to API key authentication. See our [Authentication guide](../authentication) for details on obtaining and using your API key.
+Some routes (webhook management, statements, team settings) are dashboard-only and do not accept API keys.
 
 ## Request Format
 
-All requests should include the following headers:
-- `Content-Type: application/json`
-- `X-API-KEY: YOUR_API_KEY` (or include as query parameter)
+Send `Content-Type: application/json` and `X-API-Key` on every request. On requests that create or move money, also send an `Idempotency-Key` (see [Errors](/errors#retrying-safely)).
+
+## OpenAPI spec and Postman collection
+
+- OpenAPI 3 spec: [`/api-reference/openapi.json`](https://docs.platnova.com/api-reference/openapi.json)
+- Postman collection: [`/api-reference/platnova.postman_collection.json`](https://docs.platnova.com/api-reference/platnova.postman_collection.json). Import it and set the `baseUrl` and `apiKey` collection variables.
 
 ## Response Format
 
@@ -82,10 +81,10 @@ All API responses are returned in JSON format with the following structure:
 
 ## Rate Limits
 
-Rate limits vary by endpoint and are indicated in response headers:
-- `X-Ratelimit-Limit`: Maximum requests per window
-- `X-Ratelimit-Remaining`: Remaining requests in current window
-- `X-Ratelimit-Reset`: Time when the rate limit resets (Unix timestamp)
+Some endpoints are rate limited per client IP, per minute. Those endpoints send these headers:
+- `X-RateLimit-Limit`: Maximum requests per minute
+- `X-RateLimit-Remaining`: Remaining requests in the current minute
+- `X-RateLimit-Reset`: When the window resets (Unix timestamp)
 
 Some endpoints have specific rate limits:
 - Card creation: 4 requests per window
@@ -97,11 +96,12 @@ Some endpoints have specific rate limits:
 The API uses standard HTTP status codes:
 
 - `200` - Success
-- `400` - Bad Request (invalid parameters or resource not found)
+- `400` - Bad Request (the request was refused; read `message` and `data.code`)
 - `401` - Unauthorized (invalid API key)
 - `403` - Forbidden (insufficient permissions)
 - `404` - Not Found
-- `422` - Unprocessable Entity (validation errors)
+- `409` - Conflict (a request with the same `Idempotency-Key` is still running)
+- `422` - Unprocessable Entity (validation errors, or an `Idempotency-Key` reused for a different request)
 - `429` - Too Many Requests (rate limit exceeded)
 - `500` - Internal Server Error
 

@@ -3,57 +3,51 @@ title: "Retrieving Checkout"
 slug: "checkout/retrieving-checkout"
 ---
 
-Retrieve an existing checkout with `GET /v1/checkout/{id}` to confirm its latest state and details.
-
-## Example request
+Retrieve a checkout with `GET /v1/checkout/{id}`. The call needs no authentication: the payment page uses it too.
 
 ```bash
-curl --location 'https://sandbox.api.platnova.co/v1/checkout/3e584f08-6a55-4b15-a97f-364a7d21071e' \
-  --header 'X-API-KEY: YOUR_API_KEY' \
-  --header 'Authorization: Bearer YOUR_JWT_TOKEN'
+curl 'https://api.platnova.com/v1/checkout/3e584f08-6a55-4b15-a97f-364a7d21071e'
 ```
 
-## Example response
+## What it tells you
+
+| `status` | Meaning |
+|---|---|
+| `pending` | Not paid yet. A checkout never reports "failed" or "expired": an abandoned checkout stays `pending` until it disappears after 7 days. |
+| `success` | Paid. `paid_at` and `payment_reference` are set. |
+
+<Warning>
+**Do not fulfil an order from this call alone.** It returns no paid amount or payment method, and it answers `404 checkout not found` once the checkout is more than **7 days** old, paid or not. Before you ship, confirm the payment with [`POST /v1/payments/verify`](/payments/verification), which works for good and returns the amount and method.
+</Warning>
+
+## Example response (paid)
 
 ```json
 {
   "status": true,
   "data": {
-    "amount": 2000.15,
-    "currency": "ngn",
     "id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
-    "email": "jonathanemma121@gmail.com",
     "url": "https://pay.platnova.com/3e584f08-6a55-4b15-a97f-364a7d21071e",
-    "status": "pending",
-    "success_url": "https://platnova.com/process?status=successful",
-    "cancel_url": "https://platnova.com/process?status=cancelled",
-    "source": "platform",
-    "entity": {
-      "category": "Technology",
-      "country_code": "NG",
-      "created_at": "2025-09-14T20:00:41.114031Z",
-      "description": "A leading technology solutions provider g",
-      "dial_code": "+234",
-      "id": "67fa2a59-5d73-4f9c-be49-2a3a8c391cde",
-      "legal_name": "Techies 2 Ltd",
-      "name": "Techies 2 Ltd",
-      "phone": "8012345678",
-      "status": "ACTIVE",
-      "username": "techies2ltd"
-    },
-    "payment_options": [
-      { "id": "tag_transfer" },
-      { "id": "bank_transfer" },
-      { "id": "card" },
-      { "id": "opay" },
-      { "id": "ussd" },
-      { "id": "crypto" }
-    ],
-    "created_at": "2026-05-05T15:57:19Z"
+    "status": "success",
+    "paid_at": "2026-10-27T16:02:11Z",
+    "payment_reference": "the payment's transaction reference",
+    "amount": 25000,
+    "currency": "ngn",
+    "email": "ada@example.com",
+    "partner_reference": "order-1042",
+    "source": "api",
+    "payment_options": [{ "id": "bank_transfer" }, { "id": "card" }],
+    "created_at": "2026-10-27T15:57:19Z"
   },
   "error": [],
   "message": "operation was successful"
 }
 ```
 
-The response payload mirrors the create response and includes the latest checkout `status`. Use this endpoint when you need to fetch checkout details on demand in your backend.
+## Not found
+
+```json
+{ "status": false, "data": {}, "error": [], "message": "checkout not found" }
+```
+
+with HTTP `404`: the id is wrong, or the checkout is more than 7 days old.

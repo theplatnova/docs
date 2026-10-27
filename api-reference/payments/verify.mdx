@@ -5,4 +5,4 @@ openapi: "POST /v1/payments/verify"
 
 ## Overview
 
-Verify a payment by its reference. Send a JSON body with **`reference`**: the transaction or payment reference returned when you sent the payment (for example a `UTR_…` value). The response includes status, amount, and related transaction details.
+Confirm a payment from your server. `reference` can be a checkout `id`, the `reference` from a `checkout.paid` webhook, or the reference of a payout you sent. A checkout payment returns `checkout_id`, `payment_method`, `paid_amount` (what the payer sent) and `amount` (what you were credited). `400 payment not found` means the checkout is not paid yet or the reference is not yours. See [Verifying a payment](/payments/verification).

@@ -1,8 +1,8 @@
 ---
 title: "Get Checkout"
-openapi: "GET /v1/checkout/{id}"
+openapi: "GET /v1/checkout/{checkout_id}"
 ---
 
 ## Overview
 
-Retrieve an existing checkout session by ID, including current status, payment URL, and checkout metadata.
+Retrieve a checkout by its ID: `pending` until paid, then `success` with `paid_at` and `payment_reference`. No authentication is needed. The checkout answers `404` once it is more than 7 days old, paid or not, so confirm payments with [Verify Payment](/api-reference/payments/verify).
