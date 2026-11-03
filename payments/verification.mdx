@@ -18,7 +18,7 @@ curl -X POST https://api.platnova.com/v1/payments/verify \
 
 - **the checkout `id`** you got when you created the checkout (best for plugins: you already stored it against the order);
 - **the payment `reference`** from the `checkout.paid` webhook;
-- **the reference of a payout** you sent with [`POST /v1/payments/send`](/payments/sending-payments).
+- **for a payout** you sent with [`POST /v1/payments/send`](/payments/sending-payments): either the `transaction_ref` it returned, or **your own `reference`** you sent with it. Use your own reference when the send timed out and you never got a `transaction_ref`.
 
 Verification only ever finds your own business's payments, and it keeps working after the checkout itself has expired.
 
@@ -61,15 +61,65 @@ Verification only ever finds your own business's payments, and it keeps working 
 | `payment_method` | How the payer paid: one of the [payment method ids](/checkout/initiating-checkout#payment-methods-offered). |
 | `type`, `entry` | `receive_payment` / `credit` for a checkout payment. |
 
-## Response: not paid (or not yours)
-
-A checkout that has not been paid, or a reference that is not one of your payments, answers `400`:
+## Response: a payout
 
 ```json
-{ "status": false, "data": {}, "error": [], "message": "payment not found" }
+{
+  "status": true,
+  "data": {
+    "id": "6f1c2d9e-8a4b-4c1e-9b7a-2f5d3e8c1a90",
+    "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+    "reference": "INV-2026-0042",
+    "currency": "NGN",
+    "amount": 5000,
+    "fee": 50,
+    "type": "send_payment",
+    "status": "success",
+    "entry": "debit",
+    "message": "Transfer to Jane Smith",
+    "created_at": "2026-11-03T09:15:02Z",
+    "updated_at": "2026-11-03T09:15:40Z"
+  },
+  "error": [],
+  "message": "operation was successful"
+}
 ```
 
-Verification cannot tell "not paid yet" apart from "no such payment". If you need to know whether a checkout still exists, read it with [`GET /v1/checkout/{id}`](/checkout/retrieving-checkout) (`pending` = exists, not paid).
+| Field | Meaning |
+|---|---|
+| `ref` | Platnova's unique reference for the payout (the `transaction_ref` Send Payment returned). Quote it to support. |
+| `reference` | The `reference` you sent to Send Payment. Empty if you sent none. |
+| `id` | Internal record id. You don't need it. |
+| `amount`, `fee`, `currency` | What was sent, our fee, and the wallet currency. |
+| `status` | See below. |
+
+### Payout status
+
+| `status` | Meaning | Final? |
+|---|---|---|
+| `success` | Paid. | Yes |
+| `failed`, `cancelled`, `reversed` | Not paid. The money is back in your wallet. | Yes |
+| `pending`, `processing`, `pending_approval`, `under_review` | Not decided yet. Check again later, or wait for the `transfer.success` / `transfer.failed` webhook. | No |
+
+Treat any status other than `success` as not paid.
+
+## Response: not found
+
+A reference that is not one of your payments answers `400`:
+
+```json
+{ "status": false, "data": { "code": "payment_not_found" }, "error": [], "message": "payment not found" }
+```
+
+For a payout this means it was **never created**, so it is safe to resend it with the same `reference` (see [Handling timeouts](/payments/sending-payments#handling-timeouts)).
+
+One of your checkouts that exists but has not been paid answers with the same message and `data.code` `checkout_unpaid`, plus `data.status` `pending` (the payer can still pay) or `expired`:
+
+```json
+{ "status": false, "data": { "code": "checkout_unpaid", "status": "pending" }, "error": [], "message": "payment not found" }
+```
+
+Any other error (for example `something went wrong, please contact support`) does **not** mean "not found". Verify again before you act on it.
 
 ## Fulfil an order safely
 

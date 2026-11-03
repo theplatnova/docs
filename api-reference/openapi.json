@@ -3613,7 +3613,7 @@
     "/v1/payments/send": {
       "post": {
         "summary": "Send payment",
-        "description": "Initiate a payment transfer. Supports instant, scheduled, and recurring payments",
+        "description": "Initiate a payment transfer. Supports instant, scheduled, and recurring payments. Send your own unique `reference`: if the request times out, look the payment up by that reference with Verify Payment, and resend with the same reference only if it is not found. A reference is never paid twice.",
         "operationId": "sendPayment",
         "tags": [
           "Payment"
@@ -3636,7 +3636,7 @@
                   "account_name": "John Doe"
                 },
                 "is_save_to_beneficiary": false,
-                "reference": "txn-001",
+                "reference": "INV-2026-0042",
                 "payment_type": {
                   "type": "instant"
                 }
@@ -3659,7 +3659,8 @@
                       "type": "object",
                       "properties": {
                         "transaction_ref": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Platnova's unique reference for this payment. Verify Payment accepts it, and so does your own `reference`."
                         },
                         "status": {
                           "type": "string"
@@ -3697,11 +3698,25 @@
             }
           },
           "400": {
-            "description": "Bad request (e.g. insufficient funds, duplicate reference, invalid payload)",
+            "description": "Refused; nothing was sent (for example insufficient funds, or an invalid payload). A `reference` already used answers `data.code` `duplicate_reference` with the existing payment's `transaction_ref`.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "duplicate_reference": {
+                    "summary": "Reference already used",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "duplicate_reference",
+                        "transaction_ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+                      },
+                      "error": [],
+                      "message": "duplicate transaction detected: reference already exists"
+                    }
+                  }
                 }
               }
             }
@@ -3741,7 +3756,7 @@
     "/v1/payments/verify": {
       "post": {
         "summary": "Verify payment",
-        "description": "Confirm a payment by the checkout id, the checkout.paid reference, or a payout reference. 400 `payment not found` means not paid yet or not yours.",
+        "description": "Check a payment by any of: the `transaction_ref` Send Payment returned, the `reference` you sent to Send Payment, a checkout id, or the reference from a `checkout.paid` webhook. Only your own business's payments are found. Only `status` `success` means paid. 400 `payment_not_found` means no such payment exists for your business: for a payout, it was never created, so it is safe to resend with the same `reference`.",
         "operationId": "verifyPayment",
         "tags": [
           "Payment"
@@ -3753,8 +3768,19 @@
               "schema": {
                 "$ref": "#/components/schemas/VerifyPaymentRequest"
               },
-              "example": {
-                "reference": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+              "examples": {
+                "your_reference": {
+                  "summary": "Your own reference",
+                  "value": {
+                    "reference": "INV-2026-0042"
+                  }
+                },
+                "transaction_ref": {
+                  "summary": "Platnova's transaction_ref",
+                  "value": {
+                    "reference": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+                  }
+                }
               }
             }
           }
@@ -3781,16 +3807,60 @@
                       "type": "string"
                     }
                   }
+                },
+                "example": {
+                  "status": true,
+                  "data": {
+                    "id": "6f1c2d9e-8a4b-4c1e-9b7a-2f5d3e8c1a90",
+                    "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+                    "reference": "INV-2026-0042",
+                    "currency": "NGN",
+                    "amount": 5000,
+                    "fee": 50,
+                    "type": "send_payment",
+                    "status": "success",
+                    "entry": "debit",
+                    "message": "Transfer to Jane Smith",
+                    "created_at": "2026-11-03T09:15:02Z",
+                    "updated_at": "2026-11-03T09:15:40Z"
+                  },
+                  "error": [],
+                  "message": "operation was successful"
                 }
               }
             }
           },
           "400": {
-            "description": "payment not found",
+            "description": "No payment with this reference for your business (`data.code` `payment_not_found`), or one of your checkouts not paid yet (`data.code` `checkout_unpaid`, `data.status` `pending` or `expired`). Any other 400 (for example `something went wrong, please contact support`) is not \"not found\": verify again.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "payment_not_found": {
+                    "summary": "Not found",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "payment_not_found"
+                      },
+                      "error": [],
+                      "message": "payment not found"
+                    }
+                  },
+                  "checkout_unpaid": {
+                    "summary": "Checkout not paid yet",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "checkout_unpaid",
+                        "status": "pending"
+                      },
+                      "error": [],
+                      "message": "payment not found"
+                    }
+                  }
                 }
               }
             }
@@ -7127,7 +7197,8 @@
           },
           "reference": {
             "type": "string",
-            "description": "Idempotency or client reference"
+            "description": "Your own unique id for this payment. A reference can be used once per business: resending one already used is refused with `data.code` `duplicate_reference` and nothing is sent. Use it to look the payment up with Verify Payment if the send times out.",
+            "example": "INV-2026-0042"
           },
           "document": {
             "type": "string",
@@ -7184,7 +7255,7 @@
         "properties": {
           "reference": {
             "type": "string",
-            "description": "Transaction or payment reference to verify"
+            "description": "Any of: the `transaction_ref` returned by Send Payment, the `reference` you sent to Send Payment, a checkout id, or the reference from a `checkout.paid` webhook."
           }
         }
       },
@@ -7734,11 +7805,16 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "A payout's id; empty for a checkout payment."
+            "description": "Internal record id. You don't need it."
           },
           "ref": {
             "type": "string",
-            "description": "The payment's transaction reference."
+            "description": "Platnova's unique reference for the payment. For a payout, the `transaction_ref` Send Payment returned. Quote it to support."
+          },
+          "reference": {
+            "type": "string",
+            "description": "The `reference` you sent to Send Payment. Empty if you sent none, and for checkout payments.",
+            "example": "INV-2026-0042"
           },
           "currency": {
             "type": "string",
@@ -7761,7 +7837,8 @@
           },
           "status": {
             "type": "string",
-            "example": "success"
+            "example": "success",
+            "description": "Only `success` means paid. `success`: paid, final. `failed`, `cancelled`, `reversed`: not paid, final; the money is back in your wallet. `pending`, `processing`, `pending_approval`, `under_review`: not final yet; check again later or wait for the webhook. Treat any value other than `success` as not paid."
           },
           "entry": {
             "type": "string",
