@@ -23,7 +23,7 @@ curl -X POST https://api.platnova.com/v1/payments/send \
       "bank_code": "058",
       "account_name": "Jane Smith"
     },
-    "reference": "PAY001",
+    "reference": "INV-2026-0042",
     "payment_type": { "type": "instant" }
   }'
 ```
@@ -40,7 +40,7 @@ curl -X POST https://api.platnova.com/v1/payments/send \
 
 ### Optional Fields
 
-- **reference** – Your payment reference for idempotency or tracking
+- **reference** – Your own unique id for this payment, such as your invoice or payout id. Strongly recommended. Each reference can be used once: a second send with the same reference is refused, so the same payment is never sent twice. You can look the payment up by it with [Verify Payment](/payments/verification).
 - **payment_type** – `instant`, `scheduled`, or `recurring` (default: instant)
 - **is_save_to_beneficiary** – Save recipient as beneficiary
 
@@ -61,39 +61,76 @@ Cache the bank list for at most a day. All four endpoints need your API key.
 {
   "status": true,
   "data": {
-    "transaction_id": "txn_123",
-    "payment_reference": "PAY001",
-    "amount": "500.00",
-    "currency": "USD",
-    "recipient_account_number": "1234567890",
-    "recipient_name": "Jane Smith",
-    "status": "processing",
-    "created_at": "2025-01-30T10:00:00Z"
+    "transaction_ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+    "status": "pending",
+    "from_amount": 500,
+    "to_amount": 500,
+    "from_currency": "ngn",
+    "to_currency": "ngn",
+    "method": "bank_transfer",
+    "created_at": "Tuesday, 3 November, 09:15"
   },
-  "message": "Payment initiated successfully"
+  "error": [],
+  "message": "operation was successful"
 }
 ```
 
+`transaction_ref` is Platnova's unique reference for the payment. Store it next to your own `reference`; either one works with Verify Payment.
+
+## Duplicate references
+
+Sending a `reference` you already used is refused with `400`, and nothing is sent. `data.transaction_ref` is the payment that already has that reference:
+
+```json
+{
+  "status": false,
+  "data": { "code": "duplicate_reference", "transaction_ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt" },
+  "error": [],
+  "message": "duplicate transaction detected: reference already exists"
+}
+```
+
+If two sends with the same reference arrive at the same time, one runs and the other waits for it, then gets this refusal. A reference is never paid twice.
+
 ## Payment Status
 
-Payments are processed asynchronously. Status can be:
-
-- **Processing** - Payment is being processed
-- **Success** - Payment completed successfully
-- **Failed** - Payment failed (check error details)
-
-## Verifying Payment Status
-
-Check payment status using the transaction reference returned from send:
+Payments are processed asynchronously. Check a payment with `POST /v1/payments/verify`, using either the `transaction_ref` or your own `reference`:
 
 ```bash
 curl -X POST https://api.platnova.com/v1/payments/verify \
   -H "X-API-KEY: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "reference": "UTR_xxxx"
+    "reference": "INV-2026-0042"
   }'
 ```
+
+- `success`: paid. Final.
+- `failed`, `cancelled`, `reversed`: not paid; the money is back in your wallet. Final.
+- `pending`, `processing`, `pending_approval`, `under_review`: not decided yet. Check again later, or wait for the `transfer.success` / `transfer.failed` webhook.
+
+Treat anything other than `success` as not paid. See [Verifying a payment](/payments/verification#response-a-payout) for the full response.
+
+## Handling timeouts
+
+If your send request times out, you don't know whether the payment was created. Don't send a new payment with a new reference; use your reference to find out:
+
+<Steps>
+<Step title="Send with your own reference">
+Always pass a unique `reference` to `POST /v1/payments/send`, and store it before you send.
+</Step>
+<Step title="On a timeout, verify by your reference">
+Call `POST /v1/payments/verify` with `{"reference": "<your reference>"}`.
+</Step>
+<Step title="Found: use the answer">
+The payment exists. `data.ref` is its `transaction_ref` and `data.status` says where it is. Don't send it again.
+</Step>
+<Step title="Not found: resend with the same reference">
+`400` with `data.code` `payment_not_found` means the payment was never created. Resend it with the **same** `reference`. If the first send turns out to have gone through after all, the resend is refused with `duplicate_reference` and its `transaction_ref`, and nothing is paid twice.
+</Step>
+</Steps>
+
+Any other error from verify (for example `something went wrong, please contact support`) does not mean "not found": verify again before resending.
 
 ## Payment Methods
 
@@ -136,7 +173,7 @@ Fees may apply depending on:
 ## Best Practices
 
 - Verify recipient account details before sending
-- Include payment references for easy tracking
+- Send a unique `reference` with every payment, and verify by it after a timeout
 - Monitor payment status regularly
 - Keep sufficient wallet balance
 - Handle failed payments appropriately
