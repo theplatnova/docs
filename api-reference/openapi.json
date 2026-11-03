@@ -3659,10 +3659,13 @@
                       "type": "object",
                       "properties": {
                         "transaction_ref": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Platnova's reference for this payout. Store it: Verify Payment answers it as `ref`, and `transfer.*` webhooks carry it as `data.reference`."
                         },
                         "status": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "A payout's status:\n\n- `pending`: accepted and on its way to the recipient's bank.\n- `pending_approval`: waiting for a team member to approve it (dashboard sends only; an API key's send never waits).\n- `success`: the recipient's bank has it.\n- `cancelled`: it failed (the amount and fee are back in your wallet), or it was reversed after it succeeded (the amount is back; the fee is kept). **A failed payout reads `cancelled`, not `failed`.**\n- `failed`: only a scheduled payout that found too little in the wallet when it was due. Nothing was debited.\n\nA recurring payment answers its schedule's status instead.",
+                          "example": "pending"
                         },
                         "from_amount": {
                           "type": "number"
@@ -3671,16 +3674,19 @@
                           "type": "number"
                         },
                         "from_currency": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Lowercase, e.g. `ngn`."
                         },
                         "to_currency": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Lowercase, e.g. `ngn`."
                         },
                         "method": {
                           "type": "string"
                         },
                         "created_at": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "A readable time in your business's time zone, e.g. `Monday, 3 November, 14:05`. Not machine-readable: use `created_at` from Verify Payment instead."
                         }
                       }
                     },
@@ -3692,12 +3698,27 @@
                       "type": "string"
                     }
                   }
+                },
+                "example": {
+                  "status": true,
+                  "data": {
+                    "transaction_ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+                    "status": "pending",
+                    "from_amount": 100.5,
+                    "to_amount": 100.5,
+                    "from_currency": "ngn",
+                    "to_currency": "ngn",
+                    "method": "bank_transfer",
+                    "created_at": "Monday, 3 November, 14:05"
+                  },
+                  "error": [],
+                  "message": "operation was successful"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request (e.g. insufficient funds, duplicate reference, invalid payload)",
+            "description": "Refused; nothing was debited. Among others: insufficient funds; `duplicate transaction detected: reference already exists` (the `reference` was used before); `data.code` `duplicate_payment` (the same amount to the same recipient less than a minute ago, sent without an `Idempotency-Key`); `idempotency_key_invalid`; `idempotency_key_required`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3707,7 +3728,7 @@
             }
           },
           "422": {
-            "description": "Validation error (e.g. invalid info fields for payment method)",
+            "description": "Validation error (e.g. invalid info fields for the payment method), or `data.code` `idempotency_key_reused`: the key was already used for a different request.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3734,8 +3755,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
       }
     },
     "/v1/payments/verify": {
@@ -3754,7 +3783,7 @@
                 "$ref": "#/components/schemas/VerifyPaymentRequest"
               },
               "example": {
-                "reference": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+                "reference": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2"
               }
             }
           }
@@ -3781,16 +3810,88 @@
                       "type": "string"
                     }
                   }
+                },
+                "examples": {
+                  "payout": {
+                    "summary": "A payout you sent",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "id": "9b2f7c1e-3d4a-4f6b-8e21-5c0d9a7b3f10",
+                        "ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+                        "currency": "NGN",
+                        "amount": 100.5,
+                        "fee": 10.75,
+                        "type": "send_payment",
+                        "status": "success",
+                        "entry": "debit",
+                        "message": "Transfer to John Doe",
+                        "created_at": "2026-11-03T13:05:12Z",
+                        "updated_at": "2026-11-03T13:05:40Z"
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  },
+                  "checkout": {
+                    "summary": "A checkout payment you received",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "id": "",
+                        "ref": "the payment's transaction reference",
+                        "currency": "NGN",
+                        "amount": 25000,
+                        "paid_amount": 25375,
+                        "fee": 375,
+                        "type": "receive_payment",
+                        "status": "success",
+                        "entry": "credit",
+                        "message": "Checkout payment received",
+                        "checkout_id": "3e584f08-6a55-4b15-a97f-364a7d21071e",
+                        "payment_method": "bank_transfer",
+                        "created_at": "2026-10-27T16:02:11Z",
+                        "updated_at": "2026-10-27T16:02:11Z"
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "payment not found",
+            "description": "`payment not found`. `data.code` says which: `payment_not_found` (the reference names nothing of yours) or `checkout_unpaid` (one of your checkouts, not paid yet; `data.status` is `pending` while the payer can still pay, `expired` after 7 days). **Not found does not mean the payment failed**: a payout that failed is found, with status `cancelled`. If you don't have Platnova's reference because the Send request timed out, look the payment up by its `Idempotency-Key` instead.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "payment_not_found": {
+                    "summary": "No payment of yours under this reference",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "payment_not_found"
+                      },
+                      "error": [],
+                      "message": "payment not found"
+                    }
+                  },
+                  "checkout_unpaid": {
+                    "summary": "Your checkout, not paid yet",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "checkout_unpaid",
+                        "status": "pending"
+                      },
+                      "error": [],
+                      "message": "payment not found"
+                    }
+                  }
                 }
               }
             }
@@ -6662,6 +6763,127 @@
           }
         }
       }
+    },
+    "/v1/payments/by-key/{key}": {
+      "get": {
+        "summary": "Get payment by idempotency key",
+        "description": "What became of a money request whose answer you lost (a timeout, a dropped connection), by the `Idempotency-Key` you sent it with. Keys are looked up within your business: requests made with your API keys are found by any of them, and a dashboard user finds only their own. Read-only: it never runs or repeats the request.",
+        "operationId": "getPaymentByKey",
+        "tags": [
+          "Payment"
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "The `Idempotency-Key` the request was sent with."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request and what it created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaymentByKeyResponse"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "created": {
+                    "summary": "The payout was created",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "key": "order-1042-payout",
+                        "state": "answered",
+                        "nothing_created": false,
+                        "payment": {
+                          "type": "transaction",
+                          "id": "9b2f7c1e-3d4a-4f6b-8e21-5c0d9a7b3f10",
+                          "ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+                          "status": "success",
+                          "amount": "100.50",
+                          "fee": "10.75",
+                          "created_at": "2026-11-03T13:05:12Z"
+                        }
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  },
+                  "nothing_created": {
+                    "summary": "The request was refused; nothing was sent",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "key": "order-1042-payout",
+                        "state": "answered",
+                        "nothing_created": true,
+                        "payment": null
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`data.code` `idempotency_key_invalid`: the key is not 1–255 of letters, digits, `_`, `.`, `:`, `-`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`data.code` `idempotency_key_not_found`: we have no request from you under this key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`data.code` `lookup_unavailable`: we couldn't check just now. Try again; this never means nothing happened.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7127,7 +7349,7 @@
           },
           "reference": {
             "type": "string",
-            "description": "Idempotency or client reference"
+            "description": "Your own reference for this payment, for your records. A second payment with a reference you have already used is refused (`400`), so it also stops an accidental repeat. It is not an idempotency key: a retry with the same reference is refused rather than answered with the first payment. For safe retries send the `Idempotency-Key` header."
           },
           "document": {
             "type": "string",
@@ -7738,7 +7960,7 @@
           },
           "ref": {
             "type": "string",
-            "description": "The payment's transaction reference."
+            "description": "Platnova's reference for the payment. For a payout, the same value Send Payment answered as `transaction_ref`. Quote it to support."
           },
           "currency": {
             "type": "string",
@@ -7750,31 +7972,37 @@
           },
           "paid_amount": {
             "type": "number",
-            "description": "Checkout payments: what the payer sent."
+            "description": "Checkout payments only: what the payer sent. Absent for a payout."
           },
           "fee": {
-            "type": "number"
+            "type": "number",
+            "description": "Platnova's fee on this payment."
           },
           "type": {
             "type": "string",
-            "example": "receive_payment"
+            "example": "receive_payment",
+            "description": "`send_payment` for a payout, `receive_payment` for a checkout payment."
           },
           "status": {
             "type": "string",
-            "example": "success"
+            "example": "success",
+            "description": "`success` for a checkout payment. A payout's status:\n\n- `pending`: accepted and on its way to the recipient's bank.\n- `pending_approval`: waiting for a team member to approve it (dashboard sends only; an API key's send never waits).\n- `success`: the recipient's bank has it.\n- `cancelled`: it failed (the amount and fee are back in your wallet), or it was reversed after it succeeded (the amount is back; the fee is kept). **A failed payout reads `cancelled`, not `failed`.**\n- `failed`: only a scheduled payout that found too little in the wallet when it was due. Nothing was debited.\n\nA recurring payment answers its schedule's status instead."
           },
           "entry": {
             "type": "string",
             "enum": [
               "credit",
               "debit"
-            ]
+            ],
+            "description": "`debit` for a payout, `credit` for a checkout payment."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "`Transfer to <recipient name>` for a payout, `Checkout payment received` for a checkout payment."
           },
           "checkout_id": {
-            "type": "string"
+            "type": "string",
+            "description": "Checkout payments only: the checkout this payment settled. Absent for a payout."
           },
           "payment_method": {
             "type": "string",
@@ -7789,7 +8017,8 @@
               "ussd",
               "mobile_money",
               "crypto"
-            ]
+            ],
+            "description": "Checkout payments only: how the payer paid. Absent for a payout."
           },
           "created_at": {
             "type": "string",
@@ -7944,6 +8173,63 @@
               "null"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "PaymentByKeyResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "in_progress",
+              "no_answer"
+            ],
+            "description": "`answered`: the request finished; sending it again with the same key and body returns the same answer. `in_progress`: it may still be running; ask again shortly. `no_answer`: it stopped without an answer (our error, or a crash). The key will never run again."
+          },
+          "nothing_created": {
+            "type": "boolean",
+            "description": "`true` only when the request can no longer create anything and created nothing: you may send the payment again **under a new key**. `false` with `payment` null means we can't yet be sure; ask again later rather than paying twice."
+          },
+          "payment": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "What the request created.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "`transaction` for a payout or conversion; `recurring_payment` for a recurring payout; card routes answer `card`, `customer_card` or `customer_transaction`."
+              },
+              "id": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string",
+                "description": "For a payout, Platnova's reference: the `transaction_ref` Send Payment would have answered, and what Verify Payment takes."
+              },
+              "status": {
+                "type": "string",
+                "description": "The payment's status **now**, not when it was created."
+              },
+              "amount": {
+                "type": "string",
+                "example": "100.50"
+              },
+              "fee": {
+                "type": "string",
+                "example": "10.75"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
           }
         }
       }

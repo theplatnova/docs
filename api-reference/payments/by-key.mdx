@@ -1,0 +1,12 @@
+---
+title: "Get Payment by Idempotency Key"
+openapi: "GET /v1/payments/by-key/{key}"
+---
+
+## Overview
+
+Find out what became of a money request whose answer you lost, such as a [Send Payment](/api-reference/payments/send) that timed out, by the `Idempotency-Key` you sent it with. It only reads: nothing is run or repeated.
+
+- `payment` set: the payment exists. `payment.ref` is Platnova's reference (Send's `transaction_ref`), and `payment.status` is its status now.
+- `nothing_created: true`: nothing was created and nothing can be. Send the payment again **under a new key**.
+- `payment` null and `nothing_created: false`: we can't be sure yet (`in_progress`, or a request that stopped without an answer). Ask again later; don't send it again.

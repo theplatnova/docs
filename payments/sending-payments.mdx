@@ -13,9 +13,10 @@ Send a payment by specifying the payment method and recipient details in `info`.
 curl -X POST https://api.platnova.com/v1/payments/send \
   -H "X-API-KEY: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
+  -H "Idempotency-Key: order-1042-payout" \
   -d '{
     "from_amount": 500.00,
-    "from_wallet_id": "wl_your_wallet_id",
+    "from_wallet_id": "43a2b75e-5c59-429e-872a-2a54c7b17e37",
     "to_currency": "NGN",
     "payment_method": "bank_transfer",
     "info": {
@@ -40,7 +41,7 @@ curl -X POST https://api.platnova.com/v1/payments/send \
 
 ### Optional Fields
 
-- **reference** – Your payment reference for idempotency or tracking
+- **reference** – Your own reference, for your records. A second payment with a reference you already used is refused. It is not an idempotency key: for safe retries, send the `Idempotency-Key` header (see [Lost the answer?](#lost-the-answer))
 - **payment_type** – `instant`, `scheduled`, or `recurring` (default: instant)
 - **is_save_to_beneficiary** – Save recipient as beneficiary
 
@@ -61,39 +62,61 @@ Cache the bank list for at most a day. All four endpoints need your API key.
 {
   "status": true,
   "data": {
-    "transaction_id": "txn_123",
-    "payment_reference": "PAY001",
-    "amount": "500.00",
-    "currency": "USD",
-    "recipient_account_number": "1234567890",
-    "recipient_name": "Jane Smith",
-    "status": "processing",
-    "created_at": "2025-01-30T10:00:00Z"
+    "transaction_ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+    "status": "pending",
+    "from_amount": 500,
+    "to_amount": 500,
+    "from_currency": "ngn",
+    "to_currency": "ngn",
+    "method": "bank_transfer",
+    "created_at": "Monday, 3 November, 14:05"
   },
-  "message": "Payment initiated successfully"
+  "error": [],
+  "message": "operation was successful"
 }
 ```
 
+Store `transaction_ref`: it is Platnova's reference for the payout. Verify Payment answers it as `ref`, and `transfer.*` webhooks carry it as `data.reference`. `created_at` here is a readable time in your business's time zone; Verify Payment gives a machine-readable one.
+
 ## Payment Status
 
-Payments are processed asynchronously. Status can be:
+Payouts complete asynchronously. Watch for the `transfer.*` [webhooks](/webhooks/overview) or check with Verify Payment. A payout's `status` is one of:
 
-- **Processing** - Payment is being processed
-- **Success** - Payment completed successfully
-- **Failed** - Payment failed (check error details)
+| Status | Meaning |
+|---|---|
+| `pending` | Accepted and on its way to the recipient's bank. |
+| `pending_approval` | Waiting for a team member to approve it. Only dashboard sends wait; an API key's send never does. |
+| `success` | The recipient's bank has it. |
+| `cancelled` | It failed (the amount and fee are back in your wallet), or it was reversed after it succeeded (the amount is back; the fee is kept). |
+| `failed` | Only a scheduled payout that found too little in the wallet when it was due. Nothing was debited. |
+
+**A failed payout reads `cancelled`, not `failed`.**
+
+The `transfer.failed` webhook is the exception: its `data.status` is `failed`, while the payout itself reads `cancelled` from then on.
 
 ## Verifying Payment Status
 
-Check payment status using the transaction reference returned from send:
+Check a payout with the `transaction_ref` Send Payment returned:
 
 ```bash
 curl -X POST https://api.platnova.com/v1/payments/verify \
   -H "X-API-KEY: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "reference": "UTR_xxxx"
+    "reference": "BTRNSFxxxx"
   }'
 ```
+
+`400 payment not found` means no payment of yours has that reference. It never means the payout failed: a failed payout is found, with status `cancelled`. See [Verifying a payment](/payments/verification).
+
+## Lost the answer?
+
+If Send Payment times out or the connection drops, you don't have `transaction_ref`, and you can't tell whether the payout was made. Don't send it again with a new reference: that can pay twice. Instead:
+
+1. **Retry with the same `Idempotency-Key` and the same body.** If the first request finished, you get its answer and nothing is sent again. If it is still running, you get `409 request_in_progress`; wait for `Retry-After` and retry. If it keeps answering `409`, the first request stopped without an answer: look it up instead.
+2. **Or look it up** with [`GET /v1/payments/by-key/{key}`](/api-reference/payments/by-key). `payment.ref` is the `transaction_ref` you missed and `payment.status` is the payout's status now. `nothing_created: true` means nothing was sent: send it again under a **new** key.
+
+Both only work if the original request carried an `Idempotency-Key`, so send one on every payout.
 
 ## Payment Methods
 

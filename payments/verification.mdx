@@ -18,7 +18,7 @@ curl -X POST https://api.platnova.com/v1/payments/verify \
 
 - **the checkout `id`** you got when you created the checkout (best for plugins: you already stored it against the order);
 - **the payment `reference`** from the `checkout.paid` webhook;
-- **the reference of a payout** you sent with [`POST /v1/payments/send`](/payments/sending-payments).
+- **Platnova's reference for a payout** you sent: the `transaction_ref` that [`POST /v1/payments/send`](/payments/sending-payments) answered, or `data.reference` from a `transfer.*` webhook. If you never got it because Send timed out, [look the payout up by its `Idempotency-Key`](/payments/sending-payments#lost-the-answer).
 
 Verification only ever finds your own business's payments, and it keeps working after the checkout itself has expired.
 
@@ -61,15 +61,55 @@ Verification only ever finds your own business's payments, and it keeps working 
 | `payment_method` | How the payer paid: one of the [payment method ids](/checkout/initiating-checkout#payment-methods-offered). |
 | `type`, `entry` | `receive_payment` / `credit` for a checkout payment. |
 
-## Response: not paid (or not yours)
-
-A checkout that has not been paid, or a reference that is not one of your payments, answers `400`:
+## Response: a payout
 
 ```json
-{ "status": false, "data": {}, "error": [], "message": "payment not found" }
+{
+  "status": true,
+  "data": {
+    "id": "9b2f7c1e-3d4a-4f6b-8e21-5c0d9a7b3f10",
+    "ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+    "currency": "NGN",
+    "amount": 100.5,
+    "fee": 10.75,
+    "type": "send_payment",
+    "status": "success",
+    "entry": "debit",
+    "message": "Transfer to John Doe",
+    "created_at": "2026-11-03T13:05:12Z",
+    "updated_at": "2026-11-03T13:05:40Z"
+  },
+  "error": [],
+  "message": "operation was successful"
+}
 ```
 
-Verification cannot tell "not paid yet" apart from "no such payment". If you need to know whether a checkout still exists, read it with [`GET /v1/checkout/{id}`](/checkout/retrieving-checkout) (`pending` = exists, not paid).
+`ref` is the same value Send Payment answered as `transaction_ref`. `amount` is what was sent and `fee` is charged on top. A payout has no `checkout_id`, `payment_method` or `paid_amount`. Its `status` is one of:
+
+| Status | Meaning |
+|---|---|
+| `pending` | On its way to the recipient's bank. |
+| `pending_approval` | Waiting for a team member to approve it (dashboard sends only). |
+| `success` | The recipient's bank has it. |
+| `cancelled` | It failed (the amount and fee are back in your wallet), or it was reversed after it succeeded (the amount is back; the fee is kept). |
+| `failed` | Only a scheduled payout that found too little in the wallet when it was due. Nothing was debited. |
+
+**A failed payout reads `cancelled`, not `failed`.**
+
+## Response: not paid (or not yours)
+
+A reference with no payment behind it answers `400` with `message` `payment not found`. `data.code` tells the cases apart:
+
+```json
+{ "status": false, "data": { "code": "checkout_unpaid", "status": "pending" }, "error": [], "message": "payment not found" }
+```
+
+| `data.code` | Meaning |
+|---|---|
+| `checkout_unpaid` | One of your checkouts, not paid yet. `data.status` is `pending` while the payer can still pay, `expired` once its 7 days are over. |
+| `payment_not_found` | Nothing of yours has this reference. |
+
+**Not found never means a payout failed.** A failed payout is found, with status `cancelled`. Don't send a payout again because Verify did not find it; [look it up by its `Idempotency-Key`](/payments/sending-payments#lost-the-answer) first.
 
 ## Fulfil an order safely
 

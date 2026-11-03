@@ -6,3 +6,5 @@ openapi: "POST /v1/payments/send"
 ## Overview
 
 Send a payment using the specified payment method. Supported methods include **bank_transfer**, **card**, **mobile_money**, **tag_transfer** (wallet-to-wallet), **defi**, **revolut**, **paypal**, **ussd**, **cashapp**, and **zelle**. Provide `from_amount`, `from_wallet_id`, `to_currency`, `payment_method`, and `info` (recipient details; fields depend on the method). For tag transfer, `info` must include `tag_id`. Payments can be instant, scheduled, or recurring.
+
+Store `transaction_ref` from the answer: it is Platnova's reference for the payout, and what [Verify Payment](/api-reference/payments/verify) takes. Your own `reference` is for your records and refuses a repeat; it is not an idempotency key. Send an `Idempotency-Key` header so a retry after a timeout can never pay twice, and if the answer is lost, find the payout with [Get payment by idempotency key](/api-reference/payments/by-key). A failed payout reads `cancelled`, not `failed`; see `status` below.
