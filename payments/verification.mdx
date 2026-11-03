@@ -68,7 +68,7 @@ Verification only ever finds your own business's payments, and it keeps working 
   "status": true,
   "data": {
     "id": "6f1c2d9e-8a4b-4c1e-9b7a-2f5d3e8c1a90",
-    "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+    "ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
     "reference": "INV-2026-0042",
     "currency": "NGN",
     "amount": 5000,
@@ -102,6 +102,12 @@ Verification only ever finds your own business's payments, and it keeps working 
 | `pending`, `processing`, `pending_approval`, `under_review` | Not decided yet. Check again later, or wait for the `transfer.success` / `transfer.failed` webhook. | No |
 
 Treat any status other than `success` as not paid.
+
+What the not-paid statuses mean for a payout:
+
+- **`cancelled`** is how a failed payout reads: the amount and fee are back in your wallet. A payout reversed after it succeeded reads `cancelled` too; then the amount is back but the fee is kept.
+- **`failed`** is only a scheduled payout that found too little in the wallet when it was due. Nothing was debited.
+- The `transfer.failed` webhook carries `data.status` `failed`, while Verify answers `cancelled` for the same payout.
 
 ## Response: not found
 
