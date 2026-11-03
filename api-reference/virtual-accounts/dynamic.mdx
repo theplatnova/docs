@@ -11,6 +11,6 @@ Generate a single-use NGN account for a customer, for an amount and a lifespan (
 
 ## Order reference
 
-Send your order id as `reference` (or `order_reference`) to give the order its own account. The response returns it as `order_reference`, and `account.funded` carries it as `reference`, with `expected_amount`. Repeating the request with the same reference, customer and amount while the account is open returns the same account. Any other reuse answers `400` `duplicate_reference` (`data.status` `expired` once the account has expired). Without `reference`, a customer has one open account at a time and a repeat returns it.
+Send your order id as `reference` (or `order_reference`) to give the order its own account. The response returns it as `order_reference`, and `account.funded` carries it as `reference`, with `expected_amount`. Repeating the request with the same reference, customer and amount while the account is open returns the same account. Any other reuse answers `400` `duplicate_reference` (`data.status` `expired` once the account has expired). Without `reference`, a customer has one open account at a time and a repeat returns it, even for a different amount.
 
 A payment of a different amount, or after `expires_at`, is still credited; a late one is marked `"late": true` on the webhook. See [Collecting payments per order](/virtual-accounts/collecting-per-order).

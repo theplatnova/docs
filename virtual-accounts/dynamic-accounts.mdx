@@ -97,7 +97,7 @@ If none of your customers has `customer_id` yet, add the customer's details (`cu
 
 ## Repeating a Request
 
-**Without `reference`**, a customer has one open dynamic account at a time: a second request while it is open returns the same account.
+**Without `reference`**, a customer has one open dynamic account at a time: a second request while it is open returns the same account, **even for a different amount**. To collect several amounts from one customer at once, give each its own `reference`.
 
 **With `reference`**, each order has its own account, separate from that one:
 
