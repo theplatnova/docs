@@ -3698,7 +3698,7 @@
             }
           },
           "400": {
-            "description": "Refused; nothing was sent. A `reference` already used answers `data.code` `duplicate_reference` with the existing payment's `transaction_ref`.",
+            "description": "Refused; nothing was sent (for example insufficient funds, or an invalid payload). A `reference` already used answers `data.code` `duplicate_reference` with the existing payment's `transaction_ref`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7809,7 +7809,7 @@
           },
           "ref": {
             "type": "string",
-            "description": "Platnova's unique transaction reference (the `transaction_ref` Send Payment returned). Quote it to support."
+            "description": "Platnova's unique reference for the payment. For a payout, the `transaction_ref` Send Payment returned. Quote it to support."
           },
           "reference": {
             "type": "string",
