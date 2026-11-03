@@ -9,8 +9,11 @@ Confirm a payment from your server. `reference` can be:
 
 - the `transaction_ref` Send Payment returned (Platnova's reference),
 - the `reference` you sent to Send Payment (your own),
-- a checkout `id`, or the `reference` from a `checkout.paid` webhook.
+- a checkout `id`, or the `reference` from a `checkout.paid` webhook,
+- your order `reference` on a dynamic virtual account, or the `transaction_ref` from an `account.funded` webhook.
 
 Only your own business's payments are found. A payout answers with both references: `ref` (Platnova's) and `reference` (yours, empty if you sent none). A checkout payment returns `checkout_id`, `payment_method`, `paid_amount` (what the payer sent) and `amount` (what you were credited), with `reference` empty.
+
+A customer's payment into a virtual account returns `customer_id`, `customer_reference`, `reference` (your order's or account's), `paid_amount` and, for an order, `expected_amount`. An order nothing has been paid into answers `400` with `data.code` `order_unpaid` and `data.status` `pending` or `expired`.
 
 Only `status` `success` means paid. `400` with `data.code` `payment_not_found` means no such payment exists for your business: for a payout, it was never created, so you can safely resend with the same `reference`. See [Verifying a payment](/payments/verification).

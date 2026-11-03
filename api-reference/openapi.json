@@ -40,6 +40,7 @@
                 "first_name": "John",
                 "last_name": "Doe",
                 "email": "johndoe06@email.com",
+                "reference": "CUST-10293",
                 "phone": "+23490123456789",
                 "country_code": "NG",
                 "date_of_birth": "1970-12-28",
@@ -87,6 +88,13 @@
                         "id": {
                           "type": "string"
                         },
+                        "reference": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Your own id for the customer; `null` if you set none."
+                        },
                         "first_name": {
                           "type": "string"
                         },
@@ -121,6 +129,7 @@
                   "status": true,
                   "data": {
                     "id": "3be6624b-81a4-40d9-bfa9-c4dd8e4f7c18",
+                    "reference": "CUST-10293",
                     "first_name": "John",
                     "last_name": "Doe",
                     "email": "johndoe04@email.com",
@@ -135,17 +144,34 @@
             }
           },
           "400": {
-            "description": "Customer already exists",
+            "description": "Customer already exists, or the reference is taken (`duplicate_customer_reference`)",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
-                "example": {
-                  "status": false,
-                  "data": {},
-                  "error": [],
-                  "message": "customer already exists"
+                "examples": {
+                  "customer_exists": {
+                    "summary": "Customer already exists",
+                    "value": {
+                      "status": false,
+                      "data": {},
+                      "error": [],
+                      "message": "customer already exists"
+                    }
+                  },
+                  "duplicate_customer_reference": {
+                    "summary": "Reference already used",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "duplicate_customer_reference",
+                        "id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01"
+                      },
+                      "error": [],
+                      "message": "Another customer already has this reference."
+                    }
+                  }
                 }
               }
             }
@@ -271,7 +297,7 @@
           "name": "id",
           "in": "path",
           "required": true,
-          "description": "The ID of the customer to retrieve.",
+          "description": "The customer's id, or your own `reference` for them.",
           "example": "f09b9f49-87ee-458f-8325-b49d81543ea0",
           "schema": {
             "type": "string"
@@ -346,6 +372,13 @@
                       "properties": {
                         "id": {
                           "type": "string"
+                        },
+                        "reference": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Your own id for the customer; `null` if you set none."
                         },
                         "email": {
                           "type": "string",
@@ -481,6 +514,7 @@
                   "status": true,
                   "data": {
                     "id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+                    "reference": "CUST-10293",
                     "email": "johndoe03@email.com",
                     "first_name": "John",
                     "last_name": "Doe",
@@ -667,17 +701,34 @@
             }
           },
           "400": {
-            "description": "Bad request (e.g. customer not found)",
+            "description": "Bad request (e.g. customer not found, or the reference is taken: `duplicate_customer_reference` with the other customer's `id`)",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
-                "example": {
-                  "status": false,
-                  "data": {},
-                  "error": [],
-                  "message": "customer was not found"
+                "examples": {
+                  "not_found": {
+                    "summary": "Customer not found",
+                    "value": {
+                      "status": false,
+                      "data": {},
+                      "error": [],
+                      "message": "customer was not found"
+                    }
+                  },
+                  "duplicate_customer_reference": {
+                    "summary": "Reference already used",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "duplicate_customer_reference",
+                        "id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01"
+                      },
+                      "error": [],
+                      "message": "Another customer already has this reference."
+                    }
+                  }
                 }
               }
             }
@@ -698,7 +749,7 @@
     "/v1/virtual-accounts/create": {
       "post": {
         "summary": "Create virtual account (customer)",
-        "description": "Create a virtual bank account for a customer in the specified currency. Requires customer_id and currency. For NGN, id_number (BVN) may be required.",
+        "description": "Create a virtual bank account for a customer. Name the customer by our id or your own (`customer_id` / `customer_reference`); a new id with the customer's details creates the customer. Add `reference` to open an account for one loan or order. For NGN, `id_number` (BVN) may be required.",
         "operationId": "createUserVirtualAccount",
         "tags": [
           "Virtual Account"
@@ -710,13 +761,30 @@
               "schema": {
                 "$ref": "#/components/schemas/CreateUserVirtualAccountRequest"
               },
-              "example": {
-                "currency": "NGN",
-                "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
-                "id_number": "22123456789",
-                "codes": [
-                  "058"
-                ]
+              "examples": {
+                "our_customer_id": {
+                  "summary": "Our customer id",
+                  "value": {
+                    "currency": "NGN",
+                    "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+                    "id_number": "22123456789",
+                    "codes": [
+                      "058"
+                    ]
+                  }
+                },
+                "your_customer_id": {
+                  "summary": "Your own customer id, with an account reference",
+                  "value": {
+                    "customer_id": "CUST-10293",
+                    "reference": "LOAN-2026-0042",
+                    "currency": "NGN",
+                    "id_number": "22212345678",
+                    "customer_name": "Ada Obi",
+                    "customer_email": "ada@example.com",
+                    "customer_phone": "08030000000"
+                  }
+                }
               }
             }
           }
@@ -736,7 +804,12 @@
                       "type": "object",
                       "properties": {
                         "customer_id": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Our customer id."
+                        },
+                        "customer_reference": {
+                          "type": "string",
+                          "description": "Your own id for the customer, when set."
                         },
                         "reference": {
                           "type": "string"
@@ -763,6 +836,10 @@
                           "items": {
                             "type": "object",
                             "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "The virtual account's id."
+                              },
                               "account_number": {
                                 "type": "string"
                               },
@@ -789,6 +866,10 @@
                               },
                               "bank_address": {
                                 "type": "string"
+                              },
+                              "reference": {
+                                "type": "string",
+                                "description": "Your reference the account was opened under; absent without one."
                               }
                             }
                           }
@@ -808,11 +889,298 @@
             }
           },
           "400": {
-            "description": "Bad request (e.g. customer not found, account already exists)",
+            "description": "Refused. `data.code` says why when present",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "duplicate_reference": {
+                    "summary": "Reference used by another account",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "duplicate_reference"
+                      },
+                      "error": [],
+                      "message": "This reference is already used by another account of your business."
+                    }
+                  },
+                  "invalid_reference": {
+                    "summary": "Reference breaks the format",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "invalid_reference",
+                        "field": "reference"
+                      },
+                      "error": [],
+                      "message": "reference: Use 1 to 64 characters: letters, digits, and _ . : -"
+                    }
+                  },
+                  "already_added": {
+                    "summary": "No reference, and the customer already has an account at this bank",
+                    "value": {
+                      "status": false,
+                      "data": {},
+                      "error": [],
+                      "message": "bank account is already added"
+                    }
+                  },
+                  "customer_not_found": {
+                    "summary": "Unknown customer id and no customer details sent",
+                    "value": {
+                      "status": false,
+                      "data": {},
+                      "error": [],
+                      "message": "customer was not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. Nothing was opened",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "account_limit_reached": {
+                    "summary": "The bank cannot open another account for this customer",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "account_limit_reached",
+                        "accounts": [
+                          {
+                            "id": "9b2f6a10-3c4d-4e5f-8a7b-1c2d3e4f5a6b",
+                            "account_number": "0123456789",
+                            "account_name": "Ada Obi",
+                            "bank_name": "Example Bank",
+                            "bank_code": "000000",
+                            "reference": "LOAN-2026-0031"
+                          }
+                        ]
+                      },
+                      "error": [],
+                      "message": "The bank cannot open another account for this customer. Use one of the customer's existing accounts, or choose another bank."
+                    }
+                  },
+                  "reference_in_progress": {
+                    "summary": "An account for this reference is still being opened",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "reference_in_progress"
+                      },
+                      "error": [],
+                      "message": "An account for this reference is being created; try again shortly."
+                    }
+                  },
+                  "customer_exists": {
+                    "summary": "A customer with this email exists without your id",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "customer_exists",
+                        "id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01"
+                      },
+                      "error": [],
+                      "message": "A customer with this email already exists. Send their customer id, or give them your customer id as their reference (PATCH /v1/customers/{id})."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. For a new customer, lists each missing detail by field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError422"
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Validation failed",
+                  "errors": {
+                    "customer_email": [
+                      "Required to create the customer: no customer has this customer_id yet."
+                    ],
+                    "customer_phone": [
+                      "Required to create the customer: no customer has this customer_id yet."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/virtual-accounts/by-reference/{reference}": {
+      "get": {
+        "summary": "Get virtual account by reference",
+        "description": "Return the account you opened with `reference` on Create Virtual Account. Only your own business's accounts are found.",
+        "operationId": "getVirtualAccountByReference",
+        "tags": [
+          "Virtual Account"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "description": "The `reference` you sent when creating the account.",
+            "example": "LOAN-2026-0042",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The account(s) opened under this reference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "customer_id": {
+                          "type": "string",
+                          "description": "Our customer id."
+                        },
+                        "customer_reference": {
+                          "type": "string",
+                          "description": "Your own id for the customer, when set."
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email"
+                        },
+                        "first_name": {
+                          "type": "string"
+                        },
+                        "last_name": {
+                          "type": "string"
+                        },
+                        "created_on": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "accounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "The virtual account's id."
+                              },
+                              "account_number": {
+                                "type": "string"
+                              },
+                              "account_name": {
+                                "type": "string"
+                              },
+                              "bank_name": {
+                                "type": "string"
+                              },
+                              "bank_code": {
+                                "type": "string"
+                              },
+                              "ach_routing_number": {
+                                "type": "string"
+                              },
+                              "rtp_routing_number": {
+                                "type": "string"
+                              },
+                              "wire_routing_number": {
+                                "type": "string"
+                              },
+                              "swift_code": {
+                                "type": "string"
+                              },
+                              "bank_address": {
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string",
+                                "description": "Your reference the account was opened under; absent without one."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": true,
+                  "data": {
+                    "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+                    "customer_reference": "CUST-10293",
+                    "reference": "",
+                    "currency": "NGN",
+                    "email": "ada@example.com",
+                    "first_name": "Ada",
+                    "last_name": "Obi",
+                    "created_on": "2026-11-03T10:15:00Z",
+                    "amount_debited": 0,
+                    "accounts": [
+                      {
+                        "id": "9b2f6a10-3c4d-4e5f-8a7b-1c2d3e4f5a6b",
+                        "account_number": "0123456789",
+                        "account_name": "Ada Obi",
+                        "bank_name": "Example Bank",
+                        "bank_code": "000000",
+                        "reference": "LOAN-2026-0042"
+                      }
+                    ]
+                  },
+                  "error": [],
+                  "message": "operation was successful"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No account was opened with this reference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "status": false,
+                  "data": {
+                    "code": "virtual_account_not_found"
+                  },
+                  "error": [],
+                  "message": "No virtual account was opened with this reference."
                 }
               }
             }
@@ -823,7 +1191,7 @@
     "/v1/virtual-accounts/dynamic": {
       "post": {
         "summary": "Generate single-use virtual account",
-        "description": "Generate a dynamic, single-use virtual account for a customer with a fixed amount and configurable expiry. The account automatically expires after the specified lifespan and can only receive a payment matching the exact amount.",
+        "description": "Generate a single-use NGN account for a customer, for an amount and a lifespan. Add `reference` (your order id) to give each order its own account: the payment notification then names the order. Without `reference`, a customer has one open account at a time and a repeat request returns it.",
         "operationId": "createDynamicVirtualAccount",
         "tags": [
           "Virtual Account"
@@ -835,10 +1203,24 @@
               "schema": {
                 "$ref": "#/components/schemas/CreateDynamicVirtualAccountRequest"
               },
-              "example": {
-                "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438",
-                "amount": 200,
-                "lifespan_minutes": 20
+              "examples": {
+                "plain": {
+                  "summary": "One open account per customer",
+                  "value": {
+                    "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438",
+                    "amount": 200,
+                    "lifespan_minutes": 20
+                  }
+                },
+                "order": {
+                  "summary": "An account for one order",
+                  "value": {
+                    "customer_id": "CUST-10293",
+                    "amount": 15000,
+                    "lifespan_minutes": 60,
+                    "reference": "ORDER-7781"
+                  }
+                }
               }
             }
           }
@@ -864,7 +1246,8 @@
                           "type": "string"
                         },
                         "amount": {
-                          "type": "number"
+                          "type": "number",
+                          "description": "The amount requested."
                         },
                         "currency": {
                           "type": "string"
@@ -873,7 +1256,8 @@
                           "type": "string"
                         },
                         "reference": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "The account's own reference (also `account_reference` on `account.funded`). Not your order reference."
                         },
                         "email": {
                           "type": "string",
@@ -894,7 +1278,16 @@
                           "format": "date-time"
                         },
                         "customer_id": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Our customer id."
+                        },
+                        "customer_reference": {
+                          "type": "string",
+                          "description": "Your own id for the customer, when set."
+                        },
+                        "order_reference": {
+                          "type": "string",
+                          "description": "Your `reference` for the order, when sent."
                         }
                       }
                     },
@@ -921,7 +1314,9 @@
                     "payment_session_id": "",
                     "usage": "integration",
                     "created_at": "2026-03-19T22:53:03.140476016Z",
-                    "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438"
+                    "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438",
+                    "customer_reference": "CUST-10293",
+                    "order_reference": "ORDER-7781"
                   },
                   "error": [],
                   "message": "operation was successful"
@@ -930,11 +1325,93 @@
             }
           },
           "400": {
-            "description": "Bad request (e.g. customer not found, invalid amount)",
+            "description": "Refused. `data.code` says why when present",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "duplicate_reference": {
+                    "summary": "Reference used for another customer or amount",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "duplicate_reference"
+                      },
+                      "error": [],
+                      "message": "This reference is already used by another account of your business."
+                    }
+                  },
+                  "expired": {
+                    "summary": "The order's account has expired",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "duplicate_reference",
+                        "status": "expired"
+                      },
+                      "error": [],
+                      "message": "The account issued for this reference has expired. Use a new reference for a new account."
+                    }
+                  },
+                  "invalid_reference": {
+                    "summary": "Reference breaks the format, or reference and order_reference differ",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "invalid_reference",
+                        "field": "reference"
+                      },
+                      "error": [],
+                      "message": "reference: Use 1 to 64 characters: letters, digits, and _ . : -"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. Nothing was opened",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "reference_in_progress": {
+                    "summary": "An account for this order is still being opened",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "reference_in_progress"
+                      },
+                      "error": [],
+                      "message": "An account for this reference is being created; try again shortly."
+                    }
+                  },
+                  "customer_exists": {
+                    "summary": "A customer with this email exists without your id",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "customer_exists",
+                        "id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01"
+                      },
+                      "error": [],
+                      "message": "A customer with this email already exists. Send their customer id, or give them your customer id as their reference (PATCH /v1/customers/{id})."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. For a new customer, lists each missing detail by field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError422"
                 }
               }
             }
@@ -1254,8 +1731,18 @@
             "name": "customer_id",
             "in": "query",
             "required": false,
-            "description": "unique id of the customer",
+            "description": "Our customer id, or your own `reference` for the customer.",
             "example": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_reference",
+            "in": "query",
+            "required": false,
+            "description": "Your own id for the customer. Send this or `customer_id`, not both.",
+            "example": "CUST-10293",
             "schema": {
               "type": "string"
             }
@@ -1728,8 +2215,18 @@
             "name": "customer_id",
             "in": "query",
             "required": false,
-            "description": "Filter by customer ID (UUID)",
+            "description": "Our customer id, or your own `reference` for the customer.",
             "example": "3be6624b-81a4-40d9-bfa9-c4dd8e4f7c18",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_reference",
+            "in": "query",
+            "required": false,
+            "description": "Your own id for the customer. Send this or `customer_id`, not both.",
+            "example": "CUST-10293",
             "schema": {
               "type": "string"
             }
@@ -3756,7 +4253,7 @@
     "/v1/payments/verify": {
       "post": {
         "summary": "Verify payment",
-        "description": "Check a payment by any of: the `transaction_ref` Send Payment returned, the `reference` you sent to Send Payment, a checkout id, or the reference from a `checkout.paid` webhook. Only your own business's payments are found. Only `status` `success` means paid. 400 `payment_not_found` means no such payment exists for your business: for a payout, it was never created, so it is safe to resend with the same `reference`.",
+        "description": "Check a payment by any of: the `transaction_ref` Send Payment returned, the `reference` you sent to Send Payment, a checkout id, the reference from a `checkout.paid` webhook, your order `reference` on a one-time virtual account, or the `transaction_ref` of an `account.funded` webhook. Only your own business's payments are found. Only `status` `success` means paid. 400 `payment_not_found` means no such payment exists for your business: for a payout, it was never created, so it is safe to resend with the same `reference`.",
         "operationId": "verifyPayment",
         "tags": [
           "Payment"
@@ -3779,6 +4276,12 @@
                   "summary": "Platnova's transaction_ref",
                   "value": {
                     "reference": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+                  }
+                },
+                "order_reference": {
+                  "summary": "Your order reference",
+                  "value": {
+                    "reference": "ORDER-7781"
                   }
                 }
               }
@@ -3808,24 +4311,55 @@
                     }
                   }
                 },
-                "example": {
-                  "status": true,
-                  "data": {
-                    "id": "6f1c2d9e-8a4b-4c1e-9b7a-2f5d3e8c1a90",
-                    "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
-                    "reference": "INV-2026-0042",
-                    "currency": "NGN",
-                    "amount": 5000,
-                    "fee": 50,
-                    "type": "send_payment",
-                    "status": "success",
-                    "entry": "debit",
-                    "message": "Transfer to Jane Smith",
-                    "created_at": "2026-11-03T09:15:02Z",
-                    "updated_at": "2026-11-03T09:15:40Z"
+                "examples": {
+                  "payout": {
+                    "summary": "A payout",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "id": "6f1c2d9e-8a4b-4c1e-9b7a-2f5d3e8c1a90",
+                        "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+                        "reference": "INV-2026-0042",
+                        "currency": "NGN",
+                        "amount": 5000,
+                        "fee": 50,
+                        "type": "send_payment",
+                        "status": "success",
+                        "entry": "debit",
+                        "message": "Transfer to Jane Smith",
+                        "created_at": "2026-11-03T09:15:02Z",
+                        "updated_at": "2026-11-03T09:15:40Z"
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
                   },
-                  "error": [],
-                  "message": "operation was successful"
+                  "order": {
+                    "summary": "A customer's payment for an order",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "id": "0d6c2a8e-5b1f-4c7a-9e3d-8f2a1b4c6d70",
+                        "ref": "DEP_k3J9xQ2mT8vL5nR1",
+                        "reference": "ORDER-7781",
+                        "currency": "NGN",
+                        "amount": 14950,
+                        "paid_amount": 15000,
+                        "fee": 50,
+                        "type": "deposit",
+                        "status": "success",
+                        "entry": "credit",
+                        "message": "Deposited NGN",
+                        "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+                        "customer_reference": "CUST-10293",
+                        "expected_amount": 15000,
+                        "created_at": "2026-11-03T10:21:44Z",
+                        "updated_at": "2026-11-03T10:21:44Z"
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  }
                 }
               }
             }
@@ -3855,6 +4389,18 @@
                       "status": false,
                       "data": {
                         "code": "checkout_unpaid",
+                        "status": "pending"
+                      },
+                      "error": [],
+                      "message": "payment not found"
+                    }
+                  },
+                  "order_unpaid": {
+                    "summary": "Order not paid yet",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "order_unpaid",
                         "status": "pending"
                       },
                       "error": [],
@@ -3937,11 +4483,21 @@
             "name": "customer_id",
             "in": "query",
             "required": false,
-            "description": "Filter by customer ID",
+            "description": "Our customer id, or your own `reference` for the customer.",
             "schema": {
               "type": "string"
             },
             "example": "43a2b75e-5c59-429e-872a-2a54c7b17e34"
+          },
+          {
+            "name": "customer_reference",
+            "in": "query",
+            "required": false,
+            "description": "Your own id for the customer. Send this or `customer_id`, not both.",
+            "example": "CUST-10293",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6935,6 +7491,11 @@
             "format": "date",
             "description": "Date of birth (YYYY-MM-DD)"
           },
+          "reference": {
+            "type": "string",
+            "description": "Set or change your own id for this customer. 1 to 64 characters: letters, digits, and `_ . : -`. Unique within your business.",
+            "example": "CUST-10293"
+          },
           "address": {
             "$ref": "#/components/schemas/CustomerAddress"
           },
@@ -6985,6 +7546,11 @@
             "type": "string",
             "format": "email",
             "description": "Customer email"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Your own id for this customer. 1 to 64 characters: letters, digits, and `_ . : -`. Unique within your business. Once set, you can use it anywhere a customer id is accepted.",
+            "example": "CUST-10293"
           },
           "first_name": {
             "type": "string",
@@ -7044,8 +7610,7 @@
       "CreateUserVirtualAccountRequest": {
         "type": "object",
         "required": [
-          "currency",
-          "customer_id"
+          "currency"
         ],
         "properties": {
           "currency": {
@@ -7054,11 +7619,12 @@
           },
           "customer_id": {
             "type": "string",
-            "description": "Customer ID"
+            "description": "The customer: our customer id, or your own id for them. If none of your customers has your id yet and the request carries the customer's details (`customer_*` fields), the customer is created with your id as their `reference`. Send this or `customer_reference`.",
+            "example": "CUST-10293"
           },
           "id_number": {
             "type": "string",
-            "description": "BVN for NGN accounts"
+            "description": "BVN for NGN accounts. When sent for a new customer, `customer_date_of_birth` is not needed: it is taken from the BVN record."
           },
           "codes": {
             "type": "array",
@@ -7066,30 +7632,132 @@
               "type": "string"
             },
             "description": "Bank codes"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Your own reference for this account (a loan, an order). 1 to 64 characters: letters, digits, and `_ . : -`. Unique among your business's accounts. A customer can hold one account per reference; repeating the request returns the same account.",
+            "example": "LOAN-2026-0042"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Your own id for the customer, by its explicit name. Send this or `customer_id`, not both.",
+            "example": "CUST-10293"
+          },
+          "customer_name": {
+            "type": "string",
+            "description": "New customer only: full name (first word is the first name). Or send `customer_first_name` and `customer_last_name`.",
+            "example": "Ada Obi"
+          },
+          "customer_first_name": {
+            "type": "string",
+            "description": "New customer only."
+          },
+          "customer_last_name": {
+            "type": "string",
+            "description": "New customer only."
+          },
+          "customer_email": {
+            "type": "string",
+            "format": "email",
+            "description": "New customer only. Required.",
+            "example": "ada@example.com"
+          },
+          "customer_phone": {
+            "type": "string",
+            "description": "New customer only. Required.",
+            "example": "08030000000"
+          },
+          "customer_country_code": {
+            "type": "string",
+            "description": "New customer only. ISO country code; defaults to `NG` for NGN."
+          },
+          "customer_date_of_birth": {
+            "type": "string",
+            "format": "date",
+            "description": "New customer only. `YYYY-MM-DD`. Not needed for NGN when `id_number` (BVN) is sent."
+          },
+          "customer_gender": {
+            "type": "string",
+            "description": "New customer only. `male` or `female`."
           }
-        }
+        },
+        "description": "Name the customer with `customer_id` or `customer_reference` (one is required)."
       },
       "CreateDynamicVirtualAccountRequest": {
         "type": "object",
         "required": [
-          "customer_id",
           "amount",
           "lifespan_minutes"
         ],
         "properties": {
           "customer_id": {
             "type": "string",
-            "description": "Unique ID of the customer to generate the account for"
+            "description": "The customer: our customer id, or your own id for them. If none of your customers has your id yet and the request carries the customer's details (`customer_*` fields), the customer is created with your id as their `reference`. Send this or `customer_reference`.",
+            "example": "CUST-10293"
           },
           "amount": {
             "type": "number",
-            "description": "The exact amount the account will accept"
+            "description": "The amount to collect (NGN). Payments of another amount are still credited; compare `expected_amount` and `paid_amount` on `account.funded`."
           },
           "lifespan_minutes": {
             "type": "integer",
-            "description": "How long the account remains active, in minutes"
+            "description": "How long the account stays open, in minutes (5 to 1440).",
+            "minimum": 5,
+            "maximum": 1440
+          },
+          "reference": {
+            "type": "string",
+            "description": "Your own reference for the order this account collects. 1 to 64 characters: letters, digits, and `_ . : -`. Unique among your business's one-time accounts. Returned as `order_reference` and sent as `reference` on `account.funded`.",
+            "example": "ORDER-7781"
+          },
+          "order_reference": {
+            "type": "string",
+            "description": "Same as `reference`. Send one of them."
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Your own id for the customer, by its explicit name. Send this or `customer_id`, not both.",
+            "example": "CUST-10293"
+          },
+          "customer_name": {
+            "type": "string",
+            "description": "New customer only: full name (first word is the first name). Or send `customer_first_name` and `customer_last_name`.",
+            "example": "Ada Obi"
+          },
+          "customer_first_name": {
+            "type": "string",
+            "description": "New customer only."
+          },
+          "customer_last_name": {
+            "type": "string",
+            "description": "New customer only."
+          },
+          "customer_email": {
+            "type": "string",
+            "format": "email",
+            "description": "New customer only. Required.",
+            "example": "ada@example.com"
+          },
+          "customer_phone": {
+            "type": "string",
+            "description": "New customer only. Required.",
+            "example": "08030000000"
+          },
+          "customer_country_code": {
+            "type": "string",
+            "description": "New customer only. ISO country code; defaults to `NG` for NGN."
+          },
+          "customer_date_of_birth": {
+            "type": "string",
+            "format": "date",
+            "description": "New customer only. `YYYY-MM-DD`."
+          },
+          "customer_gender": {
+            "type": "string",
+            "description": "New customer only. `male` or `female`."
           }
-        }
+        },
+        "description": "Name the customer with `customer_id` or `customer_reference` (one is required)."
       },
       "CreateVirtualAccountRequest": {
         "type": "object",
@@ -7118,7 +7786,7 @@
         "properties": {
           "customer_id": {
             "type": "string",
-            "description": "Customer ID"
+            "description": "Our customer id, or your own `reference` for the customer."
           },
           "currency": {
             "type": "string",
@@ -7255,7 +7923,7 @@
         "properties": {
           "reference": {
             "type": "string",
-            "description": "Any of: the `transaction_ref` returned by Send Payment, the `reference` you sent to Send Payment, a checkout id, or the reference from a `checkout.paid` webhook."
+            "description": "Any of: the `transaction_ref` returned by Send Payment, the `reference` you sent to Send Payment, a checkout id, the reference from a `checkout.paid` webhook, the `reference` you gave a one-time account for an order, or the `transaction_ref` of an `account.funded` webhook."
           }
         }
       },
@@ -7813,7 +8481,7 @@
           },
           "reference": {
             "type": "string",
-            "description": "The `reference` you sent to Send Payment. Empty if you sent none, and for checkout payments.",
+            "description": "Payouts: the `reference` you sent to Send Payment. Customer payments into virtual accounts: your order's or account's reference. Empty if none, and for checkout payments.",
             "example": "INV-2026-0042"
           },
           "currency": {
@@ -7826,7 +8494,7 @@
           },
           "paid_amount": {
             "type": "number",
-            "description": "Checkout payments: what the payer sent."
+            "description": "Checkout and customer payments: what the payer sent."
           },
           "fee": {
             "type": "number"
@@ -7867,6 +8535,18 @@
               "mobile_money",
               "crypto"
             ]
+          },
+          "customer_id": {
+            "type": "string",
+            "description": "Customer payments into virtual accounts: our customer id."
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Customer payments: your own id for the customer, when set."
+          },
+          "expected_amount": {
+            "type": "number",
+            "description": "Order payments: the amount the order's account was opened for. Compare with `paid_amount`."
           },
           "created_at": {
             "type": "string",

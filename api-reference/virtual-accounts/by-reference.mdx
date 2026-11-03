@@ -1,0 +1,12 @@
+---
+title: "Get Virtual Account by Reference"
+openapi: "GET /v1/virtual-accounts/by-reference/{reference}"
+---
+
+## Overview
+
+Return the account you opened with `reference` on [Create Virtual Account](/api-reference/virtual-accounts/create). The answer has the same shape as the create response: the customer (`customer_id`, `customer_reference`) and the account in `accounts`, with your `reference` on it.
+
+Only your own business's accounts are found. A reference you never opened an account with answers `404` with `data.code` `virtual_account_not_found`.
+
+This looks up persistent accounts. For a dynamic account opened for an order, use [Verify Payment](/api-reference/payments/verify) with the order reference.

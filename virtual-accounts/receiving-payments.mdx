@@ -70,23 +70,30 @@ curl -X GET https://api.platnova.com/v1/transactions \
 
 ## Payment Notifications
 
-Set up webhooks to receive real-time notifications when payments are received:
+Set up webhooks to receive the [`account.funded`](/webhooks/overview#account-funded) event when a payment is credited:
 
 ```json
 {
   "event": "account.funded",
+  "timestamp": "2026-11-03T10:21:44Z",
+  "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
   "data": {
-    "transaction_id": "txn_123",
-    "virtual_account_id": "va_456",
+    "virtual_account_id": "9b2f6a10-3c4d-4e5f-8a7b-1c2d3e4f5a6b",
     "virtual_account_number": "0123456789",
-    "amount": "1000.00",
-    "currency": "USD",
-    "payer_name": "Jane Smith",
-    "reference": "PAY123456",
-    "timestamp": "2025-01-30T10:00:00Z"
+    "amount": 49950,
+    "paid_amount": 50000,
+    "fee": 50,
+    "currency": "NGN",
+    "transaction_ref": "DEP_k3J9xQ2mT8vL5nR1",
+    "reference": "LOAN-2026-0042",
+    "customer_reference": "CUST-10293",
+    "description": "Deposit to virtual account",
+    "metadata": { "account_name": "ADA OBI", "bank_name": "Payer Bank" }
   }
 }
 ```
+
+`reference` is the reference you opened the account with, and `customer_reference` your own id for the customer. An account opened without a reference identifies the customer but not the order; to match payments to orders, open one account per reference (see [Collecting payments per order](/virtual-accounts/collecting-per-order)).
 
 ## Payment Limits
 
@@ -100,7 +107,7 @@ Payment limits may apply depending on:
 ## Best Practices
 
 - Share account details securely with payers
-- Include payment references for tracking
+- Open accounts with your own `reference` so each payment names what it is for
 - Monitor transactions regularly
 - Set up webhooks for real-time notifications
 - Keep account information up to date
