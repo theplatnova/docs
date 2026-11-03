@@ -487,27 +487,57 @@ Sent when a card that was being created will never be issued.
 
 ### account.funded
 
-Sent when a virtual account receives funds.
+Sent when money is credited from a payment into a virtual account.
 
 ```json
 {
   "event": "account.funded",
-  "timestamp": "2024-01-01T12:00:00Z",
-  "customer_id": "user_id",
+  "timestamp": "2026-11-03T10:21:44Z",
+  "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
   "data": {
-    "virtual_account_id": "va_uid",
-    "virtual_account_number": "0123456789",
-    "amount": 495.00,
-    "paid_amount": 500.00,
-    "fee": 5.00,
-    "currency": "USD",
-    "transaction_ref": "TXN123456",
-    "description": "Deposit to virtual account"
+    "virtual_account_id": "9b2f6a10-3c4d-4e5f-8a7b-1c2d3e4f5a6b",
+    "virtual_account_number": "9000043059",
+    "virtual_account_bank_name": "Example Bank",
+    "virtual_account_bank_code": "000000",
+    "amount": 14950,
+    "paid_amount": 15000,
+    "fee": 50,
+    "currency": "NGN",
+    "transaction_ref": "DEP_k3J9xQ2mT8vL5nR1",
+    "account_reference": "BDEPSTbdpLERjSmvg2XbF9iTA0bXxrX8E88BOI",
+    "reference": "ORDER-7781",
+    "customer_reference": "CUST-10293",
+    "expected_amount": 15000,
+    "description": "Deposit to virtual account",
+    "metadata": {
+      "account_name": "ADA OBI",
+      "account_number": "0011223344",
+      "bank_name": "Payer Bank",
+      "session_id": "000000251103102144000000000000",
+      "narration": "ORDER-7781"
+    }
   }
 }
 ```
 
-`virtual_account_number` is the account number the payer paid into, so you can match a deposit to the account you gave them without looking up `virtual_account_id`. It is omitted when the deposit did not arrive through a virtual account.
+| Field | Meaning |
+|---|---|
+| `customer_id` (top level) | Our id for the customer who owns the account |
+| `virtual_account_id` | The account's id |
+| `virtual_account_number` | The account number the payer paid into, persistent or dynamic. Omitted when the deposit did not arrive through a virtual account |
+| `virtual_account_bank_name`, `virtual_account_bank_code` | The bank of that account, when known |
+| `amount` | What was credited: `paid_amount` less `fee` |
+| `paid_amount` | What the payer sent |
+| `fee` | Our fee on this payment |
+| `transaction_ref` | Platnova's reference for the credit. Unique: use it to apply each payment once |
+| `account_reference` | A dynamic account's own reference (the `reference` in the dynamic-account response) |
+| `reference` | **Your** reference: the one you opened a persistent account with, or your order reference on a dynamic account. Omitted when the account has none |
+| `customer_reference` | Your own id for the customer, when set |
+| `expected_amount` | Dynamic accounts opened for an order: the amount you asked for. Compare it with `paid_amount`; a different amount is still credited |
+| `late` | `true` when the payment reached a dynamic account after its `expires_at`. It is credited all the same. Omitted otherwise |
+| `metadata` | The payer's details where the bank provides them: `account_name`, `account_number`, `bank_name`, `session_id`, `narration` |
+
+Fields without a value are omitted. To tie a payment to an order, see [Collecting payments per order](/virtual-accounts/collecting-per-order).
 
 ### account.issued
 

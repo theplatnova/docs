@@ -22,6 +22,7 @@ Create a new individual customer profile. This endpoint allows you to onboard cu
 
 | Field | Description |
 | --- | --- |
+| `reference` | Your own id for this customer: 1–64 characters of letters, digits and `_ . : -`, unique within your business. Once set, it works anywhere a customer id is accepted. A reference another of your customers has answers `400` `duplicate_customer_reference` with that customer's `id` |
 | `gender` | Customer gender |
 | `documents` | Array of identity documents (recommended; see [Identity documents](#identity-documents)) |
 | `address` | Residential or mailing address: `street`, `city`, `state`, `postal_code`, `country`, optional `document` (base64-encoded proof-of-address file) |

@@ -23,13 +23,13 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
 
 ### Required Fields
 
-- **Customer ID** - The ID of the customer who will own the account
+- **Customer** - `customer_id`: our customer id or your own (see [Use your own customer ids](#use-your-own-customer-ids)). Or send your id as `customer_reference`.
 - **Currency** - The currency for the account (USD, NGN, etc.)
 
 ### Optional Fields
 
-- **Account Type** - Current or savings account (defaults based on currency)
-- **Account Name** - Custom account name (defaults to customer name)
+- **Reference** - Your own reference for this account (see [One account per loan or order](#one-account-per-loan-or-order))
+- **ID number** - For NGN accounts, the customer's BVN in `id_number`
 - **Codes** - For NGN accounts, an array of provider bank codes used to select which provider issues the account (see [Choosing a Provider](#choosing-a-provider-ngn-accounts) below)
 
 ## Choosing a Provider (NGN Accounts)
@@ -59,25 +59,96 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
 {
   "status": true,
   "data": {
-    "id": "va_123",
-    "customer_id": "customer_456",
-    "account_number": "1234567890",
-    "account_name": "John Doe",
-    "bank_name": "Platnova Bank",
-    "bank_code": "123",
-    "currency": "USD",
-    "routing_numbers": {
-      "ach": "123456789",
-      "rtp": "987654321",
-      "wire": "111222333"
-    },
-    "swift_code": "PLATUS33",
-    "status": "active",
-    "created_at": "2025-01-30T10:00:00Z"
+    "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+    "customer_reference": "CUST-10293",
+    "reference": "",
+    "currency": "NGN",
+    "email": "ada@example.com",
+    "first_name": "Ada",
+    "last_name": "Obi",
+    "created_on": "2026-11-03T10:15:00Z",
+    "amount_debited": 0,
+    "accounts": [
+      {
+        "id": "9b2f6a10-3c4d-4e5f-8a7b-1c2d3e4f5a6b",
+        "account_number": "0123456789",
+        "account_name": "Ada Obi",
+        "bank_name": "Example Bank",
+        "bank_code": "000000",
+        "reference": "LOAN-2026-0042"
+      }
+    ]
   },
-  "message": "Virtual account created successfully"
+  "error": [],
+  "message": "operation was successful"
 }
 ```
+
+`customer_id` is our id for the customer; `customer_reference` is yours, when set. Each entry in `accounts` carries its `id` and, when you opened it with one, your `reference`. USD accounts also carry `ach_routing_number`, `rtp_routing_number`, `wire_routing_number`, `swift_code` and `bank_address`.
+
+## Use your own customer ids
+
+You don't have to create the customer first and store our id. Pass **your own** customer id as `customer_id` (or as `customer_reference`; send one of the two, not both). We look it up in your business: our id first, then a customer whose `reference` is that value.
+
+If none of your customers has it yet, include the customer's details and we create the customer, with your id as their `reference`:
+
+| Field | Notes |
+|---|---|
+| `customer_name`, or `customer_first_name` + `customer_last_name` | `customer_name` is split at the first space |
+| `customer_email` | Required |
+| `customer_phone` | Required |
+| `customer_country_code` | Defaults to `NG` for NGN |
+| `customer_date_of_birth` | `YYYY-MM-DD`. **Not needed for NGN when you send `id_number` (BVN)**: the date of birth is taken from the BVN record. Required otherwise |
+| `customer_gender` | Optional: `male` or `female` |
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "CUST-10293",
+    "currency": "NGN",
+    "id_number": "22212345678",
+    "customer_name": "Ada Obi",
+    "customer_email": "ada@example.com",
+    "customer_phone": "08030000000"
+  }'
+```
+
+- The customer is created exactly as [Create Customer](/api-reference/customers/create) would create them. Repeating the request finds the same customer; it never makes a second one.
+- A missing detail answers `422` listing each missing field.
+- Without details, an id none of your customers has answers `400` `customer was not found`, as before.
+- If a customer with that email already exists without your id, the answer is `409` `customer_exists` with their `id`. Use that id, or give them your id with [Update Customer](/api-reference/customers/update) (`reference`).
+- Your ids are 1–64 characters of letters, digits and `_ . : -`, unique within your business.
+
+After that, your id works anywhere a customer id is accepted. See [Your own customer ids](/customers/overview#your-own-customer-ids).
+
+## One account per loan or order
+
+Add `reference` to open an account for one loan, order or contract. A customer can then hold several accounts, one per reference, and every payment into an account names its reference.
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "CUST-10293",
+    "reference": "LOAN-2026-0042",
+    "currency": "NGN",
+    "id_number": "22212345678"
+  }'
+```
+
+- `reference` is 1–64 characters of letters, digits and `_ . : -`, unique among your business's accounts.
+- **Repeating** the request with the same reference, customer and currency returns the same account. Nothing new is opened.
+- The same reference with a different customer or currency answers `400` `duplicate_reference`.
+- While the first request for a reference is still opening the account, a repeat answers `409` `reference_in_progress`. Retry shortly.
+- Some banks can open only one account per customer. If the customer already has an account at such a bank, the answer is `409` `account_limit_reached`, and `data.accounts` lists the customer's existing accounts there (`id`, `account_number`, `account_name`, `bank_name`, `bank_code`, and `reference` when set). Nothing is opened. Use an existing account, or choose another bank with `codes`.
+- Look an account up by your reference with [`GET /v1/virtual-accounts/by-reference/{reference}`](/api-reference/virtual-accounts/by-reference).
+
+Without `reference` nothing changes: a customer has one account per bank, and a second request for the same bank answers `bank account is already added`.
+
+To collect one payment per order rather than keep an account open, see [Collecting payments per order](/virtual-accounts/collecting-per-order).
 
 ## Account Details
 
@@ -111,7 +182,7 @@ The account type is determined automatically based on currency and provider capa
 
 ## Multiple Accounts
 
-Customers can have multiple virtual accounts in different currencies. Each account operates independently with its own account number and routing information.
+Customers can have multiple virtual accounts in different currencies, and several in one currency when each has its own `reference` (see [One account per loan or order](#one-account-per-loan-or-order)). Each account operates independently with its own account number and routing information.
 
 ## Listing Accounts
 
@@ -122,7 +193,7 @@ curl -X GET https://api.platnova.com/v1/virtual-accounts \
   -H "X-API-KEY: YOUR_API_KEY"
 ```
 
-Filter by customer or currency as needed.
+Filter by `currency`, and by customer with `customer_id` (our id or yours) or `customer_reference`.
 
 ## Best Practices
 

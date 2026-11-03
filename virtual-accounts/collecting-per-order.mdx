@@ -1,0 +1,107 @@
+---
+title: "Collecting Payments per Order"
+slug: "virtual-accounts/collecting-per-order"
+---
+
+A customer with several unpaid orders (loans, invoices, instalments) pays by bank transfer. A single account per customer tells you **who** paid, but not **which order** the money is for. Give each order its own account, bound to your order reference, and every payment notification names the order.
+
+## The idea
+
+A customer, `CUST-10293` in your system, has 10 unpaid orders. You open 10 accounts, one per order, each bound to your order reference. When money lands in one, the [`account.funded`](/webhooks/overview#account-funded) webhook carries that order's `reference`, so you mark exactly that order paid.
+
+You use your own ids throughout. You never need to store ours.
+
+## Choose the kind of account
+
+| | Persistent account with `reference` | Dynamic account with `reference` |
+|---|---|---|
+| Endpoint | [`POST /v1/virtual-accounts/create`](/api-reference/virtual-accounts/create) | [`POST /v1/virtual-accounts/dynamic`](/api-reference/virtual-accounts/dynamic) |
+| Lives | Until you stop using it | For `lifespan_minutes` (up to 24 hours) |
+| Best for | Loans and instalments repaid over weeks | One payment per order, checkout-style |
+| Amount | None set; any transfer is credited | Set per order; sent back as `expected_amount` |
+| Webhook `reference` | The account's reference | The order's reference |
+
+## Steps
+
+<Steps>
+<Step title="Name the customer by your own id">
+Send your customer id as `customer_id`. The first time, include the customer's details and the customer is created with your id as their `reference` (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids)). After that, your id alone is enough.
+</Step>
+<Step title="Open one account per order">
+Persistent:
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "CUST-10293",
+    "reference": "LOAN-2026-0042",
+    "currency": "NGN",
+    "id_number": "22212345678",
+    "customer_name": "Ada Obi",
+    "customer_email": "ada@example.com",
+    "customer_phone": "08030000000"
+  }'
+```
+
+Or dynamic:
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/dynamic \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "CUST-10293",
+    "amount": 15000,
+    "lifespan_minutes": 60,
+    "reference": "ORDER-7781"
+  }'
+```
+
+Repeat for each order with its own reference. Repeating a request for the **same** order returns the same account, so retries are safe.
+</Step>
+<Step title="Show each order's account to the customer">
+Store the account number against the order and show it next to that order.
+</Step>
+<Step title="Match each payment on the webhook">
+On `account.funded`, look up the order by `data.reference`. Compare `paid_amount` with what the order is owed (`expected_amount` on dynamic accounts), then mark the order paid once, keyed on `transaction_ref` so a repeated webhook can't apply twice.
+
+```json
+{
+  "event": "account.funded",
+  "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+  "data": {
+    "reference": "ORDER-7781",
+    "customer_reference": "CUST-10293",
+    "expected_amount": 15000,
+    "paid_amount": 15000,
+    "amount": 14950,
+    "fee": 50,
+    "transaction_ref": "DEP_k3J9xQ2mT8vL5nR1",
+    "virtual_account_number": "9000043059"
+  }
+}
+```
+
+(Abridged; see [account.funded](/webhooks/overview#account-funded) for every field.)
+</Step>
+<Step title="Verify when in doubt">
+[`POST /v1/payments/verify`](/payments/verification#customer-payments-into-virtual-accounts) with the order reference returns the payment, or `order_unpaid` if nothing has been paid into that order's account yet.
+</Step>
+</Steps>
+
+## When the bank can't open more accounts
+
+Some banks can issue only one account per customer. If the customer already holds an account at such a bank, opening another answers `409` `account_limit_reached`, and `data.accounts` lists the customer's existing accounts there. Nothing is opened. Either:
+
+- choose another bank with `codes` on the request, or
+- use dynamic accounts for the orders, which are not limited this way.
+
+## Things to know
+
+- **Different amounts are credited.** A transfer that doesn't match the order is still credited (less our fee). Decide in your system what an underpayment or overpayment means for the order.
+- **Several transfers into one account** are each credited, each with its own webhook.
+- **Late payments are credited.** A payment into a dynamic account after `expires_at` is credited and marked `"late": true` on the webhook.
+- **An account without a reference identifies the customer, not the order.** Payments into it carry `customer_reference` but no `reference`.
+- **References are yours, and private to your business.** Another business using the same reference never sees your accounts or payments.

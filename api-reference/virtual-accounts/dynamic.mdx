@@ -5,6 +5,12 @@ openapi: "POST /v1/virtual-accounts/dynamic"
 
 ## Overview
 
-Generate a dynamic, single-use virtual account for a customer with a fixed receivable amount and a configurable expiry window. The account is tied to an exact amount - it will only accept a payment matching that value - and automatically becomes inactive once the lifespan elapses or the payment is received.
+Generate a single-use NGN account for a customer, for an amount and a lifespan (5 to 1440 minutes). Show the payer the account, the amount and `expires_at`.
 
-This is ideal for checkout flows, invoice payments, or any scenario where you need a guaranteed, one-time payment collection without reusing a permanent account.
+`customer_id` can be our customer id or your own; with the customer's details in the request, a new customer is created under your id (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids); on this route `customer_date_of_birth` is always required for a new customer).
+
+## Order reference
+
+Send your order id as `reference` (or `order_reference`) to give the order its own account. The response returns it as `order_reference`, and `account.funded` carries it as `reference`, with `expected_amount`. Repeating the request with the same reference, customer and amount while the account is open returns the same account. Any other reuse answers `400` `duplicate_reference` (`data.status` `expired` once the account has expired). Without `reference`, a customer has one open account at a time and a repeat returns it, even for a different amount.
+
+A payment of a different amount, or after `expires_at`, is still credited; a late one is marked `"late": true` on the webhook. See [Collecting payments per order](/virtual-accounts/collecting-per-order).

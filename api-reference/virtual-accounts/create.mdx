@@ -6,3 +6,19 @@ openapi: "POST /v1/virtual-accounts/create"
 ## Overview
 
 Create a virtual account for a customer. Virtual accounts allow customers to receive payments directly into their account. This endpoint creates a bank account that can be used for receiving funds.  To generate USD virtual accounts, ensure a default USD settlement wallet is set on your [dashboard settings](https://business.platnova.com/settings?section=settlements). This wallet will be billed for USD account creation fees if applicable. For NGN virtual accounts, you can optionally specify an `id_number` parameter in the request body, which corresponds to a valid BVN.
+
+## Your own customer id
+
+`customer_id` can be our customer id or your own (or send yours as `customer_reference`). If none of your customers has your id yet, include the customer's details and the customer is created with your id as their `reference`: `customer_name` (or `customer_first_name` and `customer_last_name`), `customer_email`, `customer_phone`, optionally `customer_country_code` (defaults to `NG` for NGN), and `customer_date_of_birth`. The date of birth is not needed for NGN when you send `id_number` (BVN): it is taken from the BVN record. A missing detail answers `422` listing each field. See [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids).
+
+## Account reference
+
+Add `reference` to open an account for one loan or order. A customer can hold one account per reference, and each payment into it carries the reference on `account.funded`. Repeating the request returns the same account.
+
+| Answer | When |
+|---|---|
+| `400` `duplicate_reference` | The reference belongs to another account of your business (another customer or currency) |
+| `409` `reference_in_progress` | The first request with this reference is still opening the account; retry shortly |
+| `409` `account_limit_reached` | The bank can't open another account for this customer; `data.accounts` lists the existing ones. Nothing was opened |
+
+Look an account up with [Get Virtual Account by Reference](/api-reference/virtual-accounts/by-reference). See [One account per loan or order](/virtual-accounts/creating-accounts#one-account-per-loan-or-order).

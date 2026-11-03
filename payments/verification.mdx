@@ -18,6 +18,7 @@ curl -X POST https://api.platnova.com/v1/payments/verify \
 
 - **the checkout `id`** you got when you created the checkout (best for plugins: you already stored it against the order);
 - **the payment `reference`** from the `checkout.paid` webhook;
+- **for a customer's payment into a virtual account**: your order `reference` on a dynamic account, or the `transaction_ref` from the `account.funded` webhook (see [below](#customer-payments-into-virtual-accounts));
 - **for a payout** you sent with [`POST /v1/payments/send`](/payments/sending-payments): either the `transaction_ref` it returned, or **your own `reference`** you sent with it. Use your own reference when the send timed out and you never got a `transaction_ref`.
 
 Verification only ever finds your own business's payments, and it keeps working after the checkout itself has expired.
@@ -108,6 +109,54 @@ What the not-paid statuses mean for a payout:
 - **`cancelled`** is how a failed payout reads: the amount and fee are back in your wallet. A payout reversed after it succeeded reads `cancelled` too; then the amount is back but the fee is kept.
 - **`failed`** is only a scheduled payout that found too little in the wallet when it was due. Nothing was debited.
 - The `transfer.failed` webhook carries `data.status` `failed`, while Verify answers `cancelled` for the same payout.
+
+## Response: customer payments into virtual accounts
+
+Verify a customer's payment by your **order reference** (the `reference` you gave a [dynamic account](/virtual-accounts/dynamic-accounts)) or by the `transaction_ref` from `account.funded`:
+
+```json
+{
+  "status": true,
+  "data": {
+    "id": "0d6c2a8e-5b1f-4c7a-9e3d-8f2a1b4c6d70",
+    "ref": "DEP_k3J9xQ2mT8vL5nR1",
+    "reference": "ORDER-7781",
+    "currency": "NGN",
+    "amount": 14950,
+    "paid_amount": 15000,
+    "fee": 50,
+    "type": "deposit",
+    "status": "success",
+    "entry": "credit",
+    "message": "Deposited NGN",
+    "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+    "customer_reference": "CUST-10293",
+    "expected_amount": 15000,
+    "created_at": "2026-11-03T10:21:44Z",
+    "updated_at": "2026-11-03T10:21:44Z"
+  },
+  "error": [],
+  "message": "operation was successful"
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `ref` | Platnova's reference for the credit (the webhook's `transaction_ref`) |
+| `reference` | Your order's reference, or the reference of the persistent account paid into. Empty if none |
+| `customer_id`, `customer_reference` | Our id for the customer, and yours when set |
+| `amount`, `paid_amount`, `fee` | Credited, sent by the payer, and our fee |
+| `expected_amount` | The amount the order's account was opened for. Compare it with `paid_amount` |
+
+If several transfers were made into an order's account, the order reference finds the first; each one's `transaction_ref` finds that one.
+
+An order whose account nothing has been paid into answers `400` `payment not found` with `data.code` `order_unpaid` and `data.status` `pending` (the account is still open) or `expired`:
+
+```json
+{ "status": false, "data": { "code": "order_unpaid", "status": "pending" }, "error": [], "message": "payment not found" }
+```
+
+Only your own business's references are found.
 
 ## Response: not found
 

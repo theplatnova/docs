@@ -5,7 +5,7 @@ openapi: "PATCH /v1/customers/{id}"
 
 ## Overview
 
-Update an existing customer with a partial JSON body. Only include fields you want to change. Typical uses include correcting profile data, refreshing identity documents, and submitting proof-of-funds details.
+Update an existing customer with a partial JSON body. The `{id}` in the path is our customer id or your own `reference` for the customer. Only include fields you want to change. Typical uses include correcting profile data, refreshing identity documents, and submitting proof-of-funds details.
 
 ## Request body
 
@@ -13,6 +13,7 @@ All fields are optional:
 
 | Field | Description |
 | --- | --- |
+| `reference` | Set or change your own id for the customer (1–64 characters of letters, digits and `_ . : -`, unique within your business). A reference another of your customers has answers `400` `duplicate_customer_reference` with that customer's `id` |
 | `date_of_birth` | `YYYY-MM-DD` |
 | `address` | Same shape as on [create customer](/api-reference/customers/create); `address.document` is a base64 string when provided |
 | `first_name`, `last_name`, `phone`, `gender`, `country_code` | Profile fields |

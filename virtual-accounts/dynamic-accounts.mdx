@@ -3,41 +3,36 @@ title: "Dynamic Accounts"
 slug: "virtual-accounts/dynamic-accounts"
 ---
 
-Dynamic virtual accounts are single-use bank accounts generated on demand for a specific customer and a fixed payment amount. Unlike permanent virtual accounts, they expire automatically — either after the configured lifespan or once a matching payment is received.
+Dynamic virtual accounts are single-use NGN bank accounts generated on demand for a customer, an amount and a lifespan. Give each one your order reference and the payment notification tells you which order was paid.
 
 ## What Are Dynamic Virtual Accounts?
 
-A dynamic virtual account is a time-bound, amount-locked bank account. When you create one, you specify:
+When you create one, you specify:
 
-- The **customer** it belongs to
-- The **exact amount** it should accept
-- The **lifespan** in minutes before it expires
+- The **customer** it belongs to: our customer id or your own (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids))
+- The **amount** to collect
+- The **lifespan** in minutes (5 to 1440)
+- Optionally, your **order reference**
 
-Once a payment matching the exact amount is received, or the lifespan elapses, the account is no longer usable.
+Show the payer the account details, the amount and `expires_at`.
 
 ## Key Features
 
-### Amount-Locked Payments
+### One Account per Order
 
-Each dynamic account is created for a specific amount. This guarantees that the exact expected amount is collected, making reconciliation straightforward with no partial or overpayments to handle.
+Send `reference` (your order id; `order_reference` is accepted too) and the order gets its own account. The [`account.funded`](/webhooks/overview#account-funded) webhook for a payment into it carries your `reference` and the `expected_amount`, so you know which order to mark paid. See [Collecting payments per order](/virtual-accounts/collecting-per-order).
 
-### Automatic Expiry
+### Amount
 
-Dynamic accounts expire after the lifespan you configure. This reduces exposure and ensures abandoned payment sessions do not leave open accounts indefinitely.
+The account is opened for the amount you set, and that is the amount to show the payer. A transfer of a different amount is **still credited** (less our fee), and several transfers into one account are each credited with their own webhook. Compare `paid_amount` with `expected_amount` on the webhook and decide what an under- or overpayment means for your order.
 
-### Unique Reference per Session
+### Expiry
 
-Every generated account includes a unique `reference` field, allowing you to track and correlate payment sessions in your system. This reference is sent along with a webhook when the deposit is successful.
+The account is meant to be paid before `expires_at`. A payment that arrives after it is **still credited**, and its webhook carries `"late": true`. Issue a new account for a new attempt rather than resending the old details.
 
 ### Instant Provisioning
 
-Accounts are created and ready to receive payments immediately. The full bank details — account number, account name, and bank name — are returned in the response and can be displayed directly to the payer.
-
-## When to Use Dynamic Accounts
-
-- **Checkout flows** — Generate a fresh account per order so each payment is uniquely tied to a transaction.
-- **Invoice collection** — Issue a single-use account alongside an invoice to ensure the exact invoice amount is paid.
-- **Time-sensitive requests** — Set a short lifespan to enforce payment deadlines (e.g., hold a booking for 20 minutes).
+Accounts are created and ready to receive payments immediately. The full bank details are returned in the response and can be displayed directly to the payer.
 
 ## Generating a Dynamic Account
 
@@ -46,11 +41,14 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/dynamic \
   -H "X-API-KEY: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438",
-    "amount": 200,
-    "lifespan_minutes": 20
+    "customer_id": "CUST-10293",
+    "amount": 15000,
+    "lifespan_minutes": 60,
+    "reference": "ORDER-7781"
   }'
 ```
+
+If none of your customers has `customer_id` yet, add the customer's details (`customer_name`, `customer_email`, `customer_phone`, `customer_date_of_birth`) and the customer is created; see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids). On this route the date of birth is always required for a new customer.
 
 ## Response
 
@@ -60,16 +58,18 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/dynamic \
   "data": {
     "account_name": "PLATNOVA TECHNOLOGIES LTD/PLATNOVA ",
     "account_no": "9000043059",
-    "amount": 200,
+    "amount": 15000,
     "currency": "ngn",
-    "bank_name": "BEAMER (GABSYN) MICROFINANCE BANK",
+    "bank_name": "Example Bank",
     "reference": "BDEPSTbdpLERjSmvg2XbF9iTA0bXxrX8E88BOI",
-    "email": "emmrysjonathan@gmail.com",
-    "expires_at": "2026-03-19T23:13:03.140476016Z",
+    "email": "ada@example.com",
+    "expires_at": "2026-11-03T11:15:00Z",
     "payment_session_id": "",
     "usage": "integration",
-    "created_at": "2026-03-19T22:53:03.140476016Z",
-    "customer_id": "aad8aff0-00db-48b0-9bb0-9b399c313438"
+    "created_at": "2026-11-03T10:15:00Z",
+    "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+    "customer_reference": "CUST-10293",
+    "order_reference": "ORDER-7781"
   },
   "error": [],
   "message": "operation was successful"
@@ -82,30 +82,40 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/dynamic \
 |---|---|
 | `account_name` | The name on the generated account |
 | `account_no` | The bank account number to display to the payer |
-| `amount` | The exact amount the account will accept |
+| `amount` | The amount to show the payer |
 | `currency` | Currency of the account (lowercase ISO code) |
 | `bank_name` | Name of the bank that issued the account |
-| `reference` | Unique reference for this payment session |
+| `reference` | The account's own reference, generated by Platnova. Sent as `account_reference` on `account.funded`. Not your order reference |
+| `order_reference` | Your `reference` for the order, when you sent one |
 | `email` | Email address of the customer |
-| `expires_at` | Timestamp when the account becomes inactive |
+| `expires_at` | When the account is due to expire |
 | `payment_session_id` | Session identifier for tracking (may be empty) |
 | `usage` | Usage context identifier |
 | `created_at` | Timestamp when the account was created |
-| `customer_id` | ID of the customer this account belongs to |
+| `customer_id` | Our id for the customer |
+| `customer_reference` | Your own id for the customer, when set |
 
-## Account Lifecycle
+## Repeating a Request
 
-1. **Created** — Account is provisioned instantly with full bank details.
-2. **Active** — Account is live and can receive the specified amount during the lifespan window.
-3. **Expired** — The lifespan elapses without a payment; the account becomes inactive.
-4. **Completed** — A matching payment is received; the account closes.
+**Without `reference`**, a customer has one open dynamic account at a time: a second request while it is open returns the same account, **even for a different amount**. To collect several amounts from one customer at once, give each its own `reference`.
+
+**With `reference`**, each order has its own account, separate from that one:
+
+| You send | Answer |
+|---|---|
+| The same reference, customer and amount, while the account is open | The same account (safe to retry) |
+| The same reference with another customer or amount | `400` `duplicate_reference` |
+| The same reference after its account has expired | `400` `duplicate_reference` with `data.status` `expired`. Use a new reference |
+| The same reference while the first request is still opening the account | `409` `reference_in_progress`. Retry shortly |
+
+Order references are 1–64 characters of letters, digits and `_ . : -`, unique among your business's dynamic accounts. Anything else answers `400` `invalid_reference`.
 
 ## Best Practices
 
-- Keep `lifespan_minutes` short (10–30 minutes) for checkout use cases to minimise open sessions.
+- Keep `lifespan_minutes` short (10–30 minutes) for checkout use cases.
 - Always display `expires_at` to the payer so they know the deadline.
-- Use the `reference` field to link the payment to your internal order or invoice record.
-- If a session expires before payment, generate a new dynamic account rather than reusing the old one.
+- Send your order id as `reference`, and match payments on the webhook's `reference`.
+- Confirm a payment with [Verify Payment](/payments/verification#customer-payments-into-virtual-accounts) using your order reference.
 
 ## Next Steps
 
