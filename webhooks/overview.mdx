@@ -28,7 +28,9 @@ We judge a delivery by your HTTP status alone. Any 2xx means delivered, and that
 
 ## Supported Events
 
-You can subscribe to specific events or patterns when configuring your webhook:
+You can subscribe to specific events or patterns when configuring your webhook. A pattern is any prefix followed by `.*` (for example `transfer.*`), or `*` for everything.
+
+You can add several endpoints, each with its own URL, secret and events: for example, card events to one service and transfers to another. Each event goes to every endpoint subscribed to it.
 
 | Event ID | Label |
 |----------|-------|
@@ -36,11 +38,15 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `card.*` | All Card Events |
 | `card.created` | Card Created |
 | `card.terminated` | Card Terminated |
+| `card.termination.refund` | Card Termination Refund |
 | `card.withdrawal` | Card Withdrawal |
 | `card.charged` | Card Charged |
 | `card.refund` | Card Refund |
 | `card.funded` | Card Funded |
 | `card.declined` | Card Declined |
+| `card.decline.charge` | Card Decline Fee Charged |
+| `card.decline.wallet.charge` | Card Decline Fee Charged to Wallet |
+| `card.code` | Card OTP Code |
 | `card.frozen` | Card Frozen |
 | `card.unfrozen` | Card Unfrozen |
 | `card.funding.failed` | Card Funding Failed |
@@ -54,6 +60,8 @@ You can subscribe to specific events or patterns when configuring your webhook:
 | `customer.*` | All Customer Events |
 | `transfer.success` | Transfer Success |
 | `transfer.failed` | Transfer Failed |
+| `transfer.reversed` | Transfer Reversed |
+| `transfer.*` | All Transfer Events |
 | `checkout.paid` | Checkout Paid |
 | `checkout.failed` | Checkout Failed |
 | `defi.payment` | Crypto Checkout Payment |
@@ -157,6 +165,27 @@ Sent when a card is closed for good: by the business (`DELETE /v1/cards/:id` or 
       "narration": "Card termination",
       "charge_amount": "0.00"
     }
+  }
+}
+```
+
+### card.termination.refund
+
+Sent when the balance left on a terminated card is returned to your wallet. `amount` is what was returned.
+
+```json
+{
+  "event": "card.termination.refund",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "canceled",
+    "currency": "USD",
+    "amount": 12.50,
+    "fee": 0.00,
+    "transaction_ref": "TXN789012"
   }
 }
 ```
@@ -317,6 +346,46 @@ Sent when a card transaction is declined.
       "narration": "Declined transaction",
       "charge_amount": "50.00"
     }
+  }
+}
+```
+
+### card.decline.charge and card.decline.wallet.charge
+
+Sent when a fee is charged because a card transaction was declined: `card.decline.charge` when the card issuer charges it on the card, `card.decline.wallet.charge` when it is charged to one of your wallets. Repeated decline fees charged to a wallet within 24 hours terminate the card (`card.terminated`). Both carry the same fields; `card.decline.charge` adds `metadata`, as on `card.charged`.
+
+```json
+{
+  "event": "card.decline.wallet.charge",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_holder_name": "John Doe",
+    "card_status": "active",
+    "currency": "USD",
+    "amount": 0.50,
+    "fee": 0.00,
+    "transaction_ref": "TXN789012",
+    "description": "card decline fee charged to wallet"
+  }
+}
+```
+
+### card.code
+
+Sent when the card issuer sends a one-time code for the card, for example to confirm an online purchase. Show it only to the cardholder.
+
+```json
+{
+  "event": "card.code",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "card_id": "card_uid",
+    "card_status": "active",
+    "currency": "USD",
+    "code": "123456"
   }
 }
 ```
@@ -556,7 +625,9 @@ Sent when a customer's account is paused by our account partner. `reason` says w
 
 ### transfer.success
 
-Sent when a transfer completes successfully.
+Sent when a payout completes successfully.
+
+`data.reference` is Platnova's reference for the payout: the `transaction_ref` Send Payment answered, and what [Verify Payment](/api-reference/payments/verify) takes. It is not the `reference` you sent. `wallet_id` is the wallet that paid. `metadata` holds the recipient details the payout was sent with; only the fields that apply are present.
 
 ```json
 {
@@ -564,7 +635,8 @@ Sent when a transfer completes successfully.
   "timestamp": "2024-01-01T12:00:00Z",
   "customer_id": "",
   "data": {
-    "reference": "TXN123456",
+    "reference": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+    "wallet_id": "43a2b75e-5c59-429e-872a-2a54c7b17e37",
     "amount": 1000.00,
     "currency": "USD",
     "fee": 5.00,
@@ -611,7 +683,11 @@ Sent when a transfer completes successfully.
 
 ### transfer.failed
 
-Sent when a transfer fails.
+Sent when a payout fails. The amount and fee are back in your wallet. `reason` is a sentence you can show.
+
+<Note>
+`data.status` here is `failed`, but the payout itself reads `cancelled` from then on, in Verify Payment and the transaction list.
+</Note>
 
 ```json
 {
@@ -619,7 +695,8 @@ Sent when a transfer fails.
   "timestamp": "2024-01-01T12:00:00Z",
   "customer_id": "",
   "data": {
-    "reference": "TXN123456",
+    "reference": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+    "wallet_id": "43a2b75e-5c59-429e-872a-2a54c7b17e37",
     "amount": 1000.00,
     "currency": "USD",
     "fee": 5.00,
@@ -660,6 +737,34 @@ Sent when a transfer fails.
       "cashapp_id": "$cashapp",
       "paypal_id": "paypal@example.com",
       "note": "Payment for services"
+    }
+  }
+}
+```
+
+### transfer.reversed
+
+Sent when a payout that had succeeded is reversed and the amount returned to your wallet (the fee is kept). `reference` is the original payout's; `reversal_reference` is the credit that returned the money. The payout reads `cancelled` from then on.
+
+```json
+{
+  "event": "transfer.reversed",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "customer_id": "",
+  "data": {
+    "reference": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+    "reversal_reference": "BRVRSL2kLmN8pQ4rS6tU0vW1xY3zA5bC7dE9F",
+    "wallet_id": "43a2b75e-5c59-429e-872a-2a54c7b17e37",
+    "amount": 1000.00,
+    "currency": "NGN",
+    "fee": 5.00,
+    "status": "cancelled",
+    "reason": "reversal reason",
+    "metadata": {
+      "account_number": "0123456789",
+      "bank_code": "058",
+      "bank_name": "Bank Name",
+      "account_name": "John Doe"
     }
   }
 }

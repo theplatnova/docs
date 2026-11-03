@@ -66,3 +66,7 @@ A tax ID document is required when creating virtual accounts for a customer. Sub
 | All other countries | — | `tin` |
 
 For any country not listed above, use `id_type: "tin"`.
+
+## Duplicates
+
+A customer is unique by email within your business. Creating one with an email you already used answers `409` with `data.code` `customer_exists` and `data.id`, the existing customer's `id`, so you can carry on with that customer instead.

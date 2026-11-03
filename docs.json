@@ -193,7 +193,8 @@
             "group": "Payments",
             "pages": [
               "api-reference/payments/send",
-              "api-reference/payments/verify"
+              "api-reference/payments/verify",
+              "api-reference/payments/by-key"
             ]
           },
           {

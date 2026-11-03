@@ -13,3 +13,5 @@ Send a payment using the specified payment method. Supported methods include **b
 - `transaction_ref` (response): Platnova's unique reference for the payment.
 
 [Verify Payment](/api-reference/payments/verify) accepts either. If a send times out, see [Handling timeouts](/payments/sending-payments#handling-timeouts).
+
+You can also send an `Idempotency-Key` header: a retry with the same key and body returns the first answer instead of running again, and [Get payment by idempotency key](/api-reference/payments/by-key) tells you what a lost request created.

@@ -144,22 +144,13 @@
             }
           },
           "400": {
-            "description": "Customer already exists, or the reference is taken (`duplicate_customer_reference`)",
+            "description": "Refused: the reference is taken (`duplicate_customer_reference`), or another reason that `message` explains.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
                 "examples": {
-                  "customer_exists": {
-                    "summary": "Customer already exists",
-                    "value": {
-                      "status": false,
-                      "data": {},
-                      "error": [],
-                      "message": "customer already exists"
-                    }
-                  },
                   "duplicate_customer_reference": {
                     "summary": "Reference already used",
                     "value": {
@@ -198,12 +189,31 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "A customer with this email already exists in your business. `data.code` is `customer_exists` and `data.id` is the existing customer's `id`: use it rather than creating another.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "status": false,
+                  "data": {
+                    "code": "customer_exists",
+                    "id": "0b7d3c2e-8f4a-4e1b-9c6d-2a5f7e9b1c34"
+                  },
+                  "error": [],
+                  "message": "A customer with this email already exists."
+                }
+              }
+            }
           }
         }
       },
       "get": {
         "summary": "List customers",
-        "description": "Retrieve a paginated list of customers.",
+        "description": "Retrieve a paginated list of your customers.",
         "operationId": "listCustomers",
         "tags": [
           "Customer"
@@ -228,6 +238,43 @@
               "type": "integer"
             },
             "example": 20
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive match on first name, last name, full name or email.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "jane"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Sort field and direction",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "description": "Filter expression",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "export",
+            "in": "query",
+            "required": false,
+            "description": "Set to export the matching customers as CSV instead of a page.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -247,7 +294,7 @@
                         "items": {
                           "type": "array",
                           "items": {
-                            "type": "object"
+                            "$ref": "#/components/schemas/Customer"
                           }
                         },
                         "page": {
@@ -4160,7 +4207,8 @@
                           "description": "Platnova's unique reference for this payment. Verify Payment accepts it, and so does your own `reference`."
                         },
                         "status": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "`pending` for a payout sent with an API key (it is on its way); `pending_approval` when a dashboard user without approval permission sent it. Follow it with Verify Payment or the `transfer.*` webhooks."
                         },
                         "from_amount": {
                           "type": "number"
@@ -4169,16 +4217,19 @@
                           "type": "number"
                         },
                         "from_currency": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Lowercase, e.g. `ngn`."
                         },
                         "to_currency": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Lowercase, e.g. `ngn`."
                         },
                         "method": {
                           "type": "string"
                         },
                         "created_at": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "A readable time in your business's time zone, e.g. `Tuesday, 3 November, 09:15`. Not machine-readable: use `created_at` from Verify Payment."
                         }
                       }
                     },
@@ -4195,7 +4246,7 @@
             }
           },
           "400": {
-            "description": "Refused; nothing was sent (for example insufficient funds, or an invalid payload). A `reference` already used answers `data.code` `duplicate_reference` with the existing payment's `transaction_ref`.",
+            "description": "Refused; nothing was sent (for example insufficient funds, or an invalid payload). A `reference` already used answers `data.code` `duplicate_reference` with the existing payment's `transaction_ref`. `data.code` `duplicate_payment`: the same amount to the same recipient less than a minute ago, sent with no `reference` and no `Idempotency-Key`. `idempotency_key_invalid` / `idempotency_key_required`: see Errors.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4208,7 +4259,7 @@
                       "status": false,
                       "data": {
                         "code": "duplicate_reference",
-                        "transaction_ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+                        "transaction_ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2"
                       },
                       "error": [],
                       "message": "duplicate transaction detected: reference already exists"
@@ -4219,7 +4270,7 @@
             }
           },
           "422": {
-            "description": "Validation error (e.g. invalid info fields for payment method)",
+            "description": "Validation error (e.g. invalid info fields for payment method) Also `data.code` `idempotency_key_reused`: the key was already used for a different request.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4246,8 +4297,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
       }
     },
     "/v1/payments/verify": {
@@ -4275,7 +4334,7 @@
                 "transaction_ref": {
                   "summary": "Platnova's transaction_ref",
                   "value": {
-                    "reference": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt"
+                    "reference": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2"
                   }
                 },
                 "order_reference": {
@@ -4318,7 +4377,7 @@
                       "status": true,
                       "data": {
                         "id": "6f1c2d9e-8a4b-4c1e-9b7a-2f5d3e8c1a90",
-                        "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+                        "ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
                         "reference": "INV-2026-0042",
                         "currency": "NGN",
                         "amount": 5000,
@@ -4597,7 +4656,7 @@
                     "items": [
                       {
                         "id": "trx_43a2b75e-5c59-429e-872a-2a54c7b17e34",
-                        "ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+                        "ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
                         "amount": "100.50",
                         "fee": "10.00",
                         "type": "transfer",
@@ -5718,7 +5777,7 @@
     "/v1/wallets": {
       "get": {
         "summary": "List wallets",
-        "description": "",
+        "description": "Your business's wallets, one per currency.",
         "operationId": "listWallets",
         "tags": [
           "Wallet"
@@ -5737,22 +5796,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "description": "Wallet UID"
-                          },
-                          "currency": {
-                            "type": "string"
-                          },
-                          "balance": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          }
-                        }
+                        "$ref": "#/components/schemas/Wallet"
                       }
                     },
                     "error": {
@@ -5768,16 +5812,32 @@
                   "status": true,
                   "data": [
                     {
-                      "id": "wl_43a2b75e-5c59-429e-872a-2a54c7b17e37",
-                      "currency": "NGN",
-                      "balance": "150000.00",
-                      "status": "active"
+                      "type": "ngn",
+                      "symbol": "₦",
+                      "description": "Nigerian Naira",
+                      "country": {
+                        "code": "NG",
+                        "dial_code": "+234"
+                      },
+                      "status": "active",
+                      "id": "43a2b75e-5c59-429e-872a-2a54c7b17e37",
+                      "amount": "150000.00",
+                      "label": "",
+                      "is_default": true
                     },
                     {
-                      "id": "wl_5c5e173f-7754-41af-a2ee-b4be7d709e0c",
-                      "currency": "USD",
-                      "balance": "2500.50",
-                      "status": "active"
+                      "type": "usd",
+                      "symbol": "$",
+                      "description": "US Dollar",
+                      "country": {
+                        "code": "US",
+                        "dial_code": "+1"
+                      },
+                      "status": "active",
+                      "id": "5c5e173f-7754-41af-a2ee-b4be7d709e0c",
+                      "amount": "2500.50",
+                      "label": "",
+                      "is_default": true
                     }
                   ],
                   "error": [],
@@ -7288,6 +7348,127 @@
           }
         }
       }
+    },
+    "/v1/payments/by-key/{key}": {
+      "get": {
+        "summary": "Get payment by idempotency key",
+        "description": "What became of a money request whose answer you lost, by the `Idempotency-Key` you sent it with. Keys are looked up within your business: requests made with your API keys are found by any of them, and a dashboard user finds only their own. Read-only: nothing is run or repeated.",
+        "operationId": "getPaymentByKey",
+        "tags": [
+          "Payment"
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "The `Idempotency-Key` the request was sent with."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request and what it created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaymentByKeyResponse"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "created": {
+                    "summary": "The payout was created",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "key": "payout-INV-2026-0042",
+                        "state": "answered",
+                        "nothing_created": false,
+                        "payment": {
+                          "type": "transaction",
+                          "id": "6f1c2d9e-8a4b-4c1e-9b7a-2f5d3e8c1a90",
+                          "ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
+                          "status": "success",
+                          "amount": "5000.00",
+                          "fee": "50.00",
+                          "created_at": "2026-11-03T09:15:02Z"
+                        }
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  },
+                  "nothing_created": {
+                    "summary": "Refused; nothing was sent",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "key": "payout-INV-2026-0042",
+                        "state": "answered",
+                        "nothing_created": true,
+                        "payment": null
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`data.code` `idempotency_key_invalid`: not 1–255 of letters, digits, `_`, `.`, `:`, `-`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`data.code` `idempotency_key_not_found`: we have no request from you under this key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`data.code` `lookup_unavailable`: we couldn't check just now. Try again; this never means nothing happened.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8506,7 +8687,7 @@
           "status": {
             "type": "string",
             "example": "success",
-            "description": "Only `success` means paid. `success`: paid, final. `failed`, `cancelled`, `reversed`: not paid, final; the money is back in your wallet. `pending`, `processing`, `pending_approval`, `under_review`: not final yet; check again later or wait for the webhook. Treat any value other than `success` as not paid."
+            "description": "Only `success` means paid. `success`: paid, final. `failed`, `cancelled`, `reversed`: not paid, final; the money is back in your wallet. `pending`, `processing`, `pending_approval`, `under_review`: not final yet; check again later or wait for the webhook. Treat any value other than `success` as not paid. For a payout: a failed payout reads `cancelled` (amount and fee returned), and so does one reversed after it succeeded (amount returned, fee kept); `failed` is only a scheduled payout that found too little in the wallet when it was due, and nothing was debited."
           },
           "entry": {
             "type": "string",
@@ -8701,6 +8882,250 @@
               "null"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "PaymentByKeyResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "in_progress",
+              "no_answer"
+            ],
+            "description": "`answered`: the request finished; the same key and body return the same answer. `in_progress`: it may still be running; ask again shortly. `no_answer`: it stopped without an answer (our error, or a crash). The key will never run again."
+          },
+          "nothing_created": {
+            "type": "boolean",
+            "description": "`true` only when the request can no longer create anything and created nothing: you may send the payment again **under a new key**. `false` with `payment` null means we can't be sure yet; ask again later rather than paying twice."
+          },
+          "payment": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "What the request created, or null.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "`transaction` for a payout or conversion; `recurring_payment`; card routes answer `card`, `customer_card` or `customer_transaction`."
+              },
+              "id": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string",
+                "description": "For a payout, the `transaction_ref` Send Payment would have answered."
+              },
+              "status": {
+                "type": "string",
+                "description": "The payment's status **now**."
+              },
+              "amount": {
+                "type": "string",
+                "example": "5000.00"
+              },
+              "fee": {
+                "type": "string",
+                "example": "50.00"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Platnova's id for the customer: the `customer_id` the other customer routes take."
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "country_code": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "dial_code": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "date_of_birth": {
+                "type": "string"
+              },
+              "employment_status": {
+                "type": "string"
+              },
+              "expected_monthly_income": {
+                "type": "string"
+              },
+              "primary_purpose": {
+                "type": "string"
+              },
+              "source_of_funds": {
+                "type": "string"
+              },
+              "most_recent_occupation": {
+                "type": "string"
+              },
+              "document": {
+                "type": "object",
+                "properties": {
+                  "docs": {
+                    "nullable": true
+                  },
+                  "number": {
+                    "type": "string"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "id_type": {
+                    "type": "string"
+                  },
+                  "valid_until": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "integer"
+                  },
+                  "additional": {
+                    "nullable": true
+                  },
+                  "gender": {
+                    "type": "string"
+                  }
+                }
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "street": {
+                    "type": "string"
+                  },
+                  "city": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "postal_code": {
+                    "type": "string"
+                  },
+                  "document": {
+                    "type": "object",
+                    "properties": {
+                      "id_type": {
+                        "type": "string"
+                      },
+                      "issue_country": {
+                        "type": "string"
+                      },
+                      "urls": {
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              },
+              "providers": {
+                "nullable": true
+              }
+            }
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Your own id for the customer; `null` if you set none."
+          }
+        }
+      },
+      "Wallet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The wallet's id: what Send Payment takes as `from_wallet_id`. A plain UUID, with no prefix."
+          },
+          "type": {
+            "type": "string",
+            "description": "The wallet's currency, lowercase.",
+            "example": "ngn"
+          },
+          "amount": {
+            "type": "string",
+            "description": "The balance, as a decimal string.",
+            "example": "150000.00"
+          },
+          "symbol": {
+            "type": "string",
+            "example": "₦"
+          },
+          "description": {
+            "type": "string",
+            "description": "The currency's name.",
+            "example": "Nigerian Naira"
+          },
+          "country": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "NG"
+              },
+              "dial_code": {
+                "type": "string"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "A name you gave the wallet; may be empty."
+          },
+          "is_default": {
+            "type": "boolean",
+            "description": "Whether this is a default wallet."
           }
         }
       }
