@@ -7,29 +7,32 @@ Create virtual bank accounts instantly for your customers. This guide covers the
 
 ## Creating a Virtual Account
 
-Create a virtual account for a customer:
+Create a virtual account for a customer you already have, by our customer id or your own:
 
 ```bash
 curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
   -H "X-API-KEY: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "customer_id": "customer_123",
-    "currency": "USD"
+    "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+    "currency": "NGN",
+    "id_number": "22212345678"
   }'
 ```
+
+For a customer you haven't created yet, send your own id with their details in the same request: see [Use your own customer ids](#use-your-own-customer-ids).
 
 ## Account Creation Parameters
 
 ### Required Fields
 
 - **Customer** - `customer_id`: our customer id or your own (see [Use your own customer ids](#use-your-own-customer-ids)). Or send your id as `customer_reference`.
-- **Currency** - The currency for the account (USD, NGN, etc.)
+- **Currency** - The currency for the account: `NGN` or `USD`. USD customers need an address and identity documents on file, so create them with [Create Customer](/api-reference/customers/create) first
 
 ### Optional Fields
 
 - **Reference** - Your own reference for this account (see [One account per loan or order](#one-account-per-loan-or-order))
-- **ID number** - For NGN accounts, the customer's BVN in `id_number`
+- **ID number** - For NGN accounts, the customer's BVN in `id_number`. In live it is required unless the customer already has a BVN on file, and it is verified before the account is opened
 - **Codes** - For NGN accounts, an array of provider bank codes used to select which provider issues the account (see [Choosing a Provider](#choosing-a-provider-ngn-accounts) below)
 
 ## Choosing a Provider (NGN Accounts)

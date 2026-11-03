@@ -183,10 +183,10 @@
               ],
               "variable": []
             },
-            "description": "Create a virtual bank account for a customer in the specified currency. Requires customer_id and currency. For NGN, id_number (BVN) may be required.",
+            "description": "Open a virtual bank account for a customer. Name the customer with customer_id (our id or your own) or customer_reference (your own), not both. For a new customer, send customer_name (or customer_first_name + customer_last_name), customer_email, customer_phone, customer_country_code (defaults to NG for NGN) and customer_date_of_birth (not needed for NGN when id_number is sent); customer_gender is optional. For NGN in live, id_number (BVN) is required unless the customer has one on file. Optional reference opens one account per loan or order.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"currency\": \"NGN\",\n  \"customer_id\": \"43a2b75e-5c59-429e-872a-2a54c7b17e34\",\n  \"id_number\": \"22123456789\",\n  \"codes\": [\n    \"058\"\n  ]\n}",
+              "raw": "{\n  \"customer_id\": \"CUST-10293\",\n  \"reference\": \"LOAN-2026-0042\",\n  \"currency\": \"NGN\",\n  \"id_number\": \"22212345678\",\n  \"customer_first_name\": \"Ada\",\n  \"customer_last_name\": \"Obi\",\n  \"customer_email\": \"ada@example.com\",\n  \"customer_phone\": \"08030000000\",\n  \"customer_country_code\": \"NG\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -221,7 +221,7 @@
               ],
               "variable": []
             },
-            "description": "Generate a dynamic, single-use virtual account for a customer with a fixed amount and configurable expiry. The account automatically expires after the specified lifespan and can only receive a payment matching the exact amount.",
+            "description": "Generate a single-use NGN account for a customer, for an amount and a lifespan (5 to 1440 minutes). Name the customer with customer_id (our id or your own) or customer_reference. Optional reference (your order id) gives the order its own account. A payment of a different amount, or after expiry, is still credited.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"customer_id\": \"aad8aff0-00db-48b0-9bb0-9b399c313438\",\n  \"amount\": 200,\n  \"lifespan_minutes\": 20\n}",
