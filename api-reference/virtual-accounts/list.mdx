@@ -5,4 +5,6 @@ openapi: "GET /v1/virtual-accounts"
 
 ## Overview
 
-Retrieve a list of all virtual accounts for a specific customer. Filter with `customer_id` (our id or your own `reference` for the customer) or `customer_reference`. This endpoint returns all virtual accounts associated with the customer, including account details and metadata.
+With `customer_id` (our id or your own `reference` for the customer) or `customer_reference`, returns that customer's accounts. Without a customer filter, returns your business's own accounts. Filter either by `currency`.
+
+Each customer account carries `reference`: your reference the account was opened under, or `null` on the customer's general account. Use it to tell which loan or order each account is for.

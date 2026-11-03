@@ -5,20 +5,63 @@ openapi: "POST /v1/virtual-accounts/create"
 
 ## Overview
 
-Create a virtual account for a customer. Virtual accounts allow customers to receive payments directly into their account. This endpoint creates a bank account that can be used for receiving funds.  To generate USD virtual accounts, ensure a default USD settlement wallet is set on your [dashboard settings](https://business.platnova.com/settings?section=settlements). This wallet will be billed for USD account creation fees if applicable. For NGN virtual accounts, you can optionally specify an `id_number` parameter in the request body, which corresponds to a valid BVN.
+Open a bank account your customer can be paid into. Payments into it are credited to the customer and reported on the `account.funded` webhook.
 
-## Your own customer id
+You don't have to create the customer first. Name them with **your own** customer id, send their details, and the customer and the account are opened in one request.
 
-`customer_id` can be our customer id or your own (or send yours as `customer_reference`). If none of your customers has your id yet, include the customer's details and the customer is created with your id as their `reference`: `customer_name` (or `customer_first_name` and `customer_last_name`), `customer_email`, `customer_phone`, optionally `customer_country_code` (defaults to `NG` for NGN), and `customer_date_of_birth`. The date of birth is not needed for NGN when you send `id_number` (BVN): it is taken from the BVN record. A missing detail answers `422` listing each field. See [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids).
+## Naming the customer
 
-## Account reference
+Send **one** of these. Sending both answers `400`.
 
-Add `reference` to open an account for one loan or order. A customer can hold one account per reference, and each payment into it carries the reference on `account.funded`. Repeating the request returns the same account.
-
-| Answer | When |
+| Field | What it takes |
 |---|---|
-| `400` `duplicate_reference` | The reference belongs to another account of your business (another customer or currency) |
-| `409` `reference_in_progress` | The first request with this reference is still opening the account; retry shortly |
-| `409` `account_limit_reached` | The bank can't open another account for this customer; `data.accounts` lists the existing ones. Nothing was opened |
+| `customer_id` | Our customer id, or your own id for the customer |
+| `customer_reference` | Your own id for the customer |
 
-Look an account up with [Get Virtual Account by Reference](/api-reference/virtual-accounts/by-reference). See [One account per loan or order](/virtual-accounts/creating-accounts#one-account-per-loan-or-order).
+We look the value up within your business: our id first, then a customer whose `reference` is that value.
+
+- **Existing customer**: no details are needed.
+- **New customer** (no customer has your id yet): send the details below, and the customer is created with your id as their `reference`. Repeating the request finds the same customer; it never creates a second one.
+- **Unknown id and no details**: `400` `customer was not found`. An id in our customer-id format that isn't one of your customers is never taken as your own id.
+
+Your ids are 1–64 characters of letters, digits and `_ . : -`, unique within your business.
+
+### New customer details
+
+| Field | Required |
+|---|---|
+| `customer_name`, or `customer_first_name` + `customer_last_name` | Yes. `customer_name` is split at the first space |
+| `customer_email` | Yes |
+| `customer_phone` | Yes |
+| `customer_country_code` | Defaults to `NG` for NGN; required otherwise |
+| `customer_date_of_birth` | `YYYY-MM-DD`. Required, **except for NGN when you send `id_number` (BVN)**: the date of birth is then taken from the BVN record |
+| `customer_gender` | No. `male` or `female` |
+
+A missing detail answers `422` listing each missing field. If a customer with that email already exists without your id, the answer is `409` `customer_exists` with their `id`: use that id, or set your id on them with [Update Customer](/api-reference/customers/update) (`reference`).
+
+## Currency
+
+- **NGN**: in live, `id_number` (the customer's BVN) is required unless the customer already has a BVN on file. It is verified before the account is opened. Pick the issuing bank with `codes`, or omit it to use the first bank available to your business.
+- **USD**: set a default USD settlement wallet in your [dashboard settings](https://business.platnova.com/settings?section=settlements); any account fee is charged to it and returned as `amount_debited`. The customer needs an address and identity documents on file, so create USD customers with [Create Customer](/api-reference/customers/create) first.
+
+## One account per loan or order
+
+Add `reference` to open an account for one loan, order or contract. A customer can hold several accounts, one per reference, and every payment into an account carries its reference on `account.funded`.
+
+- Repeating the request with the same `reference`, customer and currency returns the same account. Nothing new is opened.
+- Look an account up with [Get Virtual Account by Reference](/api-reference/virtual-accounts/by-reference).
+- Without `reference`, a customer has one account per bank, and a second request for the same bank answers `400` `bank account is already added`.
+
+## Errors
+
+| Status | `data.code` | When |
+|---|---|---|
+| `400` | `duplicate_reference` | The `reference` belongs to another account of your business (another customer or currency) |
+| `400` | `invalid_reference` | The `reference` breaks the format |
+| `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
+| `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
+| `409` | `account_limit_reached` | The bank can't open another account for this customer. `data.accounts` lists their accounts there. Nothing was opened |
+| `409` | `customer_exists` | New customer: one with this email already exists without your id. `data.id` is that customer |
+| `422` | — | New customer: a detail is missing or in the wrong format. `errors` lists each field |
+
+See [Creating Accounts](/virtual-accounts/creating-accounts) for the full guide.
