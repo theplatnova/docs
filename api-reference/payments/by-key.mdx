@@ -1,0 +1,12 @@
+---
+title: "Get Payment by Idempotency Key"
+openapi: "GET /v1/payments/by-key/{key}"
+---
+
+## Overview
+
+Find out what became of a money request whose answer you lost, such as a [Send Payment](/api-reference/payments/send) that timed out, by the `Idempotency-Key` you sent it with. It only reads: nothing is run or repeated. For a payout you sent with your own `reference`, [Verify Payment](/api-reference/payments/verify) by that reference does the same job.
+
+- `payment` set: the payment exists. `payment.ref` is its `transaction_ref`, and `payment.status` is its status now.
+- `nothing_created: true`: nothing was created and nothing can be. Send it again **under a new key**.
+- `payment` null and `nothing_created: false`: we can't be sure yet (`in_progress`, or a request that stopped without an answer). Ask again later; don't send it again.

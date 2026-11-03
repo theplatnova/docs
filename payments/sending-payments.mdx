@@ -61,7 +61,7 @@ Cache the bank list for at most a day. All four endpoints need your API key.
 {
   "status": true,
   "data": {
-    "transaction_ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt",
+    "transaction_ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2",
     "status": "pending",
     "from_amount": 500,
     "to_amount": 500,
@@ -84,7 +84,7 @@ Sending a `reference` you already used is refused with `400`, and nothing is sen
 ```json
 {
   "status": false,
-  "data": { "code": "duplicate_reference", "transaction_ref": "UTR_7HeRoy4CRl6hcOOqAzwAeo0WLLMMbt" },
+  "data": { "code": "duplicate_reference", "transaction_ref": "BTRNSF7HeRoy4CRl6hcOOqAzwAeo0WLLMMbtQ2" },
   "error": [],
   "message": "duplicate transaction detected: reference already exists"
 }
@@ -131,6 +131,10 @@ The payment exists. `data.ref` is its `transaction_ref` and `data.status` says w
 </Steps>
 
 Any other error from verify (for example `something went wrong, please contact support`) does not mean "not found": verify again before resending.
+
+### With an `Idempotency-Key`
+
+You can also send an `Idempotency-Key` header with every payout. After a timeout, retry with the **same key and the same body**: if the first request finished you get its answer and nothing is sent again, and if it is still running you get `409 request_in_progress` (wait for `Retry-After`). Or look it up with [`GET /v1/payments/by-key/{key}`](/api-reference/payments/by-key): `payment.ref` is the `transaction_ref` you missed, and `nothing_created: true` means nothing was sent. See [Retrying safely](/errors#retrying-safely).
 
 ## Payment Methods
 
