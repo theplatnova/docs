@@ -134,22 +134,6 @@
               }
             }
           },
-          "400": {
-            "description": "Customer already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "status": false,
-                  "data": {},
-                  "error": [],
-                  "message": "customer already exists"
-                }
-              }
-            }
-          },
           "422": {
             "description": "Validation error",
             "content": {
@@ -172,12 +156,41 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "A customer with this email already exists in your business. `data.code` is `customer_exists` and `data.id` is the existing customer's `id`: use it rather than creating another.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "status": false,
+                  "data": {
+                    "code": "customer_exists",
+                    "id": "0b7d3c2e-8f4a-4e1b-9c6d-2a5f7e9b1c34"
+                  },
+                  "error": [],
+                  "message": "A customer with this email already exists."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Refused for another reason; `message` says why.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
       "get": {
         "summary": "List customers",
-        "description": "Retrieve a paginated list of customers.",
+        "description": "Retrieve a paginated list of your customers.",
         "operationId": "listCustomers",
         "tags": [
           "Customer"
@@ -202,6 +215,43 @@
               "type": "integer"
             },
             "example": 20
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive match on first name, last name, full name or email.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "jane"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Sort field and direction",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "description": "Filter expression",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "export",
+            "in": "query",
+            "required": false,
+            "description": "Set to export the matching customers as CSV instead of a page.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -221,7 +271,7 @@
                         "items": {
                           "type": "array",
                           "items": {
-                            "type": "object"
+                            "$ref": "#/components/schemas/Customer"
                           }
                         },
                         "page": {
@@ -5174,7 +5224,7 @@
     "/v1/wallets": {
       "get": {
         "summary": "List wallets",
-        "description": "",
+        "description": "Your business's wallets, one per currency.",
         "operationId": "listWallets",
         "tags": [
           "Wallet"
@@ -5193,22 +5243,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "description": "Wallet UID"
-                          },
-                          "currency": {
-                            "type": "string"
-                          },
-                          "balance": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          }
-                        }
+                        "$ref": "#/components/schemas/Wallet"
                       }
                     },
                     "error": {
@@ -5224,16 +5259,32 @@
                   "status": true,
                   "data": [
                     {
-                      "id": "wl_43a2b75e-5c59-429e-872a-2a54c7b17e37",
-                      "currency": "NGN",
-                      "balance": "150000.00",
-                      "status": "active"
+                      "type": "ngn",
+                      "symbol": "₦",
+                      "description": "Nigerian Naira",
+                      "country": {
+                        "code": "NG",
+                        "dial_code": "+234"
+                      },
+                      "status": "active",
+                      "id": "43a2b75e-5c59-429e-872a-2a54c7b17e37",
+                      "amount": "150000.00",
+                      "label": "",
+                      "is_default": true
                     },
                     {
-                      "id": "wl_5c5e173f-7754-41af-a2ee-b4be7d709e0c",
-                      "currency": "USD",
-                      "balance": "2500.50",
-                      "status": "active"
+                      "type": "usd",
+                      "symbol": "$",
+                      "description": "US Dollar",
+                      "country": {
+                        "code": "US",
+                        "dial_code": "+1"
+                      },
+                      "status": "active",
+                      "id": "5c5e173f-7754-41af-a2ee-b4be7d709e0c",
+                      "amount": "2500.50",
+                      "label": "",
+                      "is_default": true
                     }
                   ],
                   "error": [],
@@ -8211,6 +8262,193 @@
                 "format": "date-time"
               }
             }
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Platnova's id for the customer: the `customer_id` the other customer routes take."
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "country_code": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "dial_code": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "date_of_birth": {
+                "type": "string"
+              },
+              "employment_status": {
+                "type": "string"
+              },
+              "expected_monthly_income": {
+                "type": "string"
+              },
+              "primary_purpose": {
+                "type": "string"
+              },
+              "source_of_funds": {
+                "type": "string"
+              },
+              "most_recent_occupation": {
+                "type": "string"
+              },
+              "document": {
+                "type": "object",
+                "properties": {
+                  "docs": {
+                    "nullable": true
+                  },
+                  "number": {
+                    "type": "string"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "id_type": {
+                    "type": "string"
+                  },
+                  "valid_until": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "integer"
+                  },
+                  "additional": {
+                    "nullable": true
+                  },
+                  "gender": {
+                    "type": "string"
+                  }
+                }
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "street": {
+                    "type": "string"
+                  },
+                  "city": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "postal_code": {
+                    "type": "string"
+                  },
+                  "document": {
+                    "type": "object",
+                    "properties": {
+                      "id_type": {
+                        "type": "string"
+                      },
+                      "issue_country": {
+                        "type": "string"
+                      },
+                      "urls": {
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              },
+              "providers": {
+                "nullable": true
+              }
+            }
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Your own id for the customer; `null` if you set none."
+          }
+        }
+      },
+      "Wallet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The wallet's id: what Send Payment takes as `from_wallet_id`. A plain UUID, with no prefix."
+          },
+          "type": {
+            "type": "string",
+            "description": "The wallet's currency, lowercase.",
+            "example": "ngn"
+          },
+          "amount": {
+            "type": "string",
+            "description": "The balance, as a decimal string.",
+            "example": "150000.00"
+          },
+          "symbol": {
+            "type": "string",
+            "example": "₦"
+          },
+          "description": {
+            "type": "string",
+            "description": "The currency's name.",
+            "example": "Nigerian Naira"
+          },
+          "country": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "NG"
+              },
+              "dial_code": {
+                "type": "string"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "A name you gave the wallet; may be empty."
+          },
+          "is_default": {
+            "type": "boolean",
+            "description": "Whether this is a default wallet."
           }
         }
       }

@@ -5,4 +5,4 @@ openapi: "GET /v1/wallets"
 
 ## Overview
 
-Retrieve a list of all wallets associated with your account. This endpoint returns all wallets with their balances, currencies, and status information.
+Retrieve your business's wallets. Each wallet's currency is `type` (lowercase) and its balance is `amount` (a decimal string). `id` is a plain UUID, and is what [Send Payment](/api-reference/payments/send) takes as `from_wallet_id`.
