@@ -9,6 +9,35 @@ Every server-to-server call to the Platnova Business API is authenticated with y
 
 Create a key in your dashboard under [Settings → Developers](https://business.platnova.com/settings/developer). Keys work only once your business is live; until then calls that move money answer `403 entity_not_active` (see [Going live](/going-live)).
 
+To start building before then, [get sandbox keys](https://sandbox.business.platnova.com): signing up for the sandbox takes an email and a password, with no verification (see [Environments](/environments#sandbox)).
+
+## Key prefixes
+
+A key says which environment it belongs to:
+
+| Prefix | Environment | Base URL |
+|---|---|---|
+| `pk_test_` | Sandbox | `https://sandbox.api.platnova.co` |
+| `pk_live_` | Live | `https://api.platnova.com` |
+
+Keys made before prefixes start `api_key_` and keep working where they were made.
+
+A key sent to the other environment is refused with `401` and a `data.code` that says so, before anything else is checked:
+
+```json
+{
+  "status": false,
+  "data": { "code": "sandbox_key_on_live" },
+  "error": ["sandbox_key_on_live"],
+  "message": "This is a sandbox API key (pk_test_). Send it to https://sandbox.api.platnova.co, or use a pk_live_ key here."
+}
+```
+
+| `data.code` | Meaning |
+|---|---|
+| `sandbox_key_on_live` | A `pk_test_` key was sent to live |
+| `live_key_on_sandbox` | A `pk_live_` key was sent to the sandbox |
+
 ## Send it in `X-API-Key`
 
 ```bash
@@ -34,7 +63,7 @@ That is the only supported way to send an API key.
 
 ## Failed authentication
 
-A missing, unknown or deleted key answers `401`:
+A missing, unknown or deleted key answers `401` (a key for the other environment answers `401` with a code; see [Key prefixes](#key-prefixes)):
 
 ```json
 { "status": false, "data": {}, "error": [], "message": "un-authorized access" }

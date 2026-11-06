@@ -3,7 +3,7 @@ title: "Going live"
 slug: "going-live"
 ---
 
-Your business can explore the dashboard and the sandbox straight away, but it collects and moves real money only once it is **live**. Until then, routes that collect or move money (creating a checkout, sending a payment, verifying, refunds) answer `403`.
+Your business can explore the dashboard straight away, and you can build against the sandbox without any of the steps below: [get sandbox keys](https://sandbox.business.platnova.com) with an email and a password (see [Environments](/environments#sandbox)). Real money moves only once your business is **live**. Until then, routes that collect or move money (creating a checkout, sending a payment, verifying, refunds) answer `403`.
 
 ## The steps
 
@@ -21,7 +21,7 @@ We review the business. Reviewing is free.
 After the business is approved, pay the one-time verification fee from the dashboard. Paying it takes the business live. Some plans waive it.
 </Step>
 <Step title="Create a live API key and webhook endpoint">
-Create a live key under **Settings → Developers** and register your live webhook endpoint under **Settings → Webhooks**. Point your integration at `https://api.platnova.com`.
+Create a live key (`pk_live_…`) under **Settings → Developers** and register your live webhook endpoint under **Settings → Webhooks**. Point your integration at `https://api.platnova.com`. Your sandbox `pk_test_` keys do not work on live.
 </Step>
 </Steps>
 

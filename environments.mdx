@@ -9,9 +9,9 @@ Platnova has two environments: a **sandbox** for building and testing, and **liv
 |---|---|---|
 | **Base URL** | `https://sandbox.api.platnova.co` | `https://api.platnova.com` |
 | **Money** | Test only | Real |
-| **Keys** | Sandbox keys | Live keys, from your dashboard once your business is live |
+| **Keys** | `pk_test_…`, from the [sandbox dashboard](https://sandbox.business.platnova.com) the moment you sign up | `pk_live_…`, from your dashboard once your business is live |
 
-Sandbox and live keys are separate: a sandbox key does not work on live, and a live key does not work on the sandbox. Every example in these docs uses `X-API-Key` (see [Authentication](/authentication)); swap the base URL to switch environments.
+Sandbox and live keys are separate: a sandbox key does not work on live, and a live key does not work on the sandbox. Each is refused with a `401` that names the right base URL (see [Authentication](/authentication#key-prefixes)). Every example in these docs uses `X-API-Key` (see [Authentication](/authentication)); swap the base URL to switch environments.
 
 <Tabs>
 <Tab title="Sandbox">
@@ -30,9 +30,82 @@ curl https://api.platnova.com/v1/wallets \
 
 ## Sandbox
 
-<Note>
-The sandbox is being brought up to date with live. Until this note is removed, some newer endpoints may answer `404` there, including payment verification and checkout refunds. Ask [support@platnova.com](mailto:support@platnova.com) for sandbox keys; test cards and simulated bank-transfer payments will be listed here when they are available.
-</Note>
+<Card title="Get sandbox keys" icon="key" href="https://sandbox.business.platnova.com">
+Sign up with an email and a password. No business verification: your sandbox business is live at once, funded with test money, and comes with a `pk_test_` key.
+</Card>
+
+### Sign up
+
+Sign up on the [sandbox dashboard](https://sandbox.business.platnova.com). We email you a 6-digit code; enter it and your sandbox business is ready. You get:
+
+- a sandbox business that is already **live** and has API access, so every route works straight away;
+- **₦5,000,000** in an NGN wallet and **$10,000** in a USD wallet, all test money;
+- one sandbox API key (`pk_test_…`), shown once. Make more under **Settings → Developers** in the sandbox dashboard.
+
+You can also sign up over the API, with the same captcha the dashboard shows:
+
+```bash
+curl https://sandbox.api.platnova.co/v1/sandbox/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"dev@example.com","password":"a-long-password","business_name":"Acme Test","turnstile_token":"..."}'
+
+curl https://sandbox.api.platnova.co/v1/sandbox/signup/verify \
+  -H "Content-Type: application/json" \
+  -d '{"email":"dev@example.com","code":"123456"}'
+```
+
+The code lasts 15 minutes and allows 5 tries. Sign-ups are limited per address and per email; a limited call answers `429 rate_limited`.
+
+### Top up test money
+
+```bash
+curl https://sandbox.api.platnova.co/v1/sandbox/faucet \
+  -H "X-API-Key: pk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{"currency":"NGN","amount":1000000}'
+```
+
+`currency` is `NGN` or `USD`. Each business can take up to ₦5,000,000 and $10,000 a day (UTC); past that the faucet answers `429 faucet_cap_reached`.
+
+### Payouts: magic amounts
+
+Sandbox payouts reach no bank. Each one is answered **pending** at once, like a live payout, and then settles by the amount's last two decimals. Your wallet, the transaction and the `transfer.success` / `transfer.failed` webhooks behave exactly as in live.
+
+| Amount ends in | Outcome |
+|---|---|
+| `.01` (for example `1000.01`) | Fails after a few seconds; the amount is refunded to the wallet |
+| `.02` (for example `2500.02`) | Stays pending for 2 minutes, then succeeds |
+| anything else | Succeeds after a few seconds |
+
+### Simulate a bank transfer in
+
+Credit one of your virtual accounts (or a one-time account a checkout gave you) as if a customer had paid into it. It goes through the same path as a real transfer: fees, the wallet credit, the transaction and the deposit webhook.
+
+```bash
+curl https://sandbox.api.platnova.co/v1/sandbox/simulate/deposit \
+  -H "X-API-Key: pk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{"account_number":"0123456789","amount":25000}'
+```
+
+Add `account_reference` for a one-time account that has been issued more than once. Only accounts that belong to your business can be credited.
+
+### Simulate a checkout payment
+
+Card, bank and mobile money payments opened on a sandbox checkout call no payment provider. They stay pending until you settle them by their reference:
+
+```bash
+curl https://sandbox.api.platnova.co/v1/sandbox/simulate/checkout-charge \
+  -H "X-API-Key: pk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{"reference":"CHARGE_REFERENCE","outcome":"success"}'
+```
+
+`outcome` is `success` (the default) or `failed`. A successful charge pays the checkout and sends `checkout.paid`, as in live.
+
+### Sandbox data
+
+A sandbox business with no transactions and no API calls for **90 days** is closed and its keys stop working. Sign up again for a fresh one.
 
 ## Moving to live
 
@@ -44,7 +117,7 @@ Create checkouts, handle `checkout.paid`, verify payments and test refunds.
 Complete business verification and pay the verification fee. See [Going live](/going-live).
 </Step>
 <Step title="Switch keys and URL">
-Create a live API key in the dashboard, point your integration at `https://api.platnova.com`, and register your live webhook endpoint.
+Create a live API key (`pk_live_…`) in the dashboard, point your integration at `https://api.platnova.com`, and register your live webhook endpoint.
 </Step>
 </Steps>
 
