@@ -56,7 +56,8 @@
               "virtual-accounts/creating-accounts",
               "virtual-accounts/dynamic-accounts",
               "virtual-accounts/collecting-per-order",
-              "virtual-accounts/receiving-payments"
+              "virtual-accounts/receiving-payments",
+              "virtual-accounts/replaced-accounts"
             ]
           },
           {

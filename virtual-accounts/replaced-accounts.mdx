@@ -1,0 +1,39 @@
+---
+title: "Replaced accounts"
+slug: "virtual-accounts/replaced-accounts"
+---
+
+When a bank stops receiving payments for Platnova, each customer account you opened at that bank is given a replacement at another bank. In November 2026 this applies to **PalmPay**: every PalmPay customer account gets a **Paga** account.
+
+You don't need to do anything to keep receiving money. **Money sent to an old account is still credited to your customer's balance**, and you still receive `account.funded` for it. What you do need to do is give each customer their new account number before the cut-over date.
+
+## What happens, in order
+
+1. **A replacement is opened.** If your customer already has a Paga account with you, that account becomes the replacement. Otherwise we open one using the BVN you gave us. You don't receive `account.issued` for a replacement.
+2. **You are told.** You receive one [`account.replaced`](/webhooks/overview#account-replaced) webhook per account, with the old and new numbers and the cut-over date. Your business's Owners and Admins also get an email with the count and the date.
+3. **Before the cut-over date**, the old account is still your customer's default account, and lists show it first. The replacement appears beside it with `replaces` set.
+4. **From the cut-over date**, the old account is listed with `retired: true`, `default: false` and `replaced_by`. The replacement becomes the default and is listed first. The old account is never removed from your lists, and it keeps receiving payments.
+
+## Fields on a customer account
+
+`GET /v1/virtual-accounts?customer_id=…` and `GET /v1/customers/{id}/virtual-accounts` return these fields alongside the usual ones:
+
+| Field | On | Meaning |
+|---|---|---|
+| `replaced_by` | the old account | The `id` of its replacement |
+| `replaces` | the replacement | The `id` of the account it replaces |
+| `retired` | the old account, from the cut-over date | `true`: give your customer the replacement instead |
+| `default` | both | `false` on a retired account |
+
+## The full list
+
+`GET /v1/virtual-accounts/replacements` returns every replaced account for your business: the old and new account details, `replaced_at`, `cutover_at` and `retired`. Add `?format=csv` to download it as a spreadsheet with these columns:
+
+`customer_id, customer_reference, previous_virtual_account_id, previous_account_number, previous_bank_name, previous_bank_code, new_virtual_account_id, new_account_number, new_account_name, new_bank_name, new_bank_code, replaced_at, cutover_at`
+
+```bash
+curl https://api.platnova.com/v1/virtual-accounts/replacements?format=csv \
+  -H "X-API-KEY: YOUR_API_KEY" -o replaced-accounts.csv
+```
+
+A customer whose BVN we don't have can't be given a replacement automatically. Open one with [Create Virtual Account](/api-reference/virtual-accounts/create), passing `id_number`.

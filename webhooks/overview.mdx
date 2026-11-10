@@ -53,6 +53,7 @@ You can add several endpoints, each with its own URL, secret and events: for exa
 | `card.kyc_failed` | Card KYC Failed |
 | `card.cancelled` | Card Cancelled Before Issue |
 | `account.issued` | Virtual Account Issued |
+| `account.replaced` | Customer Account Replaced at Another Bank |
 | `account.funded` | Account Funded |
 | `customer.approved` | Customer Approved |
 | `customer.rejected` | Customer Rejected |
@@ -563,6 +564,46 @@ Sent when a virtual account is issued.
   }
 }
 ```
+
+### account.replaced
+
+Sent when a customer account you opened is given a replacement at another bank, because the bank the old account is at no longer receives payments for Platnova (PalmPay, from November 2026). One event per account. The old account keeps receiving payments: money sent to it still reaches your customer's balance. From `cutover_at`, the old account is listed as `retired` with `replaced_by`, and the new one becomes the default. Give your customer the new number before then.
+
+```json
+{
+  "event": "account.replaced",
+  "timestamp": "2026-11-11T09:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "currency": "NGN",
+    "previous": {
+      "virtual_account_id": "va_old_uid",
+      "account_number": "8012345678",
+      "account_name": "Ada Obi (EBL)",
+      "bank_name": "PalmPay",
+      "bank_code": "100033"
+    },
+    "current": {
+      "virtual_account_id": "va_new_uid",
+      "account_number": "3012345678",
+      "account_name": "Ada Obi (EBL)",
+      "bank_name": "Paga",
+      "bank_code": "100002"
+    },
+    "reason": "bank_retired",
+    "cutover_at": "2026-11-24T23:00:00Z"
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `previous` | The account your customer has today. It keeps receiving payments |
+| `current` | The account to give your customer instead |
+| `reason` | `bank_retired`: the previous account's bank no longer receives payments for Platnova |
+| `cutover_at` | When the previous account starts being listed as retired. Payments to it are still credited after this |
+
+See [Replaced accounts](/virtual-accounts/replaced-accounts).
 
 ### customer.approved
 
