@@ -41,8 +41,9 @@ For NGN virtual accounts, you can select which provider issues the account by pa
 
 | Provider | Bank Code |
 |---|---|
-| Palmpay | `100033` |
 | Paga | `100002` |
+
+PalmPay (`100033`) no longer issues new accounts. Accounts already opened at PalmPay keep receiving payments; each is being given a Paga replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)).
 
 ```bash
 curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
