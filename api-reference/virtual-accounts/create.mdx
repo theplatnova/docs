@@ -90,6 +90,7 @@ Add `reference` to open an account for one loan, order or contract. A customer c
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
 | `409` | `account_limit_reached` | Nothing was opened. Either the bank can't open another account for this customer (`data.accounts` lists their accounts there), or the person already holds your business's limit of open accounts (`data.limit`, `data.active`) |
 | `409` | `account_in_progress` | Another request is opening this customer's account right now. Retry shortly |
+| `503` | `issuing_unavailable` | We couldn't start opening the account; nothing was opened. Retry shortly (`data.retryable` is `true`) |
 | `409` | `customer_id_conflict` | The customer's BVN was verified and `id_number` is a different one. `data.customer_id` is the customer. Use a new `customer_id` for a different person |
 | `422` | — | New customer: a detail is missing or in the wrong format. `errors` lists each field |
 | `422` | `invalid_customer_details` | The bank rejected the customer's details (`data.field` when it named one). Fix them before retrying |

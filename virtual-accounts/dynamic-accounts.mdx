@@ -97,7 +97,7 @@ If none of your customers has `customer_id` yet, add the customer's details (`cu
 
 ## Repeating a Request
 
-**Without `reference`**, a customer has one open dynamic account per bank at a time: a second request for the same amount while it is open returns the same account, and a request for a **different amount gets a new account** (the earlier one keeps crediting anything paid into it). To collect several amounts from one customer at once, give each its own `reference`.
+**Without `reference`**, a customer has one open dynamic account per bank at a time (no `bank` counts as your default bank, Paga): a second request for the same amount while it is open returns the same account, and a request for a **different amount gets a new account** (the earlier one keeps crediting anything paid into it). To collect several amounts from one customer at once, give each its own `reference`.
 
 **With `reference`**, each order has its own account, separate from that one:
 

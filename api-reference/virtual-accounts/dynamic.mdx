@@ -13,7 +13,11 @@ Generate a single-use NGN account for a customer, for an amount and a lifespan (
 
 Leave `bank` out to use your business's default bank for dynamic accounts (Paga), or send `"bank": "nombank"` for a **Nombank MFB** account (`"paga"` asks for Paga). Show the payer the `bank_name` from the response.
 
-A Nombank dynamic account takes exactly `amount` and stops accepting payments at `expires_at`: the payer's bank refuses any other amount and any late transfer, so nothing arrives short or late. `bank` that isn't `paga` or `nombank` answers `400` `invalid_bank`; a bank your business doesn't offer answers `400` `bank_not_offered`. Without `reference`, a customer has one open account per bank.
+A Nombank dynamic account takes exactly `amount` and stops accepting payments at `expires_at`: the payer's bank refuses any other amount and any late transfer, so nothing arrives short or late. `bank` that isn't `paga` or `nombank` answers `400` `invalid_bank`; a bank your business doesn't offer answers `400` `bank_not_offered`.
+
+Nombank opens an account only against the customer's BVN or NIN, so `bank: "nombank"` needs one on file (send it as `id_number` when you open the customer's persistent account). Without one the answer is `422` `identity_required` with `data.field` `id_number`, and nothing is opened.
+
+Without `reference`, a customer has one open account per bank. Leaving `bank` out counts as your default bank: a request without `bank` and one with `"bank": "paga"` (when Paga is your default) return the same open account.
 
 ## Order reference
 
