@@ -49,8 +49,23 @@ A missing detail answers `422` listing each missing field.
 
 ## Currency
 
-- **NGN**: in live, `id_number` (the customer's BVN) is required unless the customer already has a BVN on file. It is verified before the account is opened. Pick the issuing bank with `codes`, or omit it to use the first bank available to your business.
+- **NGN**: in live, `id_number` (the customer's BVN) is required unless the customer already has a BVN on file. It is verified before the account is opened. See [Choosing the bank](#choosing-the-bank-ngn).
 - **USD**: set a default USD settlement wallet in your [dashboard settings](https://business.platnova.com/settings?section=settlements); any account fee is charged to it and returned as `amount_debited`. The customer needs an address and identity documents on file, so create USD customers with [Create Customer](/api-reference/customers/create) first.
+
+## Choosing the bank (NGN)
+
+Send `bank` to choose where the account is opened, or leave it out.
+
+| `bank` | Bank shown to your customer | `bank_code` |
+|---|---|---|
+| `paga` | Paga | `100002` |
+| `nombank` | Nombank MFB | `090645` |
+
+- **Without `bank`** your business's banks are tried in order: **Paga first, then Nombank**. When Paga can't open more accounts (its account limit), the account is opened at Nombank in the same request. Nothing changes in the request or the response shape: read `bank_name` and `bank_code` from the account you get back.
+- **With `bank`** only that bank is asked. If it can't open the account you get its refusal, never another bank.
+- Both banks give a 10-digit NUBAN, and payments into either are credited the same way and reported on `account.funded` with the account's `bank_name` and `bank_code`.
+- `codes` still works. Don't send it with a different `bank`.
+- Without `reference`, a customer has one account per bank. Asking without `bank` when the customer already has an account at Paga or Nombank answers `400` `bank account is already added`.
 
 ## One account per loan or order
 
@@ -69,12 +84,15 @@ Add `reference` to open an account for one loan, order or contract. A customer c
 |---|---|---|
 | `400` | `duplicate_reference` | The `reference` belongs to another account of your business (another customer or currency) |
 | `400` | `invalid_reference` | The `reference` breaks the format |
+| `400` | `invalid_bank` | `bank` is not `paga` or `nombank`, or disagrees with `codes` |
+| `400` | `bank_not_offered` | Your business doesn't open accounts at that bank. Leave `bank` out, or contact support |
 | `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
 | `409` | `account_limit_reached` | Nothing was opened. Either the bank can't open another account for this customer (`data.accounts` lists their accounts there), or the person already holds your business's limit of open accounts (`data.limit`, `data.active`) |
+| `409` | `account_in_progress` | Another request is opening this customer's account right now. Retry shortly |
 | `409` | `customer_id_conflict` | The customer's BVN was verified and `id_number` is a different one. `data.customer_id` is the customer. Use a new `customer_id` for a different person |
 | `422` | — | New customer: a detail is missing or in the wrong format. `errors` lists each field |
 | `422` | `invalid_customer_details` | The bank rejected the customer's details (`data.field` when it named one). Fix them before retrying |
-| `503` | `bank_unavailable` | The bank can't open accounts right now. Retry later (`data.retryable` is `true`), or use a [dynamic account](/api-reference/virtual-accounts/dynamic) |
+| `503` | `bank_unavailable` | No bank could open the account right now (without `bank`, both Paga and Nombank were asked). Retry later (`data.retryable` is `true`), or use a [dynamic account](/api-reference/virtual-accounts/dynamic) |
 
 See [Creating Accounts](/virtual-accounts/creating-accounts) for the full guide.

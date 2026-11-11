@@ -9,6 +9,12 @@ Generate a single-use NGN account for a customer, for an amount and a lifespan (
 
 `customer_id` can be our customer id or your own; with the customer's details in the request, a new customer is created under your id (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids); on this route `customer_date_of_birth` is always required for a new customer).
 
+## Choosing the bank
+
+Leave `bank` out to use your business's default bank for dynamic accounts (Paga), or send `"bank": "nombank"` for a **Nombank MFB** account (`"paga"` asks for Paga). Show the payer the `bank_name` from the response.
+
+A Nombank dynamic account takes exactly `amount` and stops accepting payments at `expires_at`: the payer's bank refuses any other amount and any late transfer, so nothing arrives short or late. `bank` that isn't `paga` or `nombank` answers `400` `invalid_bank`; a bank your business doesn't offer answers `400` `bank_not_offered`. Without `reference`, a customer has one open account per bank.
+
 ## Order reference
 
 Send your order id as `reference` (or `order_reference`) to give the order its own account. The response returns it as `order_reference`, and `account.funded` carries it as `reference`, with `expected_amount`. Repeating the request with the same reference, customer and amount while the account is open returns the same account. Any other reuse answers `400` `duplicate_reference` (`data.status` `expired` once the account has expired). Without `reference`, a customer has one open account at a time and a repeat returns it, even for a different amount.
