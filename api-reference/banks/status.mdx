@@ -1,0 +1,27 @@
+---
+title: "Bank Network Status"
+openapi: "GET /v1/banks/status"
+---
+
+## Overview
+
+How transfers to each Nigerian bank are going right now. When a bank is slow or having problems, tell your customer before they send, and let them choose: send anyway, or pay into another account. A status never blocks a payout.
+
+| `level` | What it means | Suggested label |
+|---|---|---|
+| `green` | Transfers arrive as usual (`expected_minutes` is the typical time) | Usually instant, or "Usually ~N min" when `expected_minutes` is over 1 |
+| `amber` | Slow right now; `expected_minutes` says how slow | Slow right now |
+| `red` | Having problems; a transfer may be delayed | Having problems |
+| `grey` | No recent transfer data | No recent data |
+
+Show `message` to your customer as it is. It is written for them and never names a payment provider.
+
+Pass `bank_code` for one bank, as you hold it: the code from [List banks](/api-reference/banks/list), or one saved on a beneficiary. `banks` is empty when we know nothing about that code. Without `bank_code` you get every bank we have a status for; a bank can appear under more than one code.
+
+[Verify a bank account](/api-reference/banks/verify) returns the same object as `bank_status` for Nigerian accounts, so you can show it right after the account name.
+
+## Caching
+
+The status is recomputed every few minutes. Answers are cached for 60 seconds (`Cache-Control: public, max-age=60`), so polling more often than once a minute returns the same answer. A status older than 10 minutes is reported as `grey`.
+
+If the status can't be read, the endpoint answers 503. Treat that as "no status" and carry on with the payout.
