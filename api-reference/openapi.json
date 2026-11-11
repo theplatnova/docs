@@ -8201,9 +8201,10 @@
           "bank": {
             "type": "string",
             "enum": [
-              "nombank"
+              "nombank",
+              "paga"
             ],
-            "description": "NGN: `nombank`, the only bank customer accounts open at (Nombank MFB, bank code 090645). May be left out. Nothing opens at another bank: a refusal answers `nomba_identity_limit`, `identity_required` or `issuing_unavailable`.",
+            "description": "NGN. Leave out (recommended): the account opens at Nombank MFB, or at Paga when Nombank already holds two accounts for the customer's BVN or NIN. `nombank` allows Nombank only (`nomba_identity_limit` at the limit).",
             "example": "nombank"
           },
           "customer_name": {
@@ -8334,10 +8335,17 @@
           "bank": {
             "type": "string",
             "enum": [
-              "nombank"
+              "nombank",
+              "paga"
             ],
-            "description": "`nombank`, the only bank dynamic accounts open at; may be left out. A Nombank account accepts exactly `amount` and stops accepting payments at `expires_at`. The customer needs a BVN or NIN on file (`identity_required` otherwise).",
+            "description": "Leave out (recommended): Nombank MFB, or Paga when Nombank already holds two accounts for the customer's BVN or NIN. `nombank` allows Nombank only. A Nombank account accepts exactly `amount` and stops at `expires_at`.",
             "example": "nombank"
+          },
+          "id_number": {
+            "type": "string",
+            "pattern": "^[0-9]{11}$",
+            "description": "The customer's BVN, used for this account when none is on file (Nombank opens accounts only against a BVN or NIN). Must match the BVN verified for the customer, if any.",
+            "example": "22212345678"
           }
         },
         "description": "Name the customer with `customer_id` or `customer_reference` (exactly one is required). The `customer_*` fields are read only when the customer does not exist yet."

@@ -11,16 +11,16 @@ Generate a single-use NGN account for a customer, for an amount and a lifespan (
 
 ## The bank
 
-Dynamic accounts open at **Nombank MFB**: leave `bank` out or send `"bank": "nombank"`. Show the payer the `bank_name` from the response.
+Dynamic accounts open at **Nombank MFB**. Show the payer the `bank_name` from the response.
 
 A Nombank dynamic account takes exactly `amount` and stops accepting payments at `expires_at`: the payer's bank refuses any other amount and any late transfer.
 
-- Nombank opens an account only against the customer's BVN or NIN, so one must be on file (send it as `id_number` when you open the customer's persistent account). Without one: `422` `identity_required`, `data.field` `id_number`.
-- At most two Nombank accounts per BVN or NIN: `409` `nomba_identity_limit`.
-- Nombank can't be reached: `503` `issuing_unavailable`, retryable. Nothing was opened.
-- `bank` other than `nombank`: `400` `bank_not_offered` (or `invalid_bank` for a name we don't know).
+- Nombank opens an account only against the customer's BVN or NIN. Send the BVN as `id_number` (11 digits) when none is on file; it is used for this account. A BVN other than the one verified for the customer answers `409` `customer_id_conflict`. With no BVN or NIN at all: `422` `identity_required`, `data.field` `id_number`.
+- Nombank holds at most two accounts per BVN or NIN. Leave `bank` out and a customer at that limit gets a **Paga** account in the same request (`bank_name` `Paga`; a Paga account adds its collection fee to what the payer sends). With `"bank": "nombank"` the answer is `422` `nomba_identity_limit`.
+- Nombank can't be reached, or didn't confirm the account: `503` `issuing_unavailable`, retryable. Nothing was recorded.
+- `bank` other than `nombank` or `paga`: `400` `invalid_bank`.
 
-Without `reference`, a customer has one open account at a time; a repeat for the same amount returns it, and a different amount gets a new account.
+Without `reference`, a customer has one open account at a time, whichever bank opened it; a repeat for the same amount returns it, and a different amount gets a new account.
 
 ## Order reference
 

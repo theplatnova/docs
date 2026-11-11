@@ -54,12 +54,12 @@ A missing detail answers `422` listing each missing field.
 
 ## The bank (NGN)
 
-NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`), a 10-digit NUBAN. It is the only bank: leave `bank` out, or send `"bank": "nombank"`. Any other bank answers `400` `bank_not_offered`.
+NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`), a 10-digit NUBAN.
 
-- Nombank opens an account against the customer's **BVN or NIN**, and **at most two accounts per BVN or NIN**, counted across every business we serve. A third answers `409` `nomba_identity_limit`: reuse one of the customer's accounts, or use a [dynamic account](/api-reference/virtual-accounts/dynamic).
-- If Nombank can't be reached, the answer is `503` `issuing_unavailable` with `data.retryable` `true`. Nothing was opened; retry the same request.
-- Nothing is ever opened at another bank instead.
-- Accounts your customers already hold at Paga or PalmPay keep receiving payments. Each is being given a Nombank replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)); a customer Nombank can't serve keeps their old number.
+- **Leave `bank` out** (recommended). Nombank opens the account against the customer's **BVN or NIN**, and holds **at most two accounts per BVN or NIN**, counted across every business we serve. When a customer is already at that limit, the account opens at **Paga** (`bank_code` `100002`) in the same request instead. The response looks the same either way: read `bank_name` and `bank_code`.
+- **Send `"bank": "nombank"`** to allow Nombank only. At the limit the answer is then `422` `nomba_identity_limit` and nothing is opened.
+- Nothing else moves an account to Paga. If Nombank can't be reached, or we can't confirm whether it opened the account, the answer is `503` `issuing_unavailable` with `data.retryable` `true` and nothing is recorded; retry the same request.
+- Accounts your customers already hold at PalmPay or Paga keep receiving payments. Each is being given a Nombank replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)).
 - Without `reference`, a customer has one account per bank, and a second request answers `400` `bank account is already added`.
 
 ## One account per loan or order
@@ -84,13 +84,13 @@ Add `reference` to open an account for one loan, order or contract. A customer c
 | `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
 | `409` | `account_limit_reached` | Nothing was opened. Either the bank can't open another account for this customer (`data.accounts` lists their accounts there), or the person already holds your business's limit of open accounts (`data.limit`, `data.active`) |
-| `409` | `nomba_identity_limit` | Nombank already holds two accounts for this customer's BVN or NIN. Reuse one, or use a dynamic account |
 | `409` | `account_in_progress` | Another request is opening this customer's account right now. Retry shortly |
 | `503` | `issuing_unavailable` | We couldn't start opening the account; nothing was opened. Retry shortly (`data.retryable` is `true`) |
 | `409` | `customer_id_conflict` | The customer's BVN was verified and `id_number` is a different one. `data.customer_id` is the customer. Use a new `customer_id` for a different person |
 | `422` | — | New customer: a detail is missing or in the wrong format. `errors` lists each field |
 | `422` | `invalid_customer_details` | The bank rejected the customer's details (`data.field` when it named one). Fix them before retrying |
+| `422` | `nomba_identity_limit` | You sent `"bank": "nombank"` and Nombank already holds two accounts for this customer's BVN or NIN. Leave `bank` out to open at Paga, or reuse one |
 | `422` | `identity_required` | No BVN or NIN for the customer. Send `id_number` |
-| `503` | `issuing_unavailable` | Nombank can't be reached. Nothing was opened; retry (`data.retryable` is `true`) |
+| `503` | `issuing_unavailable` | Nombank can't be reached, or didn't confirm the account. Nothing was recorded; retry (`data.retryable` is `true`) |
 
 See [Creating Accounts](/virtual-accounts/creating-accounts) for the full guide.

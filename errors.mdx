@@ -85,8 +85,8 @@ with `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` header
 | `bank_not_offered` | 400 | `bank` names a bank your business doesn't open accounts at. | Leave `bank` out, or contact support |
 | `account_in_progress` | 409 | Another request is opening this customer's account right now. | Retry shortly |
 | `issuing_unavailable` | 503 | `POST /v1/virtual-accounts/create` or `/dynamic`: Nombank can't be reached, or we couldn't start opening the account. Nothing was opened; `data.retryable` is `true`. | Retry shortly |
-| `nomba_identity_limit` | 409 | Nombank already holds two accounts for the customer's BVN or NIN. | Reuse one of the customer's accounts, or use a dynamic account |
-| `identity_required` | 422 | `POST /v1/virtual-accounts/create` or `/dynamic`: Nombank opens accounts only against the customer's BVN or NIN, and none is on file. `data.field` is `id_number`. | Send `id_number`, or open a persistent account for the customer with it first |
+| `nomba_identity_limit` | 422 | You sent `bank: "nombank"` and Nombank already holds two accounts for the customer's BVN or NIN. (Without `bank`, such a customer gets a Paga account instead.) | Leave `bank` out, or reuse one of the customer's accounts |
+| `identity_required` | 422 | `POST /v1/virtual-accounts/create` or `/dynamic`: Nombank opens accounts only against the customer's BVN or NIN, and none is on file. `data.field` is `id_number`. | Send the BVN as `id_number` |
 | `bank_unavailable` | 503 | `POST /v1/virtual-accounts/create`: the bank can't open accounts right now. `data.retryable` is `true`. | Retry later, or use a [dynamic account](/virtual-accounts/dynamic-accounts) |
 | `virtual_account_not_found` | 404 | `GET /v1/virtual-accounts/by-reference/{reference}`: no account was opened with this reference. | Check the reference |
 | `duplicate_customer_reference` | 400 | Customers: another of your customers already has this `reference`. `data.id` is that customer. | Use that customer, or a different reference |
