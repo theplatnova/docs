@@ -839,9 +839,7 @@
                     "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
                     "currency": "NGN",
                     "id_number": "22212345678",
-                    "codes": [
-                      "100033"
-                    ]
+                    "bank": "nombank"
                   }
                 }
               }
@@ -1435,7 +1433,7 @@
     "/v1/virtual-accounts/dynamic": {
       "post": {
         "summary": "Generate single-use virtual account",
-        "description": "Generate a single-use NGN account for a customer, for an amount and a lifespan. Add `reference` (your order id) to give each order its own account: the payment notification then names the order. Without `reference`, a customer has one open account at a time and a repeat request returns it.",
+        "description": "Generate a single-use NGN account for a customer, for an amount and a lifespan. Add `reference` (your order id) to give each order its own account: the payment notification then names the order. Without `reference`, a customer has one open account per bank at a time and a repeat request for the same amount returns it; another amount gets a new account.",
         "operationId": "createDynamicVirtualAccount",
         "tags": [
           "Virtual Account"
@@ -8195,10 +8193,19 @@
             "items": {
               "type": "string"
             },
-            "description": "NGN: the issuing bank codes to open the account with (for example `100033`). Omit to use the first bank available to your business.",
+            "description": "NGN: the issuing bank codes to open the account with (for example `100002` for Paga, `090645` for Nombank). Omit, with `bank`, to use your business's banks in order. Prefer `bank`.",
             "example": [
-              "100033"
+              "100002"
             ]
+          },
+          "bank": {
+            "type": "string",
+            "enum": [
+              "paga",
+              "nombank"
+            ],
+            "description": "NGN: the bank to open the account at. Omit to use your business's banks in order: Paga first, and Nombank when Paga can't open more accounts. With `bank` set, only that bank is asked. Don't combine with a different `codes`.",
+            "example": "nombank"
           },
           "customer_name": {
             "type": "string",
@@ -8324,6 +8331,15 @@
               "male",
               "female"
             ]
+          },
+          "bank": {
+            "type": "string",
+            "enum": [
+              "paga",
+              "nombank"
+            ],
+            "description": "The bank to open the account at. Omit to use your business's default bank for dynamic accounts (Paga). A Nombank account accepts exactly `amount` and stops accepting payments at `expires_at`.",
+            "example": "nombank"
           }
         },
         "description": "Name the customer with `customer_id` or `customer_reference` (exactly one is required). The `customer_*` fields are read only when the customer does not exist yet."
