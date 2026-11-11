@@ -38,4 +38,5 @@ curl https://api.platnova.com/v1/virtual-accounts/replacements?format=csv \
 
 ## Customers Nombank can't serve
 
-A customer keeps their old account, listed and receiving payments, when Nombank can't open one: no BVN or NIN on file, or Nombank already holds two accounts for their BVN or NIN. Nothing is hidden for them. Give us a BVN with [Create Virtual Account](/api-reference/virtual-accounts/create) (`id_number`) to open their Nombank account; a customer at the two-account limit can be served with a [dynamic account](/api-reference/virtual-accounts/dynamic) per payment.
+- **Nombank already holds two accounts for the customer's BVN or NIN:** they are moved to **Paga** instead. A customer whose old account is at Paga keeps it; a PalmPay customer is given their live Paga account, or a new one, and you're told through `account.replaced` like any other replacement.
+- **No BVN or NIN on file, or Nombank refused for another reason:** the customer keeps their old account, listed and receiving payments. Nothing is hidden for them. To collect from them now, use a [dynamic account](/api-reference/virtual-accounts/dynamic) with the customer's BVN as `id_number`.

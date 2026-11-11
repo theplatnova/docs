@@ -17,7 +17,7 @@ A Nombank dynamic account takes exactly `amount` and stops accepting payments at
 
 - Nombank opens an account only against the customer's BVN or NIN. Send the BVN as `id_number` (11 digits) when none is on file; it is used for this account. A BVN other than the one verified for the customer answers `409` `customer_id_conflict`. With no BVN or NIN at all: `422` `identity_required`, `data.field` `id_number`.
 - Nombank holds at most two accounts per BVN or NIN. Leave `bank` out and a customer at that limit gets a **Paga** account in the same request (`bank_name` `Paga`; a Paga account adds its collection fee to what the payer sends). With `"bank": "nombank"` the answer is `422` `nomba_identity_limit`.
-- Nombank can't be reached, or didn't confirm the account: `503` `issuing_unavailable`, retryable. Nothing was recorded.
+- Nombank can't be reached, or didn't confirm the account: `503` `issuing_unavailable`, retryable. No account is given to you; retry with the same `reference`, and contact support if it persists.
 - `bank` other than `nombank` or `paga`: `400` `invalid_bank`.
 
 Without `reference`, a customer has one open account at a time, whichever bank opened it; a repeat for the same amount returns it, and a different amount gets a new account.
