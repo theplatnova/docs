@@ -187,7 +187,8 @@
               "api-reference/banks/list",
               "api-reference/banks/branches",
               "api-reference/banks/verify",
-              "api-reference/banks/suggest"
+              "api-reference/banks/suggest",
+              "api-reference/banks/status"
             ]
           },
           {

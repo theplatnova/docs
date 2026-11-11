@@ -6325,6 +6325,20 @@
                         },
                         "account_name": {
                           "type": "string"
+                        },
+                        "bank_code": {
+                          "type": "string"
+                        },
+                        "bank_status": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/BankStatus"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Nigerian banks only: how transfers to this bank are going right now, or null when unknown. Absent for other countries."
                         }
                       }
                     },
@@ -6340,7 +6354,16 @@
                     "status": true,
                     "data": {
                       "account_number": "0123456789",
-                      "account_name": "ADAEZE OBI"
+                      "account_name": "ADAEZE OBI",
+                      "bank_code": "044",
+                      "bank_status": {
+                        "bank_code": "044",
+                        "bank_name": "Access Bank",
+                        "level": "green",
+                        "message": "Transfers to Access Bank usually arrive in under a minute.",
+                        "expected_minutes": 1,
+                        "as_of": "2026-11-11T08:10:00Z"
+                      }
                     },
                     "error": [],
                     "message": "operation was successful"
@@ -6439,6 +6462,118 @@
           },
           "400": {
             "description": "Bad request (e.g. unknown country or bank code, provider unavailable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/banks/status": {
+      "get": {
+        "summary": "Bank network status",
+        "description": "How transfers to each Nigerian bank are going right now: usually instant, slow, having problems, or no recent data. Use it to warn your customer before they send to a bank that is struggling, or to explain a slow payout. It never blocks a payout. Answers are cached for 60 seconds; polling faster returns the same answer.",
+        "operationId": "getBankNetworkStatus",
+        "tags": [
+          "Bank"
+        ],
+        "parameters": [
+          {
+            "name": "bank_code",
+            "in": "query",
+            "required": false,
+            "description": "One bank's code, as you hold it (from List banks or a beneficiary you saved). Omit it for every bank.",
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            },
+            "example": "000015"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status of every bank, or of the one asked for. `banks` is empty when we know nothing of that code.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `public, max-age=60`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "as_of": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time",
+                          "description": "When the newest status in the answer was computed"
+                        },
+                        "banks": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/BankStatus"
+                          }
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "status": true,
+                    "data": {
+                      "as_of": "2026-11-11T08:10:00Z",
+                      "banks": [
+                        {
+                          "bank_code": "000015",
+                          "bank_name": "Zenith Bank",
+                          "level": "amber",
+                          "message": "Zenith Bank is slow right now. Transfers are taking about 8 minutes.",
+                          "expected_minutes": 8,
+                          "as_of": "2026-11-11T08:10:00Z"
+                        }
+                      ]
+                    },
+                    "error": [],
+                    "message": "operation was successful"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bank_code is longer than any bank code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Status could not be read just now; try again in a minute. Never a reason to hold a payout.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9355,6 +9490,60 @@
             "description": "Whether this is a default wallet."
           }
         }
+      },
+      "BankStatus": {
+        "type": "object",
+        "description": "How transfers to one bank are going right now. Show `message` to your customer as it is; it never names a payment provider. A warning never blocks a payout: you decide whether to send.",
+        "properties": {
+          "bank_code": {
+            "type": "string",
+            "description": "The code you asked about",
+            "example": "000015"
+          },
+          "bank_name": {
+            "type": "string",
+            "example": "Zenith Bank"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "green",
+              "amber",
+              "red",
+              "grey"
+            ],
+            "description": "green: transfers arrive as usual. amber: slow right now. red: having problems; a transfer may be delayed. grey: no recent transfer data."
+          },
+          "message": {
+            "type": "string",
+            "description": "One sentence for your customer",
+            "example": "Zenith Bank is slow right now. Transfers are taking about 8 minutes."
+          },
+          "expected_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Typical arrival time in minutes; null for red and grey",
+            "example": 8
+          },
+          "as_of": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When this status was computed; null when we hold no data for the bank"
+          }
+        },
+        "required": [
+          "bank_code",
+          "bank_name",
+          "level",
+          "message",
+          "expected_minutes",
+          "as_of"
+        ]
       }
     },
     "securitySchemes": {
