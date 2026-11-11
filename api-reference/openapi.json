@@ -8193,18 +8193,17 @@
             "items": {
               "type": "string"
             },
-            "description": "NGN: the issuing bank codes to open the account with (for example `100002` for Paga, `090645` for Nombank). Omit, with `bank`, to use your business's banks in order. Prefer `bank`.",
+            "description": "NGN: the older way to choose the bank: `090645` (Nombank). Prefer `bank`, or leave both out.",
             "example": [
-              "100002"
+              "090645"
             ]
           },
           "bank": {
             "type": "string",
             "enum": [
-              "paga",
               "nombank"
             ],
-            "description": "NGN: the bank to open the account at. Omit to use your business's banks in order: Paga first, and Nombank when Paga can't open more accounts. With `bank` set, only that bank is asked. Don't combine with a different `codes`.",
+            "description": "NGN: `nombank`, the only bank customer accounts open at (Nombank MFB, bank code 090645). May be left out. Nothing opens at another bank: a refusal answers `nomba_identity_limit`, `identity_required` or `issuing_unavailable`.",
             "example": "nombank"
           },
           "customer_name": {
@@ -8335,10 +8334,9 @@
           "bank": {
             "type": "string",
             "enum": [
-              "paga",
               "nombank"
             ],
-            "description": "The bank to open the account at. Omit to use your business's default bank for dynamic accounts (Paga). A Nombank account accepts exactly `amount` and stops accepting payments at `expires_at`.",
+            "description": "`nombank`, the only bank dynamic accounts open at; may be left out. A Nombank account accepts exactly `amount` and stops accepting payments at `expires_at`. The customer needs a BVN or NIN on file (`identity_required` otherwise).",
             "example": "nombank"
           }
         },

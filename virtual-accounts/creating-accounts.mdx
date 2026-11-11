@@ -33,21 +33,16 @@ For a customer you haven't created yet, send your own id with their details in t
 
 - **Reference** - Your own reference for this account (see [One account per loan or order](#one-account-per-loan-or-order))
 - **ID number** - For NGN accounts, the customer's BVN in `id_number`. In live it is required unless the customer already has a BVN on file, and it is verified before the account is opened
-- **Bank** - For NGN accounts, `paga` or `nombank` (see [Choosing a Provider](#choosing-a-provider-ngn-accounts) below)
+- **Bank** - For NGN accounts, `nombank` or leave it out (see [The Bank](#the-bank-ngn-accounts) below)
 - **Codes** - The older way to choose: an array of bank codes
 
-## Choosing a Provider (NGN Accounts)
+## The Bank (NGN Accounts)
 
-NGN accounts open at **Paga** or **Nombank MFB**. Leave `bank` out and your business's banks are tried in order, Paga first: when Paga can't open more accounts, the account opens at Nombank in the same request, so you don't have to retry. Send `bank` to ask for one bank only.
+NGN accounts open at **Nombank MFB** (`bank_code` `090645`). It is the only bank: leave `bank` out or send `"bank": "nombank"`. Nombank opens at most two accounts per BVN or NIN; a third answers `409` `nomba_identity_limit`. If Nombank can't be reached the answer is `503` `issuing_unavailable` and nothing is opened; retry. No other bank stands in.
 
-| `bank` | Bank shown to your customer | `bank_code` |
-|---|---|---|
-| `paga` | Paga | `100002` |
-| `nombank` | Nombank MFB | `090645` |
+Always show your customer the `bank_name`, `account_number` and `account_name` from the response.
 
-Always show your customer the `bank_name`, `account_number` and `account_name` from the response; don't assume the bank. Both give a 10-digit account number, and payments into both arrive on `account.funded`. `codes` (an array of bank codes) still works.
-
-PalmPay (`100033`) no longer issues new accounts. Accounts already opened at PalmPay keep receiving payments; each is being given a Paga replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)).
+PalmPay (`100033`) and Paga (`100002`) no longer issue new accounts. Accounts already opened there keep receiving payments; each is being given a Nombank replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)).
 
 ```bash
 curl -X POST https://api.platnova.com/v1/virtual-accounts/create \

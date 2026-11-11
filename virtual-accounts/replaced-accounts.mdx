@@ -3,16 +3,16 @@ title: "Replaced accounts"
 slug: "virtual-accounts/replaced-accounts"
 ---
 
-When a bank stops receiving payments for Platnova, each customer account you opened at that bank is given a replacement at another bank. In November 2026 this applies to **PalmPay**: every PalmPay customer account gets a **Paga** account.
+When a bank stops receiving payments for Platnova, each customer account you opened at that bank is given a replacement at another bank. In November 2026 this applies to **PalmPay and Paga**: every PalmPay and Paga customer account gets a **Nombank MFB** account. A PalmPay account that was already given a Paga replacement you were told about keeps it, and that Paga account in turn gets a Nombank one.
 
 You don't need to do anything to keep receiving money. **Money sent to an old account is still credited to your customer's balance**, and you still receive `account.funded` for it. What you do need to do is give each customer their new account number before the cut-over date.
 
 ## What happens, in order
 
-1. **A replacement is opened.** If your customer already has a Paga account with you, that account becomes the replacement. Otherwise we open one using the BVN you gave us. You don't receive `account.issued` for a replacement.
+1. **A replacement is opened.** If your customer already has a Nombank account with you, that account becomes the replacement. Otherwise we open one using the BVN or NIN you gave us. You don't receive `account.issued` for a replacement.
 2. **You are told.** You receive one [`account.replaced`](/webhooks/overview#account-replaced) webhook per account, with the old and new numbers and the cut-over date. Your business's Owners and Admins also get an email with the count and the date.
 3. **Before the cut-over date**, the old account is still your customer's default account, and lists show it first. The replacement appears beside it with `replaces` set.
-4. **From the cut-over date**, the old account is listed with `retired: true`, `default: false` and `replaced_by`. The replacement becomes the default and is listed first. The old account is never removed from your lists, and it keeps receiving payments.
+4. **From the cut-over date**, the old account is no longer listed; its replacement is the customer's default. `GET /v1/virtual-accounts/replacements` and `account.replaced` still name both. The old number keeps receiving payments, credited to your customer as before.
 
 ## Fields on a customer account
 
@@ -36,4 +36,6 @@ curl https://api.platnova.com/v1/virtual-accounts/replacements?format=csv \
   -H "X-API-KEY: YOUR_API_KEY" -o replaced-accounts.csv
 ```
 
-A customer whose BVN we don't have can't be given a replacement automatically. Open one with [Create Virtual Account](/api-reference/virtual-accounts/create), passing `id_number`.
+## Customers Nombank can't serve
+
+A customer keeps their old account, listed and receiving payments, when Nombank can't open one: no BVN or NIN on file, or Nombank already holds two accounts for their BVN or NIN. Nothing is hidden for them. Give us a BVN with [Create Virtual Account](/api-reference/virtual-accounts/create) (`id_number`) to open their Nombank account; a customer at the two-account limit can be served with a [dynamic account](/api-reference/virtual-accounts/dynamic) per payment.
