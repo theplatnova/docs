@@ -24,7 +24,7 @@ Send `reference` (your order id; `order_reference` is accepted too) and the orde
 
 ### Amount
 
-The account is opened for the amount you set, and that is the amount to show the payer. A transfer of a different amount is **still credited** (less our fee), and several transfers into one account are each credited with their own webhook. Compare `paid_amount` with `expected_amount` on the webhook and decide what an under- or overpayment means for your order.
+The account is opened for the amount you set, and that is the amount to show the payer. A transfer of a different amount is **still credited** (less our fee), except into a Nombank account, which accepts only its own amount, and several transfers into one account are each credited with their own webhook. Compare `paid_amount` with `expected_amount` on the webhook and decide what an under- or overpayment means for your order.
 
 ### Expiry
 
@@ -97,7 +97,7 @@ If none of your customers has `customer_id` yet, add the customer's details (`cu
 
 ## Repeating a Request
 
-**Without `reference`**, a customer has one open dynamic account at a time: a second request while it is open returns the same account, **even for a different amount**. To collect several amounts from one customer at once, give each its own `reference`.
+**Without `reference`**, a customer has one open dynamic account per bank at a time: a second request for the same amount while it is open returns the same account, and a request for a **different amount gets a new account** (the earlier one keeps crediting anything paid into it). To collect several amounts from one customer at once, give each its own `reference`.
 
 **With `reference`**, each order has its own account, separate from that one:
 

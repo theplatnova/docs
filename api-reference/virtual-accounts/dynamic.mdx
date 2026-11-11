@@ -17,6 +17,6 @@ A Nombank dynamic account takes exactly `amount` and stops accepting payments at
 
 ## Order reference
 
-Send your order id as `reference` (or `order_reference`) to give the order its own account. The response returns it as `order_reference`, and `account.funded` carries it as `reference`, with `expected_amount`. Repeating the request with the same reference, customer and amount while the account is open returns the same account. Any other reuse answers `400` `duplicate_reference` (`data.status` `expired` once the account has expired). Without `reference`, a customer has one open account at a time and a repeat returns it, even for a different amount.
+Send your order id as `reference` (or `order_reference`) to give the order its own account. The response returns it as `order_reference`, and `account.funded` carries it as `reference`, with `expected_amount`. Repeating the request with the same reference, customer and amount while the account is open returns the same account. Any other reuse answers `400` `duplicate_reference` (`data.status` `expired` once the account has expired). Without `reference`, a customer has one open account per bank at a time: a repeat for the same amount returns it, and a different amount gets a new account (the earlier one still credits whatever is paid into it).
 
 A payment of a different amount, or after `expires_at`, is still credited; a late one is marked `"late": true` on the webhook. See [Collecting payments per order](/virtual-accounts/collecting-per-order).

@@ -1433,7 +1433,7 @@
     "/v1/virtual-accounts/dynamic": {
       "post": {
         "summary": "Generate single-use virtual account",
-        "description": "Generate a single-use NGN account for a customer, for an amount and a lifespan. Add `reference` (your order id) to give each order its own account: the payment notification then names the order. Without `reference`, a customer has one open account at a time and a repeat request returns it.",
+        "description": "Generate a single-use NGN account for a customer, for an amount and a lifespan. Add `reference` (your order id) to give each order its own account: the payment notification then names the order. Without `reference`, a customer has one open account per bank at a time and a repeat request for the same amount returns it; another amount gets a new account.",
         "operationId": "createDynamicVirtualAccount",
         "tags": [
           "Virtual Account"
