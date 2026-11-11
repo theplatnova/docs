@@ -64,6 +64,8 @@ Every customer view returns `reference` (`null` if none). Your id then works any
 
 Our id is always tried first, then your reference. Only your own business's customers are found.
 
+Your reference is the customer's identity with us: customers with different references are different customers, even with the same email, phone or BVN. Without a reference, email is what tells customers apart.
+
 You can also skip creating the customer up front: [Create Virtual Account](/virtual-accounts/creating-accounts#use-your-own-customer-ids) and [Dynamic Accounts](/virtual-accounts/dynamic-accounts) create a customer from the details in the request, under your id.
 
 ## Customer Status

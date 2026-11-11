@@ -122,7 +122,8 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
 - The customer is created exactly as [Create Customer](/api-reference/customers/create) would create them. Repeating the request finds the same customer; it never makes a second one.
 - A missing detail answers `422` listing each missing field.
 - Without details, an id none of your customers has answers `400` `customer was not found`, as before.
-- If a customer with that email already exists without your id, the answer is `409` `customer_exists` with their `id`. Use that id, or give them your id with [Update Customer](/api-reference/customers/update) (`reference`).
+- Your id is the customer, not their email, phone or BVN: a new id creates a new customer even when another of your customers has the same email. One person may be several of your customers (for example one per loan); keep one id per person where you can.
+- If the customer's BVN was verified and a later request sends a different `id_number`, the answer is `409` `customer_id_conflict`: one id is one person.
 - Your ids are 1–64 characters of letters, digits and `_ . : -`, unique within your business.
 
 After that, your id works anywhere a customer id is accepted. See [Your own customer ids](/customers/overview#your-own-customer-ids).

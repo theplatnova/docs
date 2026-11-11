@@ -25,7 +25,7 @@ You use your own ids throughout. You never need to store ours.
 
 <Steps>
 <Step title="Name the customer by your own id">
-Send your customer id as `customer_id`. The first time, include the customer's details and the customer is created with your id as their `reference` (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids)). After that, your id alone is enough.
+Send your customer id as `customer_id`. The first time, include the customer's details and the customer is created with your id as their `reference` (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids)). After that, your id alone is enough. Your id is the customer: a new id creates a new customer even if another of your customers has the same email, so keep one id per person.
 </Step>
 <Step title="Open one account per order">
 Persistent:
@@ -97,6 +97,8 @@ Some banks can issue only one account per customer. If the customer already hold
 
 - choose another bank with `codes` on the request, or
 - use dynamic accounts for the orders, which are not limited this way.
+
+A person can also hold at most **20** open persistent accounts with your business by default, counted across every customer id that shares their BVN. One more answers `409` `account_limit_reached` with `data.limit` and `data.active`. Dynamic accounts expire and don't count; contact support if you need a higher limit.
 
 ## Things to know
 
