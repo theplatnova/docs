@@ -191,7 +191,7 @@
             }
           },
           "409": {
-            "description": "A customer with this email already exists in your business. `data.code` is `customer_exists` and `data.id` is the existing customer's `id`: use it rather than creating another.",
+            "description": "Only without a `reference`: a customer with this email already exists in your business. `data.code` is `customer_exists` and `data.id` is the existing customer's `id`: use it rather than creating another. With a `reference`, the reference is the customer and email is not checked.",
             "content": {
               "application/json": {
                 "schema": {
@@ -796,7 +796,7 @@
     "/v1/virtual-accounts/create": {
       "post": {
         "summary": "Create virtual account (customer)",
-        "description": "Open a virtual bank account for one of your customers.\n\n**Name the customer** with `customer_id` or `customer_reference` (one of the two, not both). `customer_id` may be our customer id or your own id for the customer; `customer_reference` is your own id by its explicit name. If none of your customers has your id yet, send the customer's details (`customer_*` fields) and the customer is created with your id as their `reference`. A customer that already exists needs no details.\n\n**Required for a new customer:** `customer_name` (or `customer_first_name` + `customer_last_name`), `customer_email`, `customer_phone`, `customer_country_code` (defaults to `NG` for NGN) and `customer_date_of_birth`. The date of birth is not needed for NGN when you send `id_number` (BVN): it is taken from the BVN record. `customer_gender` is optional.\n\n**NGN:** in live, `id_number` (BVN) is required unless the customer already has a BVN on file, and it is verified before the account is opened.\n\n**USD:** set a default USD settlement wallet in your dashboard; any account fee is charged to it. The customer needs an address and identity documents on file, so create USD customers with Create Customer first: a customer created from `customer_*` fields has neither.\n\n**`reference`** (optional) opens an account for one loan or order. A customer can hold one account per reference, and repeating the request returns the same account. Without `reference`, a customer has one account per bank.",
+        "description": "Open a virtual bank account for one of your customers.\n\n**Name the customer** with `customer_id` or `customer_reference` (one of the two, not both). `customer_id` may be our customer id or your own id for the customer; `customer_reference` is your own id by its explicit name. If none of your customers has your id yet, send the customer's details (`customer_*` fields) and the customer is created with your id as their `reference`. A customer that already exists needs no details.\n\n**Required for a new customer:** `customer_name` (or `customer_first_name` + `customer_last_name`), `customer_email`, `customer_phone`, `customer_country_code` (defaults to `NG` for NGN) and `customer_date_of_birth`. The date of birth is not needed for NGN when you send `id_number` (BVN): it is taken from the BVN record. `customer_gender` is optional.\n\n**NGN:** in live, `id_number` (BVN) is required unless the customer already has a BVN on file, and it is verified before the account is opened.\n\n**USD:** set a default USD settlement wallet in your dashboard; any account fee is charged to it. The customer needs an address and identity documents on file, so create USD customers with Create Customer first: a customer created from `customer_*` fields has neither.\n\n**`reference`** (optional) opens an account for one loan or order. A customer can hold one account per reference, and repeating the request returns the same account. Without `reference`, a customer has one account per bank.\n\n**Your customer id is the customer.** Within your business a customer is identified by your `customer_id`, not by email, phone or BVN: a `customer_id` we don't know yet creates a new customer even when another of your customers has the same email. Our customer id keeps working as before. **`reference` is the idempotency key**: the same `reference` answers the same account; a new one opens another account for the same customer.",
         "operationId": "createUserVirtualAccount",
         "tags": [
           "Virtual Account"
@@ -1095,7 +1095,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Nothing was opened",
+            "description": "Conflict. Nothing was opened. `account_limit_reached`: the bank can't open another account for this customer (`data.accounts`), or the person already holds your business's limit of open accounts, counted across customer ids that share a BVN (`data.limit`, `data.active`; 20 by default). `customer_id_conflict`: the customer's BVN was verified and `id_number` is a different one",
             "content": {
               "application/json": {
                 "schema": {
@@ -1134,16 +1134,30 @@
                       "message": "An account for this reference is being created; try again shortly."
                     }
                   },
-                  "customer_exists": {
-                    "summary": "A customer with this email exists without your id",
+                  "person_account_limit": {
+                    "summary": "The person already holds your business's limit of open accounts",
                     "value": {
                       "status": false,
                       "data": {
-                        "code": "customer_exists",
-                        "id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01"
+                        "code": "account_limit_reached",
+                        "limit": 20,
+                        "active": 20
                       },
                       "error": [],
-                      "message": "A customer with this email already exists. Send their customer id, or give them your customer id as their reference (PATCH /v1/customers/{id})."
+                      "message": "This customer already holds as many open accounts as your business can hold for one person. Reuse one of their accounts, or contact support to raise the limit."
+                    }
+                  },
+                  "customer_id_conflict": {
+                    "summary": "A different BVN for a customer whose BVN was verified",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "customer_id_conflict",
+                        "field": "id_number",
+                        "customer_id": "dc62d76a-0952-4d03-9df3-47d8b5651242"
+                      },
+                      "error": [],
+                      "message": "This customer_id belongs to a customer verified with a different BVN. Use a new customer_id for a different person."
                     }
                   }
                 }
@@ -1216,6 +1230,30 @@
                           "Use the format YYYY-MM-DD."
                         ]
                       }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The bank can't open accounts right now. Nothing was opened; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "bank_unavailable": {
+                    "summary": "Bank unavailable",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "bank_unavailable",
+                        "retryable": true
+                      },
+                      "error": [],
+                      "message": "We can't open accounts with this bank right now. Try again later or contact support."
                     }
                   }
                 }
@@ -1625,18 +1663,6 @@
                       },
                       "error": [],
                       "message": "An account for this reference is being created; try again shortly."
-                    }
-                  },
-                  "customer_exists": {
-                    "summary": "A customer with this email exists without your id",
-                    "value": {
-                      "status": false,
-                      "data": {
-                        "code": "customer_exists",
-                        "id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01"
-                      },
-                      "error": [],
-                      "message": "A customer with this email already exists. Send their customer id, or give them your customer id as their reference (PATCH /v1/customers/{id})."
                     }
                   }
                 }

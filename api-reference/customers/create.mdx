@@ -69,4 +69,6 @@ For any country not listed above, use `id_type: "tin"`.
 
 ## Duplicates
 
-A customer is unique by email within your business. Creating one with an email you already used answers `409` with `data.code` `customer_exists` and `data.id`, the existing customer's `id`, so you can carry on with that customer instead.
+With a `reference`, the reference is the customer: another of your customers may already have the same email (one person can be several of your customers, for example one per loan). A `reference` already in use answers `400` `duplicate_customer_reference`.
+
+Without a `reference`, a customer is unique by email within your business. Creating one with an email you already used answers `409` with `data.code` `customer_exists` and `data.id`, the existing customer's `id`, so you can carry on with that customer instead.

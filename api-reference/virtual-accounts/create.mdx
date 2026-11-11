@@ -26,6 +26,14 @@ We look the value up within your business: our id first, then a customer whose `
 
 Your ids are 1–64 characters of letters, digits and `_ . : -`, unique within your business.
 
+### Your customer id is the customer
+
+Within your business, a customer is your `customer_id`, not their email, phone or BVN. One person may be several of your customers (for example one per loan), and they may share an email, phone and BVN. A `customer_id` we don't know yet always creates a new customer under it, even when another of your customers has the same email.
+
+- Sending **our** customer id keeps working as before.
+- One `customer_id` is one person: if the customer's BVN was verified and the request sends a different `id_number`, the answer is `409` `customer_id_conflict` and nothing is opened. Use a new `customer_id` for a different person.
+- For limits and monitoring we still count your customers who share a BVN as one person. That link is never shown in the API.
+
 ### New customer details
 
 | Field | Required |
@@ -37,7 +45,7 @@ Your ids are 1–64 characters of letters, digits and `_ . : -`, unique within y
 | `customer_date_of_birth` | `YYYY-MM-DD`. Required, **except for NGN when you send `id_number` (BVN)**: the date of birth is then taken from the BVN record |
 | `customer_gender` | No. `male` or `female` |
 
-A missing detail answers `422` listing each missing field. If a customer with that email already exists without your id, the answer is `409` `customer_exists` with their `id`: use that id, or set your id on them with [Update Customer](/api-reference/customers/update) (`reference`).
+A missing detail answers `422` listing each missing field.
 
 ## Currency
 
@@ -48,9 +56,12 @@ A missing detail answers `422` listing each missing field. If a customer with th
 
 Add `reference` to open an account for one loan, order or contract. A customer can hold several accounts, one per reference, and every payment into an account carries its reference on `account.funded`.
 
-- Repeating the request with the same `reference`, customer and currency returns the same account. Nothing new is opened.
+- `reference` is the idempotency key: repeating the request with the same `reference`, customer and currency returns the same account. Nothing new is opened, and nothing is checked against the limit below.
+- A new `reference` opens a new account for the same customer.
+- A person can hold at most **20** open accounts with your business by default, counted across every `customer_id` that shares their BVN. One more answers `409` `account_limit_reached` with `data.limit` and `data.active`. Contact support to change your limit.
 - Look an account up with [Get Virtual Account by Reference](/api-reference/virtual-accounts/by-reference).
 - Without `reference`, a customer has one account per bank, and a second request for the same bank answers `400` `bank account is already added`.
+- For repayments, a [dynamic account](/api-reference/virtual-accounts/dynamic) per order (with `amount` and `reference`) is often the better fit: it expires, so it never adds to the customer's open accounts, and `account.funded` carries the order `reference` and `expected_amount`.
 
 ## Errors
 
@@ -60,8 +71,10 @@ Add `reference` to open an account for one loan, order or contract. A customer c
 | `400` | `invalid_reference` | The `reference` breaks the format |
 | `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
-| `409` | `account_limit_reached` | The bank can't open another account for this customer. `data.accounts` lists their accounts there. Nothing was opened |
-| `409` | `customer_exists` | New customer: one with this email already exists without your id. `data.id` is that customer |
+| `409` | `account_limit_reached` | Nothing was opened. Either the bank can't open another account for this customer (`data.accounts` lists their accounts there), or the person already holds your business's limit of open accounts (`data.limit`, `data.active`) |
+| `409` | `customer_id_conflict` | The customer's BVN was verified and `id_number` is a different one. `data.customer_id` is the customer. Use a new `customer_id` for a different person |
 | `422` | — | New customer: a detail is missing or in the wrong format. `errors` lists each field |
+| `422` | `invalid_customer_details` | The bank rejected the customer's details (`data.field` when it named one). Fix them before retrying |
+| `503` | `bank_unavailable` | The bank can't open accounts right now. Retry later (`data.retryable` is `true`), or use a [dynamic account](/api-reference/virtual-accounts/dynamic) |
 
 See [Creating Accounts](/virtual-accounts/creating-accounts) for the full guide.
