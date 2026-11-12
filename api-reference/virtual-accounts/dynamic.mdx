@@ -9,15 +9,18 @@ Generate a single-use NGN account for a customer, for an amount and a lifespan (
 
 `customer_id` can be our customer id or your own; with the customer's details in the request, a new customer is created under your id (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids); on this route `customer_date_of_birth` is always required for a new customer).
 
-## Choosing the bank
+## The bank
 
-Leave `bank` out to use your business's default bank for dynamic accounts (Paga), or send `"bank": "nombank"` for a **Nombank MFB** account (`"paga"` asks for Paga). Show the payer the `bank_name` from the response.
+Dynamic accounts open at **Nombank MFB**. Show the payer the `bank_name` from the response.
 
-A Nombank dynamic account takes exactly `amount` and stops accepting payments at `expires_at`: the payer's bank refuses any other amount and any late transfer, so nothing arrives short or late. `bank` that isn't `paga` or `nombank` answers `400` `invalid_bank`; a bank your business doesn't offer answers `400` `bank_not_offered`.
+A Nombank dynamic account takes exactly `amount` and stops accepting payments at `expires_at`: the payer's bank refuses any other amount and any late transfer.
 
-Nombank opens an account only against the customer's BVN or NIN, so `bank: "nombank"` needs one on file (send it as `id_number` when you open the customer's persistent account). Without one the answer is `422` `identity_required` with `data.field` `id_number`, and nothing is opened.
+- Nombank opens an account only against the customer's BVN or NIN. Send the BVN as `id_number` (11 digits) when none is on file; it is used for this account. A BVN other than the one verified for the customer answers `409` `customer_id_conflict`. With no BVN or NIN at all: `422` `identity_required`, `data.field` `id_number`.
+- Nombank holds at most two accounts per BVN or NIN. Leave `bank` out and a customer at that limit gets a **Paga** account in the same request (`bank_name` `Paga`; a Paga account adds its collection fee to what the payer sends). With `"bank": "nombank"` the answer is `422` `nomba_identity_limit`.
+- Nombank can't be reached, or didn't confirm the account: `503` `issuing_unavailable`, retryable. No account is given to you; retry with the same `reference`, and contact support if it persists.
+- `bank` other than `nombank` or `paga`: `400` `invalid_bank`.
 
-Without `reference`, a customer has one open account per bank. Leaving `bank` out counts as your default bank: a request without `bank` and one with `"bank": "paga"` (when Paga is your default) return the same open account.
+Without `reference`, a customer has one open account at a time, whichever bank opened it; a repeat for the same amount returns it, and a different amount gets a new account.
 
 ## Order reference
 

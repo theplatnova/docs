@@ -49,23 +49,18 @@ A missing detail answers `422` listing each missing field.
 
 ## Currency
 
-- **NGN**: in live, `id_number` (the customer's BVN) is required unless the customer already has a BVN on file. It is verified before the account is opened. See [Choosing the bank](#choosing-the-bank-ngn).
+- **NGN**: in live, `id_number` (the customer's BVN) is required unless the customer already has a BVN on file. It is verified before the account is opened. See [The bank](#the-bank-ngn).
 - **USD**: set a default USD settlement wallet in your [dashboard settings](https://business.platnova.com/settings?section=settlements); any account fee is charged to it and returned as `amount_debited`. The customer needs an address and identity documents on file, so create USD customers with [Create Customer](/api-reference/customers/create) first.
 
-## Choosing the bank (NGN)
+## The bank (NGN)
 
-Send `bank` to choose where the account is opened, or leave it out.
+NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`), a 10-digit NUBAN.
 
-| `bank` | Bank shown to your customer | `bank_code` |
-|---|---|---|
-| `paga` | Paga | `100002` |
-| `nombank` | Nombank MFB | `090645` |
-
-- **Without `bank`** your business's banks are tried in order: **Paga first, then Nombank**. When Paga can't open more accounts (its account limit), the account is opened at Nombank in the same request. Nothing changes in the request or the response shape: read `bank_name` and `bank_code` from the account you get back.
-- **With `bank`** only that bank is asked. If it can't open the account you get its refusal, never another bank.
-- Both banks give a 10-digit NUBAN, and payments into either are credited the same way and reported on `account.funded` with the account's `bank_name` and `bank_code`.
-- `codes` still works. Don't send it with a different `bank`.
-- Without `reference`, a customer has one account per bank. Asking without `bank` when the customer already has an account at Paga or Nombank answers `400` `bank account is already added`.
+- **Leave `bank` out** (recommended). Nombank opens the account against the customer's **BVN or NIN**, and holds **at most two accounts per BVN or NIN**, counted across every business we serve. When a customer is already at that limit, the account opens at **Paga** (`bank_code` `100002`) in the same request instead. The response looks the same either way: read `bank_name` and `bank_code`.
+- **Send `"bank": "nombank"`** to allow Nombank only. At the limit the answer is then `422` `nomba_identity_limit` and nothing is opened.
+- Nothing else moves an account to Paga. If Nombank can't be reached, or we can't confirm whether it opened the account, the answer is `503` `issuing_unavailable` with `data.retryable` `true`. No account is given to you then, though one the bank opened may still be confirmed later: retry with the same `reference`, and contact support if it persists.
+- Accounts your customers already hold at PalmPay or Paga keep receiving payments. Each is being given a Nombank replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)).
+- Without `reference`, a customer has one account per bank, and a second request answers `400` `bank account is already added`.
 
 ## One account per loan or order
 
@@ -90,10 +85,11 @@ Add `reference` to open an account for one loan, order or contract. A customer c
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
 | `409` | `account_limit_reached` | Nothing was opened. Either the bank can't open another account for this customer (`data.accounts` lists their accounts there), or the person already holds your business's limit of open accounts (`data.limit`, `data.active`) |
 | `409` | `account_in_progress` | Another request is opening this customer's account right now. Retry shortly |
-| `503` | `issuing_unavailable` | We couldn't start opening the account; nothing was opened. Retry shortly (`data.retryable` is `true`) |
 | `409` | `customer_id_conflict` | The customer's BVN was verified and `id_number` is a different one. `data.customer_id` is the customer. Use a new `customer_id` for a different person |
 | `422` | — | New customer: a detail is missing or in the wrong format. `errors` lists each field |
 | `422` | `invalid_customer_details` | The bank rejected the customer's details (`data.field` when it named one). Fix them before retrying |
-| `503` | `bank_unavailable` | No bank could open the account right now (without `bank`, both Paga and Nombank were asked). Retry later (`data.retryable` is `true`), or use a [dynamic account](/api-reference/virtual-accounts/dynamic) |
+| `422` | `nomba_identity_limit` | You sent `"bank": "nombank"` and Nombank already holds two accounts for this customer's BVN or NIN. Leave `bank` out to open at Paga, or reuse one |
+| `422` | `identity_required` | No BVN or NIN for the customer. Send `id_number` |
+| `503` | `issuing_unavailable` | Nombank can't be reached or didn't confirm the account, or we couldn't start opening it. No account was given to you; one the bank opened may still be confirmed later. Retry with the same `reference` (`data.retryable` is `true`); contact support if it persists |
 
 See [Creating Accounts](/virtual-accounts/creating-accounts) for the full guide.

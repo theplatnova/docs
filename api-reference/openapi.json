@@ -8193,18 +8193,18 @@
             "items": {
               "type": "string"
             },
-            "description": "NGN: the issuing bank codes to open the account with (for example `100002` for Paga, `090645` for Nombank). Omit, with `bank`, to use your business's banks in order. Prefer `bank`.",
+            "description": "NGN: the older way to choose the bank: `090645` (Nombank). Prefer `bank`, or leave both out.",
             "example": [
-              "100002"
+              "090645"
             ]
           },
           "bank": {
             "type": "string",
             "enum": [
-              "paga",
-              "nombank"
+              "nombank",
+              "paga"
             ],
-            "description": "NGN: the bank to open the account at. Omit to use your business's banks in order: Paga first, and Nombank when Paga can't open more accounts. With `bank` set, only that bank is asked. Don't combine with a different `codes`.",
+            "description": "NGN. Leave out (recommended): the account opens at Nombank MFB, or at Paga when Nombank already holds two accounts for the customer's BVN or NIN. `nombank` allows Nombank only (`nomba_identity_limit` at the limit).",
             "example": "nombank"
           },
           "customer_name": {
@@ -8335,11 +8335,17 @@
           "bank": {
             "type": "string",
             "enum": [
-              "paga",
-              "nombank"
+              "nombank",
+              "paga"
             ],
-            "description": "The bank to open the account at. Omit to use your business's default bank for dynamic accounts (Paga). A Nombank account accepts exactly `amount` and stops accepting payments at `expires_at`.",
+            "description": "Leave out (recommended): Nombank MFB, or Paga when Nombank already holds two accounts for the customer's BVN or NIN. `nombank` allows Nombank only. A Nombank account accepts exactly `amount` and stops at `expires_at`.",
             "example": "nombank"
+          },
+          "id_number": {
+            "type": "string",
+            "pattern": "^[0-9]{11}$",
+            "description": "The customer's BVN, used for this account when none is on file (Nombank opens accounts only against a BVN or NIN). Must match the BVN verified for the customer, if any.",
+            "example": "22212345678"
           }
         },
         "description": "Name the customer with `customer_id` or `customer_reference` (exactly one is required). The `customer_*` fields are read only when the customer does not exist yet."
