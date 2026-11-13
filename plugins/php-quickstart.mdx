@@ -77,7 +77,7 @@ If the request times out, call `start_payment` again with the **same** attempt n
 
 ## 3. Receive the webhook
 
-Register `https://shop.example.com/?wc-api=platnova` (or your own URL) under **Settings → Webhooks** in the dashboard and copy its secret.
+Register `https://shop.example.com/?wc-api=platnova` (or your own URL) under **Settings → Webhooks** in the dashboard. Its secret is shown once, when the endpoint is created: store it then, in `PLATNOVA_WEBHOOK_SECRET`. If you lose it, use **Regenerate secret** in the endpoint's menu.
 
 ```php
 <?php
