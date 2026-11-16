@@ -54,13 +54,16 @@ A missing detail answers `422` listing each missing field.
 
 ## The bank (NGN)
 
-NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`), a 10-digit NUBAN.
+NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`) or **Rex Microfinance Bank** (`bank_code` `090449`), each a 10-digit NUBAN.
 
-- **Leave `bank` out** (recommended). Nombank opens the account against the customer's **BVN or NIN**, and holds **at most two accounts per BVN or NIN**, counted across every business we serve. When a customer is already at that limit, the account opens at **Paga** (`bank_code` `100002`) in the same request instead. The response looks the same either way: read `bank_name` and `bank_code`.
+- **Leave `bank` out** (recommended). The account opens at Nombank. Nombank opens it against the customer's **BVN or NIN**, and holds **at most two accounts per BVN or NIN**, counted across every business we serve. When a customer is already at that limit, the account opens at the next bank we offer your business, in the same request: Rex Microfinance Bank, then **Paga** (`bank_code` `100002`). The response looks the same either way: read `bank_name` and `bank_code`.
+- **Send `"bank": "rex"`** to open the account at Rex Microfinance Bank only. If Rex can't open the account, the answer is `503` `bank_unavailable` and nothing is opened.
 - **Send `"bank": "nombank"`** to allow Nombank only. At the limit the answer is then `422` `nomba_identity_limit` and nothing is opened.
-- Nothing else moves an account to Paga. If Nombank can't be reached, or we can't confirm whether it opened the account, the answer is `503` `issuing_unavailable` with `data.retryable` `true`. No account is given to you then, though one the bank opened may still be confirmed later: retry with the same `reference`, and contact support if it persists.
+- Nothing else moves an account to another bank. If Nombank can't be reached, or we can't confirm whether it opened the account, the answer is `503` `issuing_unavailable` with `data.retryable` `true`. No account is given to you then, though one the bank opened may still be confirmed later: retry with the same `reference`, and contact support if it persists.
+- At Rex, a retry is safe: repeating the request after a timeout returns the account Rex already opened, never a second one.
 - Accounts your customers already hold at PalmPay or Paga keep receiving payments. Each is being given a Nombank replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)).
-- Without `reference`, a customer has one account per bank, and a second request answers `400` `bank account is already added`.
+- Without `reference`, a customer has one account per bank, and a second request answers `400` `bank account is already added`. A customer may hold one account at Nombank and one at Rex.
+- [Dynamic accounts](/api-reference/virtual-accounts/dynamic) are not offered at Rex: `"bank": "rex"` there answers `400` `invalid_bank`.
 
 ## One account per loan or order
 
@@ -79,7 +82,7 @@ Add `reference` to open an account for one loan, order or contract. A customer c
 |---|---|---|
 | `400` | `duplicate_reference` | The `reference` belongs to another account of your business (another customer or currency) |
 | `400` | `invalid_reference` | The `reference` breaks the format |
-| `400` | `invalid_bank` | `bank` is not `paga` or `nombank`, or disagrees with `codes` |
+| `400` | `invalid_bank` | `bank` is not `nombank`, `rex` or `paga`, or disagrees with `codes` |
 | `400` | `bank_not_offered` | Your business doesn't open accounts at that bank. Leave `bank` out, or contact support |
 | `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
