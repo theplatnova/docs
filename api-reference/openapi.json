@@ -1495,14 +1495,19 @@
                       "type": "object",
                       "properties": {
                         "account_name": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "The name the payer's bank shows for the account: `PLATNOVA/<customer name>` on Nombank, `Platnova` on Paga. Never your business name."
                         },
                         "account_no": {
                           "type": "string"
                         },
                         "amount": {
                           "type": "number",
-                          "description": "The amount requested."
+                          "description": "What the payer must send. On a Paga account it includes `payer_fee`."
+                        },
+                        "payer_fee": {
+                          "type": "number",
+                          "description": "The part of `amount` the bank keeps as its collection fee (Paga). Absent when there is none."
                         },
                         "currency": {
                           "type": "string"
@@ -1558,11 +1563,11 @@
                 "example": {
                   "status": true,
                   "data": {
-                    "account_name": "PLATNOVA TECHNOLOGIES LTD/PLATNOVA ",
+                    "account_name": "PLATNOVA/Ada Obi",
                     "account_no": "9000043059",
                     "amount": 200,
                     "currency": "ngn",
-                    "bank_name": "BEAMER (GABSYN) MICROFINANCE BANK",
+                    "bank_name": "Nombank MFB",
                     "reference": "BDEPSTbdpLERjSmvg2XbF9iTA0bXxrX8E88BOI",
                     "email": "emmrysjonathan@gmail.com",
                     "expires_at": "2026-03-19T23:13:03.140476016Z",

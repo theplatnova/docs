@@ -66,7 +66,7 @@ A business that has not finished verification cannot create checkouts. `POST /v1
 | `id` | What the payer does | Currencies |
 |---|---|---|
 | `tag_transfer` | Pays from their Platnova wallet by scanning a QR code | all |
-| `bank_transfer` | Transfers to a one-time account number | NGN |
+| `bank_transfer` | Transfers to a one-time account number. The account is Platnova's, and its `account_name` reads Platnova, not your business name. | NGN |
 | `card` | Enters their card on a secure page | NGN, USD, EUR, GBP, CAD |
 | `apple_pay` | One tap on an iPhone, iPad or Mac | USD, EUR, GBP, CAD (NGN soon) |
 | `google_pay` | One tap in Chrome or on Android | USD, EUR, GBP, CAD (NGN soon) |
