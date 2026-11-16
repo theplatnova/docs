@@ -8193,7 +8193,7 @@
             "items": {
               "type": "string"
             },
-            "description": "NGN: the older way to choose the bank: `090645` (Nombank). Prefer `bank`, or leave both out.",
+            "description": "NGN: the older way to choose the bank: `090645` (Nombank) or `090449` (Rex). Prefer `bank`, or leave both out.",
             "example": [
               "090645"
             ]
@@ -8202,9 +8202,10 @@
             "type": "string",
             "enum": [
               "nombank",
+              "rex",
               "paga"
             ],
-            "description": "NGN. Leave out (recommended): the account opens at Nombank MFB, or at Paga when Nombank already holds two accounts for the customer's BVN or NIN. `nombank` allows Nombank only (`nomba_identity_limit` at the limit).",
+            "description": "NGN. Leave out (recommended): the account opens at Nombank MFB, or at the next bank we offer your business (Rex Microfinance Bank, then Paga) when Nombank already holds two accounts for the customer's BVN or NIN. `nombank` allows Nombank only (`nomba_identity_limit` at the limit). `rex` opens at Rex Microfinance Bank (`090449`) only.",
             "example": "nombank"
           },
           "customer_name": {
