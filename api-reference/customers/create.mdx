@@ -69,6 +69,9 @@ For any country not listed above, use `id_type: "tin"`.
 
 ## Duplicates
 
-With a `reference`, the reference is the customer: another of your customers may already have the same email (one person can be several of your customers, for example one per loan). A `reference` already in use answers `400` `duplicate_customer_reference`.
+One person is one customer of your business. Creating a customer who already exists answers `409` with `data.code` `customer_exists`; nothing new is created, and you carry on with the existing customer:
 
-Without a `reference`, a customer is unique by email within your business. Creating one with an email you already used answers `409` with `data.code` `customer_exists` and `data.id`, the existing customer's `id`, so you can carry on with that customer instead.
+- `data.id` is the existing customer's `id`, and `data.reference` their `reference` when they have one.
+- `data.matched_on` says how we know it is the same person: `identity` (the same identity document number, such as a BVN), `email_phone` (the same email and phone number; phone numbers are compared on their last ten digits, so `2348012345678` and `08012345678` are one number), or `email` (no `reference` sent, and a customer with this email exists).
+
+A `reference` already in use answers `400` `duplicate_customer_reference`.

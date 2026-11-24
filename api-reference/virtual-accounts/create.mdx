@@ -28,7 +28,7 @@ Your ids are 1–64 characters of letters, digits and `_ . : -`, unique within y
 
 ### Your customer id is the customer
 
-Within your business, a customer is your `customer_id`, not their email, phone or BVN. One person may be several of your customers (for example one per loan), and they may share an email, phone and BVN. A `customer_id` we don't know yet always creates a new customer under it, even when another of your customers has the same email.
+Within your business, one person is one customer. A `customer_id` we don't know yet creates a customer under it, unless the person is already your customer (the same BVN, or the same email and phone number): then the request is answered for that existing customer, and nothing new is created. The answer's `customer_id` and `customer_reference` are the existing customer's.
 
 - Sending **our** customer id keeps working as before.
 - One `customer_id` is one person: if the customer's BVN was verified and the request sends a different `id_number`, the answer is `409` `customer_id_conflict` and nothing is opened. Use a new `customer_id` for a different person.
@@ -62,18 +62,17 @@ NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`) or **Rex Mi
 - Nothing else moves an account to another bank. If Nombank can't be reached, or we can't confirm whether it opened the account, the answer is `503` `issuing_unavailable` with `data.retryable` `true`. No account is given to you then, though one the bank opened may still be confirmed later: retry with the same `reference`, and contact support if it persists.
 - At Rex, a retry is safe: repeating the request after a timeout returns the account Rex already opened, never a second one.
 - Accounts your customers already hold at PalmPay or Paga keep receiving payments. Each is being given a Nombank replacement (see [Replaced accounts](/virtual-accounts/replaced-accounts)).
-- Without `reference`, a customer has one account per bank, and a second request answers `400` `bank account is already added`. A customer may hold one account at Nombank and one at Rex.
+- A customer has one open account per bank. Asking again for a bank where they already have one answers that account, with `"existing": true`; nothing is opened or charged. A customer may hold one account at Nombank and one at Rex.
 - [Dynamic accounts](/api-reference/virtual-accounts/dynamic) are not offered at Rex: `"bank": "rex"` there answers `400` `invalid_bank`.
 
 ## One account per loan or order
 
-Add `reference` to open an account for one loan, order or contract. A customer can hold several accounts, one per reference, and every payment into an account carries its reference on `account.funded`.
+Add `reference` to name the account by your own reference. A customer holds **one open account per bank**, whatever the reference:
 
-- `reference` is the idempotency key: repeating the request with the same `reference`, customer and currency returns the same account. Nothing new is opened, and nothing is checked against the limit below.
-- A new `reference` opens a new account for the same customer.
-- A person can hold at most **20** open accounts with your business by default, counted across every `customer_id` that shares their BVN. One more answers `409` `account_limit_reached` with `data.limit` and `data.active`. Contact support to change your limit.
+- `reference` is the idempotency key: repeating the request with the same `reference`, customer and currency returns the same account.
+- A new `reference` for a bank where the customer already has an account answers that account (`"existing": true`, with the `reference` it was opened under). Nothing is opened, and the new reference is not kept.
+- If the same person holds an account at that bank under another of your customer ids, the answer is `409` `customer_has_account_at_bank`, with `data.customer_id` and `data.account`. Use that customer and its account.
 - Look an account up with [Get Virtual Account by Reference](/api-reference/virtual-accounts/by-reference).
-- Without `reference`, a customer has one account per bank, and a second request for the same bank answers `400` `bank account is already added`.
 - For repayments, a [dynamic account](/api-reference/virtual-accounts/dynamic) per order (with `amount` and `reference`) is often the better fit: it expires, so it never adds to the customer's open accounts, and `account.funded` carries the order `reference` and `expected_amount`.
 
 ## Errors
@@ -86,6 +85,7 @@ Add `reference` to open an account for one loan, order or contract. A customer c
 | `400` | `bank_not_offered` | Your business doesn't open accounts at that bank. Leave `bank` out, or contact support |
 | `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
+| `409` | `customer_has_account_at_bank` | Nothing was opened. The same person already holds an account at this bank under another of your customer ids: `data.customer_id` is that customer, `data.account` the account |
 | `409` | `account_limit_reached` | Nothing was opened. Either the bank can't open another account for this customer (`data.accounts` lists their accounts there), or the person already holds your business's limit of open accounts (`data.limit`, `data.active`) |
 | `409` | `account_in_progress` | Another request is opening this customer's account right now. Retry shortly |
 | `409` | `customer_id_conflict` | The customer's BVN was verified and `id_number` is a different one. `data.customer_id` is the customer. Use a new `customer_id` for a different person |

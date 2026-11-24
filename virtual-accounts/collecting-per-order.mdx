@@ -7,7 +7,11 @@ A customer with several unpaid orders (loans, invoices, instalments) pays by ban
 
 ## The idea
 
-A customer, `CUST-10293` in your system, has 10 unpaid orders. You open 10 accounts, one per order, each bound to your order reference. When money lands in one, the [`account.funded`](/webhooks/overview#account-funded) webhook carries that order's `reference`, so you mark exactly that order paid.
+A customer, `CUST-10293` in your system, has 10 unpaid orders. You open a [dynamic account](/virtual-accounts/dynamic-accounts) for each order, bound to your order reference. When money lands in one, the [`account.funded`](/webhooks/overview#account-funded) webhook carries that order's `reference`, so you mark exactly that order paid.
+
+<Note>
+A customer holds **one open (persistent) account per bank**. A persistent account with a new `reference` for a bank where the customer already has one answers that existing account (`"existing": true`) rather than opening another, so persistent accounts can't be one per order. Use dynamic accounts for orders.
+</Note>
 
 You use your own ids throughout. You never need to store ours.
 
@@ -17,7 +21,7 @@ You use your own ids throughout. You never need to store ours.
 |---|---|---|
 | Endpoint | [`POST /v1/virtual-accounts/create`](/api-reference/virtual-accounts/create) | [`POST /v1/virtual-accounts/dynamic`](/api-reference/virtual-accounts/dynamic) |
 | Lives | Until you stop using it | For `lifespan_minutes` (up to 24 hours) |
-| Best for | Loans and instalments repaid over weeks | One payment per order, checkout-style |
+| Best for | The customer's standing account (one per bank) | One payment per order |
 | Amount | None set; any transfer is credited | Set per order; sent back as `expected_amount` |
 | Webhook `reference` | The account's reference | The order's reference |
 
@@ -25,27 +29,10 @@ You use your own ids throughout. You never need to store ours.
 
 <Steps>
 <Step title="Name the customer by your own id">
-Send your customer id as `customer_id`. The first time, include the customer's details and the customer is created with your id as their `reference` (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids)). After that, your id alone is enough. Your id is the customer: a new id creates a new customer even if another of your customers has the same email, so keep one id per person.
+Send your customer id as `customer_id`. The first time, include the customer's details and the customer is created with your id as their `reference` (see [Use your own customer ids](/virtual-accounts/creating-accounts#use-your-own-customer-ids)). After that, your id alone is enough. One person is one customer: a new id for someone who is already your customer (the same BVN, or the same email and phone) is answered for the existing customer. Keep one id per person.
 </Step>
 <Step title="Open one account per order">
-Persistent:
-
-```bash
-curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
-  -H "X-API-KEY: YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "customer_id": "CUST-10293",
-    "reference": "LOAN-2026-0042",
-    "currency": "NGN",
-    "id_number": "22212345678",
-    "customer_name": "Ada Obi",
-    "customer_email": "ada@example.com",
-    "customer_phone": "08030000000"
-  }'
-```
-
-Or dynamic:
+Dynamic (one per order):
 
 ```bash
 curl -X POST https://api.platnova.com/v1/virtual-accounts/dynamic \
@@ -91,14 +78,9 @@ On `account.funded`, look up the order by `data.reference`. Compare `paid_amount
 </Step>
 </Steps>
 
-## When the bank can't open more accounts
+## One account per bank
 
-Some banks can issue only one account per customer. If the customer already holds an account at such a bank, opening another answers `409` `account_limit_reached`, and `data.accounts` lists the customer's existing accounts there. Nothing is opened. Either:
-
-- choose another bank with `codes` on the request, or
-- use dynamic accounts for the orders, which are not limited this way.
-
-A person can also hold at most **20** open persistent accounts with your business by default, counted across every customer id that shares their BVN. One more answers `409` `account_limit_reached` with `data.limit` and `data.active`. Dynamic accounts expire and don't count; contact support if you need a higher limit.
+A customer's persistent accounts are one per bank. Asking for another at a bank where they already have one answers that account with `"existing": true`; if the same person has it under another of your customer ids, the answer is `409` `customer_has_account_at_bank`. Dynamic accounts expire and are not limited this way.
 
 ## Things to know
 
