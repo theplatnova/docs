@@ -1,0 +1,149 @@
+---
+title: "Bill payments"
+slug: "bills/overview"
+---
+
+Sell airtime, data, TV subscriptions and electricity to your customers, paid from your NGN wallet. Every product works the same way, and the same way as [betting top-ups](/bills/betting), so once you have built one you have built them all.
+
+| Product | What your customer gets | Guide |
+|---|---|---|
+| Airtime | Credit on an MTN, Airtel, Glo or 9mobile line | [Airtime and data](/bills/airtime-data) |
+| Data | A data bundle on the same networks | [Airtime and data](/bills/airtime-data) |
+| TV | A DStv, GOtv, StarTimes or Showmax bouquet on a smartcard | [TV subscriptions](/bills/tv) |
+| Electricity | A prepaid token, or a payment on a postpaid account, at any DisCo | [Electricity](/bills/electricity) |
+| Betting | A top-up of a betting wallet | [Betting top-ups](/bills/betting) |
+
+What you pay for each is on the [pricing page](/bills/pricing): a discount off the face value of airtime, data and TV, and a small fee per electricity token.
+
+<Note>
+Bills is switched off for every business until Platnova enables it. Until then each `/v1/bills` request answers `400` with "The bills feature is not enabled for your business". Contact [support@platnova.com](mailto:support@platnova.com) to have it enabled.
+</Note>
+
+## The pattern
+
+1. **List the billers** with `GET /v1/bills/{product}/billers`, and for data and TV the plans with `GET /v1/bills/{product}/billers/{biller}/plans`. Cache both for up to an hour.
+2. **Validate the customer** where the product has one: a smartcard for TV, a meter for electricity. Show the payer the name the biller returns, and have them confirm it.
+3. **Buy** with `POST /v1/bills/{product}`. Your wallet is debited at once and the request answers `202` with `status: "processing"`. The answer already shows what you were charged: `amount` (face value), `discount`, `fee` and `total_charged`.
+4. **Wait for the outcome**: the `bill.success`, `bill.failed` or `bill.reversed` [webhook](#webhooks), or poll `GET /v1/bills/{product}/{id}`.
+
+## Always confirm who you are paying
+
+A smartcard or meter number is long, and one wrong digit can belong to **somebody else's real account**. A payment to the wrong account cannot be pulled back. So for TV and electricity:
+
+- Call `validate` and show the payer `customer_name` exactly as returned (and, for electricity, `address`).
+- Continue only once they confirm it is theirs.
+- Send what they confirmed as `customer_name_confirmation`. We check the customer again when you buy, and refuse with `422 customer_name_mismatch` before anything is debited if the name no longer matches.
+
+For airtime and data there is no name to check: have the payer type the phone number twice, or confirm it on screen, before you buy.
+
+## Money
+
+- Everything is in **naira**, paid from your **NGN wallet**.
+- Your wallet is debited `total_charged` = `amount - discount + fee` the moment the purchase is accepted. Your customer always receives the full `amount`.
+- **If a purchase fails, every kobo of `total_charged` comes back to your wallet automatically**, and the bill says why in `failure_reason`. You never have to ask for a refund.
+- A purchase we cannot confirm straight away stays `processing` while we check it with the biller. Do not treat it as failed and do not buy again under a new reference: it ends as `success`, or `reversed` with your money returned.
+
+## References and retries
+
+Send two things that make a retry safe:
+
+- `reference`: **your** identifier for the purchase, up to 100 characters, unique across your business. Use your own order ID. A reference you have already used is refused with `409 duplicate_reference`, debits nothing, and the existing bill is in `data.bill`.
+- An `Idempotency-Key` header: a value you generate once per purchase and reuse on every retry of it. A retry with the same key gets the first answer back and runs nothing. See [Errors](/errors) for the key's rules.
+
+If a request times out, **retry it with the same reference and the same key**. Never retry with a new reference: that can pay twice.
+
+You can fetch any bill by its `id` or your `reference`.
+
+## Statuses
+
+| Status | Meaning |
+|---|---|
+| `processing` | Your wallet has been debited and the purchase is on its way. Most settle within seconds. |
+| `success` | Delivered. For prepaid electricity the `token` is on the bill. Final. |
+| `failed` | The biller refused it, or it never left us. `total_charged` is back in your wallet. Final. |
+| `reversed` | It could not be confirmed, was checked with the biller and reversed. `total_charged` is back in your wallet. Final. |
+
+`failure_reason` on `failed` and `reversed`:
+
+| `failure_reason` | Meaning |
+|---|---|
+| `provider_rejected` | The biller refused this purchase (for example, the line or meter cannot be credited). |
+| `provider_unavailable` | The biller could not be reached. Retry later. |
+| `insufficient_provider_balance` | Temporarily unavailable on our side. Retry later. |
+| `not_sent` | Something went wrong on our side before the purchase reached the biller. Nothing was bought. Retry. |
+| `reversed` | Checked with the biller and reversed after it could not be confirmed. |
+
+## Webhooks
+
+Subscribe your endpoint to `bill.success`, `bill.failed` and `bill.reversed` (or `bill.*`). Each event carries the bill, the same object the API returns:
+
+```json
+{
+  "event": "bill.success",
+  "timestamp": "2026-11-25T09:14:03Z",
+  "data": {
+    "id": "8b8f0d0e-5d6c-4d8e-9d3c-0f4a1c3b2a10",
+    "reference": "order-2087",
+    "product": "electricity",
+    "biller": "IKEDC",
+    "customer_id": "45012345678",
+    "customer_name": "ADA OKAFOR",
+    "amount": 5000,
+    "discount": 0,
+    "fee": 50,
+    "total_charged": 5050,
+    "plan": "IKEDC_PREPAID",
+    "plan_name": "prepaid",
+    "token": "1234-5678-9012-3456-7890",
+    "units": "50.0",
+    "currency": "NGN",
+    "status": "success"
+  }
+}
+```
+
+The same event can arrive more than once if your endpoint does not answer `2xx` in time. Use `data.id` or `data.reference` to act on each bill once. When a purchase fails or is reversed, your wallet is credited and you also get the usual reversal notice by email.
+
+## Testing in the sandbox
+
+In the [sandbox](/environments) nothing reaches a real biller, and the outcome is decided by the **last four digits** of the phone, smartcard or meter number:
+
+| Ends in | What happens |
+|---|---|
+| `0000` | `validate` and the purchase refuse it with `422 invalid_customer`. Nothing is debited. |
+| `2222` | Accepted, then refused by the biller: `bill.failed` with `provider_rejected`, and your sandbox wallet is credited back. |
+| `3333` | Stays `processing`, then succeeds about two minutes later: `bill.success`. |
+| anything else | Succeeds within seconds: `bill.success`. |
+
+For example `08011111111` (succeeds), `08012222222` (fails) and `08013333333` (pending, then succeeds) for airtime and data; `7011111111` for a smartcard; `45011111111` for a meter. Every validated sandbox customer is named `SANDBOX CUSTOMER`, and every successful prepaid electricity purchase gets the token `1234-5678-9012-3456-7890`.
+
+The sandbox sells a small fixed list: MTN, Airtel, Glo and 9mobile (airtime and three data bundles each), DStv, GOtv, StarTimes and Showmax, and Ikeja, Eko and Abuja Electric. Live lists are longer; always read them from the API rather than hard-coding them.
+
+## Errors
+
+Refusals carry a stable code in `error[0]` and `data.code`:
+
+| HTTP | Code | When |
+|---|---|---|
+| 400 | (validation) | A field is malformed. |
+| 400 | | Bills is not enabled for your business. |
+| 404 | `bill_not_found` | No bill of this product with that `id` or `reference` on your business. |
+| 409 | `duplicate_reference` | The `reference` is already used; the existing bill is in `data.bill`. |
+| 422 | `field_required` | A field this product needs is missing (`data.field`). |
+| 422 | `unknown_biller` | The biller is not in the list. |
+| 422 | `unknown_plan` | The plan is not one this biller sells. |
+| 422 | `amount_mismatch` | You sent an `amount` that is not the plan's price (`data.plan_amount`). |
+| 422 | `invalid_phone_number` | Not a Nigerian mobile number. |
+| 422 | `invalid_meter_type` | `meter_type` is not `prepaid` or `postpaid`, or the DisCo does not sell it. |
+| 422 | `invalid_customer` | The biller does not recognise the smartcard or meter. `message` is its reason. |
+| 422 | `customer_cannot_vend` | The biller will not accept a payment for this account. |
+| 422 | `customer_name_mismatch` | `customer_name_confirmation` does not match (`data.customer_name`). |
+| 422 | `amount_out_of_range` | The amount is outside `min_amount`–`max_amount`. |
+| 422 | `insufficient_funds` | Your NGN wallet does not cover `total_charged`. |
+| 422 | `wallet_not_available` | Your business has no NGN wallet. |
+| 503 | `provider_unavailable` | Temporarily unavailable. Nothing was debited. |
+| 503 | `pricing_unavailable` | We couldn't read your price just now. Nothing was debited; retry shortly. |
+
+## Authentication
+
+Send your API key in the `X-API-KEY` header. A request made with a dashboard session needs a team member with the permission to send payments, and a completed two-factor check, to buy.

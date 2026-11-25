@@ -1,0 +1,62 @@
+---
+title: "Airtime and data"
+slug: "bills/airtime-data"
+---
+
+Top up any MTN, Airtel, Glo or 9mobile line with airtime or a data bundle, paid from your NGN wallet. Your customer gets the full face value; you pay it less your [airtime or data discount](/bills/pricing). Read [Bill payments](/bills/overview) first: references, statuses, refunds and webhooks work the same for every product.
+
+## Airtime
+
+1. List the networks with `GET /v1/bills/airtime/billers`. Each has a `slug` (send it as `biller`) and the `min_amount` and `max_amount` it takes: **₦50 to ₦50,000** per top-up.
+2. Buy with `POST /v1/bills/airtime`:
+
+```json
+{
+  "biller": "MTN",
+  "phone_number": "08031234567",
+  "amount": 1000,
+  "reference": "order-2081"
+}
+```
+
+The request answers `202` with the bill. At the starter rate, a ₦1,000 top-up shows `amount: 1000`, `discount: 20`, `fee: 0` and `total_charged: 980`: that is what left your wallet, and the line receives ₦1,000.
+
+## Data
+
+1. List the networks with `GET /v1/bills/data/billers`, then a network's bundles with `GET /v1/bills/data/billers/{biller}/plans`. Each plan has a `code`, a `name` and its `amount` in naira.
+2. Buy with `POST /v1/bills/data`, naming the plan. The plan sets the price, so you don't send `amount` (if you do, it must equal the plan's, or the purchase is refused with `422 amount_mismatch`):
+
+```json
+{
+  "biller": "MTN",
+  "plan": "MTN_2GB_WEEKLY",
+  "phone_number": "08031234567",
+  "reference": "order-2082"
+}
+```
+
+Bundles and their prices change when the networks change them. Read the plans again at least every hour rather than storing them.
+
+## Phone numbers
+
+Send a Nigerian mobile number in any usual form: `08031234567`, `8031234567`, `2348031234567` or `+2348031234567`. Anything else is refused with `422 invalid_phone_number` before anything is debited. The bill shows the number as `customer_id`, in its eleven-digit form.
+
+There is no name to check for a phone number, and **airtime sent to the wrong number cannot be pulled back**. Have the payer type the number twice, or show it back to them large and clear, before you buy.
+
+Make sure the number is on the network you name; ask the payer if you are not sure.
+
+## When a top-up fails
+
+If the network refuses a top-up, the bill ends `failed` and `total_charged` is back in your wallet, with the reason in `failure_reason`. You get `bill.failed`. See [Statuses](/bills/overview#statuses).
+
+## Endpoints
+
+- [List airtime networks](/api-reference/bills/airtime-billers): `GET /v1/bills/airtime/billers`
+- [Buy airtime](/api-reference/bills/airtime-purchase): `POST /v1/bills/airtime`
+- [Get an airtime top-up](/api-reference/bills/airtime-get): `GET /v1/bills/airtime/{id}`
+- [List data networks](/api-reference/bills/data-billers): `GET /v1/bills/data/billers`
+- [List data plans](/api-reference/bills/data-plans): `GET /v1/bills/data/billers/{biller}/plans`
+- [Buy a data bundle](/api-reference/bills/data-purchase): `POST /v1/bills/data`
+- [Get a data purchase](/api-reference/bills/data-get): `GET /v1/bills/data/{id}`
+
+`GET /v1/bills/airtime` and `GET /v1/bills/data` list your purchases, newest first, with `status`, `page` and `limit`.

@@ -7839,6 +7839,2152 @@
           }
         }
       }
+    },
+    "/v1/bills/airtime/billers": {
+      "get": {
+        "summary": "List airtime billers",
+        "operationId": "listAirtimeBillers",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Cache for up to an hour.",
+        "responses": {
+          "200": {
+            "description": "The billers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillBiller"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/airtime": {
+      "post": {
+        "summary": "Buy airtime",
+        "operationId": "buyAirtime",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Debits your NGN wallet the face value less your discount, plus any fee, and buys the airtime top-up. Answers 202 with `status: processing`; the outcome arrives as `bill.success`, `bill.failed` or `bill.reversed`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "phone_number",
+                  "amount",
+                  "reference"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "example": "MTN"
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "description": "A Nigerian mobile number: 08031234567 or +2348031234567.",
+                    "example": "08031234567"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "NGN face value, from 50 to 50,000.",
+                    "example": 1000
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Your reference, unique across your business. Retry a timed-out request with the same one.",
+                    "example": "order-1042"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List airtime purchases",
+        "operationId": "listAirtimeBills",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "processing",
+                "success",
+                "failed",
+                "reversed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of top-ups, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "bills": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Bill"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/airtime/{id}": {
+      "get": {
+        "summary": "Get a airtime top-up",
+        "operationId": "getAirtimeBill",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The bill `id` or your `reference`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The top-up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/data/billers": {
+      "get": {
+        "summary": "List data billers",
+        "operationId": "listDataBillers",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Cache for up to an hour.",
+        "responses": {
+          "200": {
+            "description": "The billers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillBiller"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/data/billers/{biller}/plans": {
+      "get": {
+        "summary": "List data plans",
+        "operationId": "listDataPlans",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "biller",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The biller `slug`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillPlan"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/data": {
+      "post": {
+        "summary": "Buy data bundle",
+        "operationId": "buyData",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Debits your NGN wallet the face value less your discount, plus any fee, and buys the data bundle. Answers 202 with `status: processing`; the outcome arrives as `bill.success`, `bill.failed` or `bill.reversed`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "plan",
+                  "phone_number",
+                  "reference"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "example": "MTN"
+                  },
+                  "plan": {
+                    "type": "string",
+                    "description": "A plan `code` from the biller's plans.",
+                    "example": "MTN_2GB_WEEKLY"
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "example": "08031234567"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Optional. The plan sets the price; if you send it, it must equal the plan's amount."
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Your reference, unique across your business. Retry a timed-out request with the same one.",
+                    "example": "order-1042"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List data purchases",
+        "operationId": "listDataBills",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "processing",
+                "success",
+                "failed",
+                "reversed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of top-ups, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "bills": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Bill"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/data/{id}": {
+      "get": {
+        "summary": "Get a data bundle",
+        "operationId": "getDataBill",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The bill `id` or your `reference`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The top-up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/tv/billers": {
+      "get": {
+        "summary": "List TV billers",
+        "operationId": "listTvBillers",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Cache for up to an hour.",
+        "responses": {
+          "200": {
+            "description": "The billers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillBiller"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/tv/billers/{biller}/plans": {
+      "get": {
+        "summary": "List TV plans",
+        "operationId": "listTvPlans",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "biller",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The biller `slug`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillPlan"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/tv/validate": {
+      "post": {
+        "summary": "Validate a smartcard",
+        "operationId": "validateTvCustomer",
+        "tags": [
+          "Bills"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "smartcard_number"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "example": "DSTV"
+                  },
+                  "smartcard_number": {
+                    "type": "string",
+                    "description": "The smartcard or IUC number.",
+                    "example": "7012345678"
+                  },
+                  "plan": {
+                    "type": "string",
+                    "description": "Optional bouquet code."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "biller": {
+                          "type": "string"
+                        },
+                        "customer_id": {
+                          "type": "string"
+                        },
+                        "customer_name": {
+                          "type": "string",
+                          "example": "ADA OKAFOR"
+                        },
+                        "address": {
+                          "type": "string",
+                          "description": "Electricity: the meter's service address."
+                        },
+                        "meter_type": {
+                          "type": "string"
+                        },
+                        "can_vend": {
+                          "type": "boolean"
+                        },
+                        "min_amount": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/tv": {
+      "post": {
+        "summary": "Buy TV subscription",
+        "operationId": "buyTv",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Debits your NGN wallet the face value less your discount, plus any fee, and buys the TV subscription. Answers 202 with `status: processing`; the outcome arrives as `bill.success`, `bill.failed` or `bill.reversed`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "plan",
+                  "smartcard_number",
+                  "reference"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "example": "DSTV"
+                  },
+                  "plan": {
+                    "type": "string",
+                    "description": "A bouquet `code` from the biller's plans.",
+                    "example": "DSTV_COMPACT"
+                  },
+                  "smartcard_number": {
+                    "type": "string",
+                    "description": "The smartcard or IUC number.",
+                    "example": "7012345678"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Only for a plan whose amount is 0."
+                  },
+                  "customer_name_confirmation": {
+                    "type": "string",
+                    "description": "The name the payer confirmed from validate. Refused with customer_name_mismatch if it differs.",
+                    "example": "ADA OKAFOR"
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Your reference, unique across your business. Retry a timed-out request with the same one.",
+                    "example": "order-1042"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List TV purchases",
+        "operationId": "listTvBills",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "processing",
+                "success",
+                "failed",
+                "reversed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of top-ups, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "bills": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Bill"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/tv/{id}": {
+      "get": {
+        "summary": "Get a TV subscription",
+        "operationId": "getTvBill",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The bill `id` or your `reference`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The top-up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/electricity/billers": {
+      "get": {
+        "summary": "List electricity billers",
+        "operationId": "listElectricityBillers",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Cache for up to an hour.",
+        "responses": {
+          "200": {
+            "description": "The billers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillBiller"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/electricity/validate": {
+      "post": {
+        "summary": "Validate a meter",
+        "operationId": "validateElectricityCustomer",
+        "tags": [
+          "Bills"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "meter_type",
+                  "meter_number"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "example": "IKEDC"
+                  },
+                  "meter_type": {
+                    "type": "string",
+                    "enum": [
+                      "prepaid",
+                      "postpaid"
+                    ]
+                  },
+                  "meter_number": {
+                    "type": "string",
+                    "example": "45012345678"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "biller": {
+                          "type": "string"
+                        },
+                        "customer_id": {
+                          "type": "string"
+                        },
+                        "customer_name": {
+                          "type": "string",
+                          "example": "ADA OKAFOR"
+                        },
+                        "address": {
+                          "type": "string",
+                          "description": "Electricity: the meter's service address."
+                        },
+                        "meter_type": {
+                          "type": "string"
+                        },
+                        "can_vend": {
+                          "type": "boolean"
+                        },
+                        "min_amount": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/electricity": {
+      "post": {
+        "summary": "Buy electricity purchase",
+        "operationId": "buyElectricity",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Debits your NGN wallet the face value less your discount, plus any fee, and buys the electricity purchase. Answers 202 with `status: processing`; the outcome arrives as `bill.success`, `bill.failed` or `bill.reversed`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "biller",
+                  "meter_type",
+                  "meter_number",
+                  "amount",
+                  "phone_number",
+                  "reference"
+                ],
+                "properties": {
+                  "biller": {
+                    "type": "string",
+                    "example": "IKEDC"
+                  },
+                  "meter_type": {
+                    "type": "string",
+                    "enum": [
+                      "prepaid",
+                      "postpaid"
+                    ]
+                  },
+                  "meter_number": {
+                    "type": "string",
+                    "example": "45012345678"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "NGN of electricity, from 1,000 to 500,000 (a DisCo may set a higher minimum for a meter).",
+                    "example": 5000
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "description": "The customer's Nigerian mobile number; the DisCo requires one.",
+                    "example": "08031234567"
+                  },
+                  "customer_name_confirmation": {
+                    "type": "string",
+                    "example": "ADA OKAFOR"
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Your reference, unique across your business. Retry a timed-out request with the same one.",
+                    "example": "order-1042"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List electricity purchases",
+        "operationId": "listElectricityBills",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "processing",
+                "success",
+                "failed",
+                "reversed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of top-ups, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "bills": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Bill"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/electricity/{id}": {
+      "get": {
+        "summary": "Get a electricity purchase",
+        "operationId": "getElectricityBill",
+        "tags": [
+          "Bills"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The bill `id` or your `reference`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The top-up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Bill"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused. `error[0]` and `data.code` carry the code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bills/pricing": {
+      "get": {
+        "summary": "Get your bills pricing",
+        "operationId": "getBillsPricing",
+        "tags": [
+          "Bills"
+        ],
+        "description": "Your tier and the rate for each product now. A network or DisCo that pays us less can sell at a smaller discount; every purchase answers the discount it actually applied.",
+        "responses": {
+          "200": {
+            "description": "Your pricing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tier": {
+                          "type": "string",
+                          "example": "starter"
+                        },
+                        "volume_30_days": {
+                          "type": "number",
+                          "description": "NGN face value of your successful bill payments in the last 30 days."
+                        },
+                        "products": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "discount_percent": {
+                                "type": "number"
+                              },
+                              "flat_fee": {
+                                "type": "number"
+                              },
+                              "vat_percent": {
+                                "type": "number"
+                              }
+                            }
+                          },
+                          "example": {
+                            "airtime": {
+                              "discount_percent": 2,
+                              "flat_fee": 0
+                            },
+                            "electricity": {
+                              "discount_percent": 0,
+                              "flat_fee": 50
+                            }
+                          }
+                        },
+                        "tiers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "min_monthly_volume": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8782,7 +10928,14 @@
           },
           "product": {
             "type": "string",
-            "example": "betting"
+            "example": "betting",
+            "enum": [
+              "betting",
+              "airtime",
+              "data",
+              "tv",
+              "electricity"
+            ]
           },
           "biller": {
             "type": "string",
@@ -8799,12 +10952,12 @@
           },
           "amount": {
             "type": "number",
-            "description": "NGN credited to the customer's betting wallet.",
+            "description": "NGN face value the customer received (airtime, bundle price, bouquet price, or electricity bought).",
             "example": 1000
           },
           "fee": {
             "type": "number",
-            "description": "NGN charged to you on top of amount.",
+            "description": "NGN charged to you on top of the face value (electricity's per-token fee, plus VAT where it applies).",
             "example": 0
           },
           "currency": {
@@ -8826,7 +10979,8 @@
               "insufficient_provider_balance",
               "provider_unavailable",
               "provider_rejected",
-              "reversed"
+              "reversed",
+              "not_sent"
             ]
           },
           "completed_at": {
@@ -8837,6 +10991,41 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "discount": {
+            "type": "number",
+            "description": "Airtime, data, TV and electricity: NGN taken off the face value by your rate.",
+            "example": 20
+          },
+          "total_charged": {
+            "type": "number",
+            "description": "Airtime, data, TV and electricity: what left your wallet, amount - discount + fee. A refund returns exactly this.",
+            "example": 980
+          },
+          "plan": {
+            "type": "string",
+            "description": "The plan code bought: data bundle, TV bouquet, or electricity package.",
+            "example": "MTN_2GB_WEEKLY"
+          },
+          "plan_name": {
+            "type": "string",
+            "description": "The plan's name; for electricity, `prepaid` or `postpaid`.",
+            "example": "MTN 2GB Weekly"
+          },
+          "token": {
+            "type": "string",
+            "description": "Prepaid electricity: the token to load on the meter, once `status` is `success`. Treat it like cash.",
+            "example": "1234-5678-9012-3456-7890"
+          },
+          "units": {
+            "type": "string",
+            "description": "Prepaid electricity: the units the token carries, as the DisCo reported them.",
+            "example": "50.0"
+          },
+          "pricing_tier": {
+            "type": "string",
+            "description": "The tier or contract the order was priced at.",
+            "example": "starter"
           }
         }
       },
@@ -9593,6 +11782,58 @@
           "expected_minutes",
           "as_of"
         ]
+      },
+      "BillBiller": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Send this as `biller`.",
+            "example": "MTN"
+          },
+          "name": {
+            "type": "string",
+            "example": "MTN"
+          },
+          "min_amount": {
+            "type": "number",
+            "description": "Open-amount products only."
+          },
+          "max_amount": {
+            "type": "number",
+            "description": "Open-amount products only."
+          },
+          "meter_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "prepaid",
+                "postpaid"
+              ]
+            },
+            "description": "Electricity only."
+          }
+        }
+      },
+      "BillPlan": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Send this as `plan`.",
+            "example": "DSTV_COMPACT"
+          },
+          "name": {
+            "type": "string",
+            "example": "DStv Compact"
+          },
+          "amount": {
+            "type": "number",
+            "description": "NGN. 0 means you choose the amount.",
+            "example": 19000
+          }
+        }
       }
     },
     "securitySchemes": {

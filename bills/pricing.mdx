@@ -1,0 +1,42 @@
+---
+title: "Bills pricing"
+slug: "bills/pricing"
+---
+
+What you pay for airtime, data, TV and electricity depends on how much you sell. There are no setup or monthly fees: you pay per purchase, from your NGN wallet, and the price is on every bill before it goes out.
+
+## Rates
+
+| | Starter | Growth | Enterprise |
+|---|---|---|---|
+| **Who** | Every business, to start | ₦10 million+ of bills in 30 days | ₦50 million+ a month |
+| **Airtime** | 2.0% off face value | 2.5% off | Custom |
+| **Data** | 2.5% off face value | 3.0% off | Custom |
+| **TV** | 0.5% off face value | 0.75% off | Custom |
+| **Electricity** | ₦50 fee per purchase | ₦30 fee per purchase | Custom |
+
+"Off face value" means your customer receives the full amount and you pay less: ₦1,000 of airtime costs you ₦980 at Starter. Electricity is sold at face value with the fee on top: ₦5,000 of electricity costs you ₦5,050 at Starter.
+
+[Betting top-ups](/bills/betting) are priced separately.
+
+## Tiers
+
+- Your tier is set by the **face value of your successful bill payments over the last 30 days**, every bill product counted. It is checked on every purchase, so you move up the moment you cross ₦10 million, and back down if your volume falls below it.
+- **Enterprise** rates are agreed with you for ₦50 million or more a month. Contact [support@platnova.com](mailto:support@platnova.com).
+- `GET /v1/bills/pricing` returns your tier, your 30-day volume and your rate for each product right now.
+
+## What you see on each bill
+
+Every bill carries what it cost, at the moment you bought:
+
+| Field | Meaning |
+|---|---|
+| `amount` | Face value your customer received. |
+| `discount` | Taken off the face value at your rate. |
+| `fee` | Charged on top (electricity). |
+| `total_charged` | What left your wallet: `amount - discount + fee`. |
+| `pricing_tier` | The tier or agreement it was priced at. |
+
+A few networks and DisCos pay us less than others, and on those the discount can be smaller than the table shows. The bill always states the discount actually applied, so use `discount` and `total_charged` from the bill for your own accounting rather than recomputing them.
+
+If a purchase fails or is reversed, `total_charged` comes back to your wallet in full, discount and fee included.
