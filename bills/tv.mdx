@@ -1,0 +1,50 @@
+---
+title: "TV subscriptions"
+slug: "bills/tv"
+---
+
+Pay a DStv, GOtv, StarTimes or Showmax bouquet onto a customer's smartcard, from your NGN wallet, at your [TV discount](/bills/pricing). Read [Bill payments](/bills/overview) first: references, statuses, refunds and webhooks work the same for every product.
+
+## How it works
+
+1. **List the providers** with `GET /v1/bills/tv/billers`, then a provider's bouquets with `GET /v1/bills/tv/billers/{biller}/plans`. Each bouquet has a `code`, a `name` and its `amount` in naira.
+2. **Validate the smartcard** with `POST /v1/bills/tv/validate`:
+
+```json
+{ "biller": "DSTV", "smartcard_number": "7012345678", "plan": "DSTV_COMPACT" }
+```
+
+The provider answers with `customer_name`.
+
+3. **Show that name to the payer and have them confirm it.** Smartcard and IUC numbers are long, and one wrong digit can be a stranger's decoder. A subscription paid onto the wrong card cannot be moved.
+4. **Buy** with `POST /v1/bills/tv`, sending what the payer confirmed:
+
+```json
+{
+  "biller": "DSTV",
+  "plan": "DSTV_COMPACT",
+  "smartcard_number": "7012345678",
+  "customer_name_confirmation": "ADA OKAFOR",
+  "reference": "order-2090"
+}
+```
+
+We check the card again when you buy; if the name no longer matches, the purchase is refused with `422 customer_name_mismatch` and nothing is debited.
+
+5. **Wait for `bill.success`.** The bouquet is active on the card from then, as the provider applies it.
+
+## Prices
+
+The bouquet sets the price: leave `amount` out. If you send it, it must equal the bouquet's, or the purchase is refused with `422 amount_mismatch`. A bouquet listed with `amount: 0` takes the amount you send.
+
+Providers change bouquet prices without notice. Read the plans again at least every hour rather than storing them.
+
+## Endpoints
+
+- [List TV providers](/api-reference/bills/tv-billers): `GET /v1/bills/tv/billers`
+- [List bouquets](/api-reference/bills/tv-plans): `GET /v1/bills/tv/billers/{biller}/plans`
+- [Validate a smartcard](/api-reference/bills/tv-validate): `POST /v1/bills/tv/validate`
+- [Buy a TV subscription](/api-reference/bills/tv-purchase): `POST /v1/bills/tv`
+- [Get a TV subscription](/api-reference/bills/tv-get): `GET /v1/bills/tv/{id}`
+
+`GET /v1/bills/tv` lists your TV purchases, newest first, with `status`, `page` and `limit`.

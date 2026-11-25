@@ -113,6 +113,11 @@
           {
             "group": "Bills",
             "pages": [
+              "bills/overview",
+              "bills/airtime-data",
+              "bills/tv",
+              "bills/electricity",
+              "bills/pricing",
               "bills/betting"
             ]
           },
@@ -241,6 +246,23 @@
           {
             "group": "Bills",
             "pages": [
+              "api-reference/bills/pricing",
+              "api-reference/bills/airtime-billers",
+              "api-reference/bills/airtime-purchase",
+              "api-reference/bills/airtime-get",
+              "api-reference/bills/data-billers",
+              "api-reference/bills/data-plans",
+              "api-reference/bills/data-purchase",
+              "api-reference/bills/data-get",
+              "api-reference/bills/tv-billers",
+              "api-reference/bills/tv-plans",
+              "api-reference/bills/tv-validate",
+              "api-reference/bills/tv-purchase",
+              "api-reference/bills/tv-get",
+              "api-reference/bills/electricity-billers",
+              "api-reference/bills/electricity-validate",
+              "api-reference/bills/electricity-purchase",
+              "api-reference/bills/electricity-get",
               "api-reference/bills/list-billers",
               "api-reference/bills/validate",
               "api-reference/bills/purchase",

@@ -1,0 +1,8 @@
+---
+title: "Buy Airtime"
+openapi: "POST /v1/bills/airtime"
+---
+
+## Overview
+
+Top up a Nigerian mobile number. Your NGN wallet is debited the amount less your airtime discount; the line receives the full amount. Send an `Idempotency-Key` and a unique `reference`. Answers `202` with `status: processing`. See [Airtime and data](/bills/airtime-data).

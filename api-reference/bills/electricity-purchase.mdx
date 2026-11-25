@@ -1,0 +1,8 @@
+---
+title: "Buy Electricity"
+openapi: "POST /v1/bills/electricity"
+---
+
+## Overview
+
+Buy electricity for a prepaid or postpaid meter. Your NGN wallet is debited the amount plus the per-token fee. For a prepaid meter the token is on the bill once `status` is `success`, and in `bill.success`. See [Electricity](/bills/electricity).

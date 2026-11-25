@@ -1,0 +1,63 @@
+---
+title: "Electricity"
+slug: "bills/electricity"
+---
+
+Buy electricity for any prepaid or postpaid meter at every Nigerian DisCo, from your NGN wallet. For a prepaid meter you get the **token** your customer types into their meter. Electricity carries a small [fee per token](/bills/pricing) on top of the amount. Read [Bill payments](/bills/overview) first: references, statuses, refunds and webhooks work the same for every product.
+
+## How it works
+
+1. **List the DisCos** with `GET /v1/bills/electricity/billers`. Each has a `slug` and the `meter_types` it sells: `prepaid`, `postpaid` or both.
+2. **Validate the meter** with `POST /v1/bills/electricity/validate`:
+
+```json
+{ "biller": "IKEDC", "meter_type": "prepaid", "meter_number": "45012345678" }
+```
+
+The DisCo answers with `customer_name` and the meter's `address`, and a `min_amount` if this meter has one.
+
+3. **Show the name and address to the payer and have them confirm both.** A meter number typed one digit wrong is often a neighbour's real meter, and electricity bought for it cannot be moved.
+4. **Buy** with `POST /v1/bills/electricity`:
+
+```json
+{
+  "biller": "IKEDC",
+  "meter_type": "prepaid",
+  "meter_number": "45012345678",
+  "amount": 5000,
+  "phone_number": "08031234567",
+  "customer_name_confirmation": "ADA OKAFOR",
+  "reference": "order-2087"
+}
+```
+
+`phone_number` is the customer's mobile number; DisCos require one on every purchase. At the starter rate the bill shows `amount: 5000`, `fee: 50` and `total_charged: 5050`.
+
+5. **Wait for `bill.success`**, or poll `GET /v1/bills/electricity/{id}`.
+
+## The token
+
+For a prepaid meter, the successful bill carries:
+
+- `token`: the 20-digit number the customer enters on their meter, e.g. `1234-5678-9012-3456-7890`;
+- `units`: what the DisCo said the token is worth, as they wrote it (usually kWh).
+
+The token is in `bill.success` and on the bill from `GET`, and stays there, so you can show it again whenever the customer asks. **Treat a token like cash**: show it only to the customer who paid, and never log it where others can read it.
+
+A postpaid purchase has no token: it is a payment on the customer's account, and the DisCo shows it on their next bill.
+
+If a prepaid purchase succeeds but the DisCo has not sent the token yet, the bill is `success` with an empty `token`. We are alerted and fetch it from the DisCo; contact [support@platnova.com](mailto:support@platnova.com) with the bill `id` if your customer is waiting.
+
+## Amounts
+
+- From **₦1,000 to ₦500,000** per purchase. Some meters carry a higher minimum, returned by `validate` as `min_amount`.
+- What the customer receives in units is the DisCo's decision: tariff band, VAT and any arrears they recover all come out of the amount, on their side.
+
+## Endpoints
+
+- [List DisCos](/api-reference/bills/electricity-billers): `GET /v1/bills/electricity/billers`
+- [Validate a meter](/api-reference/bills/electricity-validate): `POST /v1/bills/electricity/validate`
+- [Buy electricity](/api-reference/bills/electricity-purchase): `POST /v1/bills/electricity`
+- [Get an electricity purchase](/api-reference/bills/electricity-get): `GET /v1/bills/electricity/{id}`
+
+`GET /v1/bills/electricity` lists your electricity purchases, newest first, with `status`, `page` and `limit`.
