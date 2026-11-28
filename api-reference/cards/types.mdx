@@ -1,0 +1,10 @@
+---
+title: "List Card Types"
+openapi: "GET /v1/cards/types"
+---
+
+## Overview
+
+List the virtual card types your business can create for its customers. Each type says what it is for, its limits, its creation fee and whether it can be created now. The answer also carries `max_active`, the most active virtual cards one customer may hold.
+
+Send a type's `id` as `card_type` to [Create Card](/api-reference/cards/create). Show your customers each type's `name`, `description`, `best_for` and `limits`; `provider` is for your records and should not be shown.

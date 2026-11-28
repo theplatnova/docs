@@ -161,6 +161,7 @@
             "group": "Cards",
             "pages": [
               "api-reference/cards/create",
+              "api-reference/cards/types",
               "api-reference/cards/get",
               "api-reference/cards/list",
               "api-reference/cards/deposit",

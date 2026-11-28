@@ -35,7 +35,7 @@ Full lifecycle management including card creation, funding, withdrawal, freezing
 
 ### Creating Cards
 
-When you create a card, you specify the currency, brand (Mastercard or Visa), initial funding amount, and the customer it's assigned to. The card is created instantly and can be used immediately.
+When you create a card, you specify the currency, the card type (or, as before, the brand), initial funding amount, and the customer it's assigned to. The card is created instantly and can be used immediately.
 
 ### Funding Cards
 
@@ -52,6 +52,40 @@ Retrieve funds from cards back to your business wallet when needed. Withdrawals 
 ### Freezing and Unfreezing
 
 Temporarily disable cards by freezing them. Frozen cards cannot be used until they are unfrozen. This is useful for security purposes or when you need to temporarily disable a card.
+
+## Card types
+
+Your business can offer several card types side by side, for example two Visa cards from different issuers, each with its own fee, limits and best use. List them with [`GET /v1/cards/types`](/api-reference/cards/types):
+
+```bash
+curl https://api.platnova.com/v1/cards/types \
+  -H "X-API-KEY: YOUR_API_KEY"
+```
+
+Each type has an `id`, a `name`, a `network`, what it is `best_for`, its `limits`, its creation `fee`, whether it is `recommended`, and whether it is `available` now (with an `unavailable_reason` when it isn't). Create a card of that type by sending its `id` as `card_type` to [Create Card](/api-reference/cards/create):
+
+```bash
+curl -X POST https://api.platnova.com/v1/cards/create \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "CUST-10293",
+    "currency": "usd",
+    "card_type": "visa-global",
+    "amount": 10
+  }'
+```
+
+- **`card_type` is optional. Leave it out and nothing changes**: `brand` works exactly as before.
+- With `card_type`, the card type decides the issuer and the network, and `brand` is ignored.
+- The response and the [`card.created`](/webhooks/overview#card-created) webhook name the card's `card_type` and its `provider` (the issuer). `provider` is for your records; show your customers the type's `name`.
+- A type that isn't listed, is switched off, or can't be issued now answers `422` `card_type_unavailable`. Nothing is charged. Choose another type from the list.
+
+## Active card limit
+
+One customer can hold at most `max_active` active virtual cards: 3, unless your business has agreed its own limit. `GET /v1/cards/types` returns the number that applies to you. Every virtual card counts until it is terminated, frozen cards and cards still being made included; a card refused at issue does not count.
+
+At the limit, Create Card answers `409` `card_limit_reached` with `data.max_active`, and nothing is charged. [Terminate](/api-reference/cards/terminate) a card the customer no longer uses, then create the new one.
 
 ## Card Information
 

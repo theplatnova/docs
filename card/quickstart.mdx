@@ -31,7 +31,7 @@ curl -X POST https://api.platnova.com/v1/customers \
 
 ## Step 2: Create a Card
 
-Create a virtual card for your customer:
+Choose a card type from [`GET /v1/cards/types`](/api-reference/cards/types) and send its `id` as `card_type`, or send `brand` as before (see [Card types](/card/overview#card-types)). Create a virtual card for your customer:
 
 ```bash
 curl -X POST https://api.platnova.com/v1/cards/create \
@@ -45,6 +45,8 @@ curl -X POST https://api.platnova.com/v1/cards/create \
     "amount": "100.00" // optional
   }'
 ```
+
+A customer can hold up to `max_active` active virtual cards (3 unless your business has its own limit). Past it, the answer is `409` `card_limit_reached` and nothing is charged.
 
 ## Step 3: Fund the Card
 

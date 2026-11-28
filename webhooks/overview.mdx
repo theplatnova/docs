@@ -53,6 +53,8 @@ You can add several endpoints, each with its own URL, secret and events: for exa
 | `card.kyc_failed` | Card KYC Failed |
 | `card.cancelled` | Card Cancelled Before Issue |
 | `account.issued` | Virtual Account Issued |
+| `account.pending` | Virtual Account Pending at the Bank |
+| `account.rejected` | Virtual Account Refused by the Bank |
 | `account.replaced` | Customer Account Replaced at Another Bank |
 | `account.funded` | Account Funded |
 | `customer.approved` | Customer Approved |
@@ -108,7 +110,9 @@ Sent when a new card is created.
       "address": "123 Main St",
       "city": "New York",
       "state": "NY",
-      "zip_code": "10001"
+      "zip_code": "10001",
+      "card_type": "visa-global",
+      "provider": "miden"
     },
     "transaction_ref": "TXN123456",
     "metadata": {
@@ -127,6 +131,8 @@ Sent when a new card is created.
   }
 }
 ```
+
+`card_info.card_type` is the [card type](/card/overview#card-types) the card was made from, and `card_info.provider` its issuer, for your records (don't show it to your customers). Both are omitted on cards made before card types.
 
 ### card.terminated
 
@@ -542,7 +548,7 @@ Fields without a value are omitted. To tie a payment to an order, see [Collectin
 
 ### account.issued
 
-Sent when a virtual account is issued.
+Sent when a virtual account is issued: it has its number and receives payments. For an account that was [pending](/virtual-accounts/creating-accounts#pending-accounts), this is the event that gives you the details.
 
 ```json
 {
@@ -551,6 +557,8 @@ Sent when a virtual account is issued.
   "customer_id": "user_id",
   "data": {
     "virtual_account_id": "va_uid",
+    "provider": "bridge",
+    "status": "active",
     "currency": "USD",
     "account_number": "1234567890",
     "account_name": "John Doe",
@@ -564,6 +572,62 @@ Sent when a virtual account is issued.
   }
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `provider` | Who opened the account (`bridge`, `nombank`, `paga`, `safehaven`, `rex`). A customer holds at most one account per provider per currency |
+| `status` | Always `active` on this event |
+
+### account.pending
+
+Sent when you create a customer account that the bank opens later, after it has reviewed the customer (USD accounts at `bridge`, for example). The account has no number yet, so don't give it to your customer. [`account.issued`](#account-issued) follows with the details, or [`account.rejected`](#account-rejected) with the reason.
+
+```json
+{
+  "event": "account.pending",
+  "timestamp": "2026-11-28T10:15:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "virtual_account_id": "va_uid",
+    "currency": "USD",
+    "provider": "bridge",
+    "bank_name": "Lead Bank",
+    "status": "pending"
+  }
+}
+```
+
+`virtual_account_id` is the `id` the create response returned in `accounts`, and the one that `account.issued` or `account.rejected` names later. `bank_name` is omitted when the bank isn't known yet.
+
+### account.rejected
+
+Sent when the bank refuses a pending customer account. One event per refused account.
+
+```json
+{
+  "event": "account.rejected",
+  "timestamp": "2026-11-29T08:00:00Z",
+  "customer_id": "user_id",
+  "data": {
+    "virtual_account_id": "va_uid",
+    "currency": "USD",
+    "provider": "bridge",
+    "status": "rejected",
+    "reason": "The customer's identity document could not be verified.",
+    "next_step": "Fix the customer's details or documents and create the account again; any fee taken for it has been refunded to your wallet."
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `status` | Always `rejected` on this event |
+| `reason` | Why the bank refused, written for a person |
+| `next_step` | What to do next |
+
+In [`GET /v1/virtual-accounts`](/api-reference/virtual-accounts/list) the account's `state` is then `refused`.
+
+All three events are signed and delivered like every other event: verify `X-Platnova-Signature` as described in [Verifying webhooks](/webhooks/signatures).
 
 ### account.replaced
 

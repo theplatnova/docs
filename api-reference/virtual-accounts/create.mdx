@@ -65,6 +65,15 @@ NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`) or **Rex Mi
 - A customer has one open account per bank. Asking again for a bank where they already have one answers that account, with `"existing": true`; nothing is opened or charged. A customer may hold one account at Nombank and one at Rex.
 - [Dynamic accounts](/api-reference/virtual-accounts/dynamic) are not offered at Rex: `"bank": "rex"` there answers `400` `invalid_bank`.
 
+## Choosing a provider
+
+`provider` is optional. **Leave it out and nothing changes**: the account opens at your default for the currency. Send `bridge` for USD, or a naira bank (`nombank`, `paga`, `safehaven`, `rex`, the same names as `bank`).
+
+- A customer holds at most **one account per provider per currency**. Accounts at two providers in one currency credit the same balance.
+- Only providers your business offers in that currency are accepted; any other answers `400` `bank_not_offered`. `nuvion` does not open customer accounts yet and answers the same.
+- `provider` and `bank` name the same choice. Send both only when they name the same bank; otherwise `400` `invalid_bank`.
+- Each entry in `accounts` names its `provider` and its `status`: `active`, or `pending` while the bank reviews the customer. A pending account has no number yet. You receive `account.pending`, then `account.issued` with the details or `account.rejected` with the reason (see [Pending accounts](/virtual-accounts/creating-accounts#pending-accounts)).
+
 ## One account per loan or order
 
 Add `reference` to name the account by your own reference. A customer holds **one open account per bank**, whatever the reference:
@@ -81,8 +90,8 @@ Add `reference` to name the account by your own reference. A customer holds **on
 |---|---|---|
 | `400` | `duplicate_reference` | The `reference` belongs to another account of your business (another customer or currency) |
 | `400` | `invalid_reference` | The `reference` breaks the format |
-| `400` | `invalid_bank` | `bank` is not `nombank`, `rex` or `paga`, or disagrees with `codes` |
-| `400` | `bank_not_offered` | Your business doesn't open accounts at that bank. Leave `bank` out, or contact support |
+| `400` | `invalid_bank` | `bank` or `provider` is not a name we know, `provider` and `bank` name different banks, or `bank` disagrees with `codes` |
+| `400` | `bank_not_offered` | Your business doesn't open customer accounts at that bank or provider in this currency (`nuvion` always answers this for now). Leave `bank` and `provider` out, or contact support |
 | `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |
 | `409` | `customer_has_account_at_bank` | Nothing was opened. The same person already holds an account at this bank under another of your customer ids: `data.customer_id` is that customer, `data.account` the account |

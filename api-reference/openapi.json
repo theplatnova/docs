@@ -796,7 +796,7 @@
     "/v1/virtual-accounts/create": {
       "post": {
         "summary": "Create virtual account (customer)",
-        "description": "Open a virtual bank account for one of your customers.\n\n**Name the customer** with `customer_id` or `customer_reference` (one of the two, not both). `customer_id` may be our customer id or your own id for the customer; `customer_reference` is your own id by its explicit name. If none of your customers has your id yet, send the customer's details (`customer_*` fields) and the customer is created with your id as their `reference`. A customer that already exists needs no details.\n\n**Required for a new customer:** `customer_name` (or `customer_first_name` + `customer_last_name`), `customer_email`, `customer_phone`, `customer_country_code` (defaults to `NG` for NGN) and `customer_date_of_birth`. The date of birth is not needed for NGN when you send `id_number` (BVN): it is taken from the BVN record. `customer_gender` is optional.\n\n**NGN:** in live, `id_number` (BVN) is required unless the customer already has a BVN on file, and it is verified before the account is opened.\n\n**USD:** set a default USD settlement wallet in your dashboard; any account fee is charged to it. The customer needs an address and identity documents on file, so create USD customers with Create Customer first: a customer created from `customer_*` fields has neither.\n\n**`reference`** (optional) opens an account for one loan or order. A customer can hold one account per reference, and repeating the request returns the same account. Without `reference`, a customer has one account per bank.\n\n**Your customer id is the customer.** Within your business a customer is identified by your `customer_id`, not by email, phone or BVN: a `customer_id` we don't know yet creates a new customer even when another of your customers has the same email. Our customer id keeps working as before. **`reference` is the idempotency key**: the same `reference` answers the same account; a new one opens another account for the same customer.",
+        "description": "Open a virtual bank account for one of your customers.\n\n**Name the customer** with `customer_id` or `customer_reference` (one of the two, not both). `customer_id` may be our customer id or your own id for the customer; `customer_reference` is your own id by its explicit name. If none of your customers has your id yet, send the customer's details (`customer_*` fields) and the customer is created with your id as their `reference`. A customer that already exists needs no details.\n\n**Required for a new customer:** `customer_name` (or `customer_first_name` + `customer_last_name`), `customer_email`, `customer_phone`, `customer_country_code` (defaults to `NG` for NGN) and `customer_date_of_birth`. The date of birth is not needed for NGN when you send `id_number` (BVN): it is taken from the BVN record. `customer_gender` is optional.\n\n**NGN:** in live, `id_number` (BVN) is required unless the customer already has a BVN on file, and it is verified before the account is opened.\n\n**USD:** set a default USD settlement wallet in your dashboard; any account fee is charged to it. The customer needs an address and identity documents on file, so create USD customers with Create Customer first: a customer created from `customer_*` fields has neither.\n\n**`reference`** (optional) opens an account for one loan or order. A customer can hold one account per reference, and repeating the request returns the same account. Without `reference`, a customer has one account per bank.\n\n**Your customer id is the customer.** Within your business a customer is identified by your `customer_id`, not by email, phone or BVN: a `customer_id` we don't know yet creates a new customer even when another of your customers has the same email. Our customer id keeps working as before. **`reference` is the idempotency key**: the same `reference` answers the same account; a new one opens another account for the same customer.\n\n**`provider`** (optional) chooses who opens the account: `bridge` for USD, or a naira bank. Leave it out and nothing changes: the account opens at your default for the currency. A customer holds at most one account per provider per currency. Each entry in `accounts` now names its `provider` and its `status`: `active` (it has its number) or `pending` (the bank is still opening it; `account.issued` or `account.rejected` follows by webhook).",
         "operationId": "createUserVirtualAccount",
         "tags": [
           "Virtual Account"
@@ -840,6 +840,14 @@
                     "currency": "NGN",
                     "id_number": "22212345678",
                     "bank": "nombank"
+                  }
+                },
+                "usd_choose_provider": {
+                  "summary": "USD account, provider chosen",
+                  "value": {
+                    "customer_id": "CUST-10293",
+                    "currency": "USD",
+                    "provider": "bridge"
                   }
                 }
               }
@@ -932,6 +940,18 @@
                               "reference": {
                                 "type": "string",
                                 "description": "Your reference the account was opened under; absent without one."
+                              },
+                              "provider": {
+                                "type": "string",
+                                "description": "Who opened the account: `bridge`, `nombank`, `paga`, `safehaven` or `rex`. A customer holds at most one account per provider per currency."
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "active",
+                                  "pending"
+                                ],
+                                "description": "`active`: the account has its number and receives payments. `pending`: the bank is still opening it, so the number fields are empty; you receive `account.issued` with the details, or `account.rejected` with the reason."
                               }
                             }
                           }
@@ -947,37 +967,74 @@
                     }
                   }
                 },
-                "example": {
-                  "status": true,
-                  "data": {
-                    "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
-                    "reference": "",
-                    "currency": "NGN",
-                    "email": "ada@example.com",
-                    "first_name": "Ada",
-                    "last_name": "Obi",
-                    "created_on": "2026-11-03T10:15:00Z",
-                    "amount_debited": 0,
-                    "accounts": [
-                      {
-                        "id": "9b2f6a10-3c4d-4e5f-8a7b-1c2d3e4f5a6b",
-                        "account_number": "0123456789",
-                        "account_name": "Ada Obi",
-                        "bank_name": "Example Bank",
-                        "bank_code": "100033",
-                        "reference": "LOAN-2026-0042"
-                      }
-                    ],
-                    "customer_reference": "CUST-10293"
+                "examples": {
+                  "ngn_active": {
+                    "summary": "NGN account, open now",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+                        "reference": "",
+                        "currency": "NGN",
+                        "email": "ada@example.com",
+                        "first_name": "Ada",
+                        "last_name": "Obi",
+                        "created_on": "2026-11-03T10:15:00Z",
+                        "amount_debited": 0,
+                        "accounts": [
+                          {
+                            "id": "9b2f6a10-3c4d-4e5f-8a7b-1c2d3e4f5a6b",
+                            "account_number": "0123456789",
+                            "account_name": "Ada Obi",
+                            "bank_name": "Example Bank",
+                            "bank_code": "100033",
+                            "reference": "LOAN-2026-0042",
+                            "provider": "nombank",
+                            "status": "active"
+                          }
+                        ],
+                        "customer_reference": "CUST-10293"
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
                   },
-                  "error": [],
-                  "message": "operation was successful"
+                  "usd_pending": {
+                    "summary": "USD account, waiting on the bank",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "customer_id": "6f1c2b9e-4a7d-4c3e-9b1a-2d5e8f7a6c01",
+                        "customer_reference": "CUST-10293",
+                        "reference": "",
+                        "currency": "USD",
+                        "email": "ada@example.com",
+                        "first_name": "Ada",
+                        "last_name": "Obi",
+                        "created_on": "2026-11-28T10:15:00Z",
+                        "amount_debited": 0,
+                        "accounts": [
+                          {
+                            "id": "3c8e1f20-7a4b-4d6e-9f0a-1b2c3d4e5f60",
+                            "account_number": "",
+                            "account_name": "",
+                            "bank_name": "",
+                            "bank_code": "",
+                            "provider": "bridge",
+                            "status": "pending"
+                          }
+                        ]
+                      },
+                      "error": [],
+                      "message": "operation was successful"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Refused. Nothing was opened. `data.code` says why when present; otherwise read `message`",
+            "description": "Refused. Nothing was opened. `data.code` says why when present; otherwise read `message`. `invalid_bank`: `provider` (or `bank`) is not a name we know, or `provider` and `bank` name different banks. `bank_not_offered`: your business doesn't open customer accounts with that provider in this currency",
             "content": {
               "application/json": {
                 "schema": {
@@ -1086,6 +1143,31 @@
                       "data": {},
                       "error": [],
                       "message": "street address is missing on your profile"
+                    }
+                  },
+                  "invalid_bank": {
+                    "summary": "Unknown provider, or provider and bank name different banks",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "invalid_bank",
+                        "field": "bank"
+                      },
+                      "error": [],
+                      "message": "bank: send \"paga\", \"nombank\", \"safehaven\" or \"bridge\", or leave it out for your default bank."
+                    }
+                  },
+                  "bank_not_offered": {
+                    "summary": "Provider not offered to your business in this currency (or nuvion)",
+                    "value": {
+                      "status": false,
+                      "data": {
+                        "code": "bank_not_offered",
+                        "field": "bank",
+                        "bank": "nuvion"
+                      },
+                      "error": [],
+                      "message": "Your business does not open accounts at this bank in this currency. Leave bank out for your default bank, or contact support."
                     }
                   }
                 }
@@ -2100,6 +2182,19 @@
                               "null"
                             ],
                             "description": "Customer accounts only: your `reference` the account was opened under, or `null` on the customer's general account."
+                          },
+                          "provider": {
+                            "type": "string",
+                            "description": "Who opened the account (`bridge`, `nombank`, `paga`, `safehaven`, `rex`). Prefer this to `meta.provider`, which is an internal number."
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "pending",
+                              "refused"
+                            ],
+                            "description": "`open`: it has its number. `pending`: the bank is still opening it. `refused`: the bank refused it, or the request failed for good; create it again once the reason is fixed."
                           }
                         }
                       }
@@ -2136,7 +2231,9 @@
                       "account_name": "John Doe",
                       "bank_name": "JPMorgan Chase",
                       "bank_code": "CHASUS33",
-                      "default": true
+                      "default": true,
+                      "provider": "bridge",
+                      "state": "open"
                     }
                   ],
                   "error": [],
@@ -2226,7 +2323,7 @@
     "/v1/cards/create": {
       "post": {
         "summary": "Create card",
-        "description": "Create a virtual card for a customer with optional initial funding.",
+        "description": "Create a virtual card for a customer with optional initial funding.\n\nChoose the card with `card_type` (an `id` from [List card types](/api-reference/cards/types)) or, as before, with `brand`. Leaving `card_type` out keeps today's behaviour.\n\nA customer holds at most `max_active` active virtual cards (3 unless your business has its own limit; `GET /v1/cards/types` returns it). A card counts until it is terminated. Both refusals below happen before anything is charged.",
         "operationId": "createCard",
         "tags": [
           "Card"
@@ -2339,6 +2436,14 @@
                         },
                         "amount_debited": {
                           "type": "number"
+                        },
+                        "card_type": {
+                          "type": "string",
+                          "description": "The card type the card is made from. When you chose by `brand`, the card type that brand names; empty when no card type matches it."
+                        },
+                        "provider": {
+                          "type": "string",
+                          "description": "The card's issuer, for your records. Don't show it to your customers."
                         }
                       }
                     },
@@ -2363,7 +2468,9 @@
                     "card_id": "18ee492a-617c-4878-958a-2ee08dc20ff4",
                     "card_status": "processing",
                     "card_brand": "mastercard",
-                    "card_currency": "ngn"
+                    "card_currency": "ngn",
+                    "card_type": "mastercard",
+                    "provider": "hostcap"
                   },
                   "error": [],
                   "message": "operation was successful"
@@ -2463,6 +2570,50 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "`card_limit_reached`: the customer already holds the most active virtual cards allowed (`data.max_active`). Nothing was charged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "status": false,
+                  "data": {
+                    "code": "card_limit_reached",
+                    "max_active": 3,
+                    "next_step": "Close a virtual card that is no longer used, then create a new one."
+                  },
+                  "error": [
+                    "card_limit_reached"
+                  ],
+                  "message": "This customer already has 3 active virtual cards, the most allowed. Nothing was charged."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`card_type_unavailable`: the card type isn't listed for your customers, is switched off, or can't be issued right now. Nothing was charged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "status": false,
+                  "data": {
+                    "code": "card_type_unavailable",
+                    "card_type": "visa-global",
+                    "next_step": "Choose another card."
+                  },
+                  "error": [
+                    "card_type_unavailable"
+                  ],
+                  "message": "This card isn't available right now. Nothing was charged."
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -2472,12 +2623,26 @@
               "schema": {
                 "$ref": "#/components/schemas/CreateCardRequest"
               },
-              "example": {
-                "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
-                "currency": "ngn",
-                "brand": "mastercard",
-                "amount": 15000,
-                "wallet_id": "43a2b75e-5c59-429e-872a-2a54c7b17e37"
+              "examples": {
+                "card_type": {
+                  "summary": "Choose a card type",
+                  "value": {
+                    "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+                    "currency": "usd",
+                    "card_type": "visa-global",
+                    "amount": 10
+                  }
+                },
+                "brand": {
+                  "summary": "Choose by brand (unchanged)",
+                  "value": {
+                    "customer_id": "43a2b75e-5c59-429e-872a-2a54c7b17e34",
+                    "currency": "ngn",
+                    "brand": "mastercard",
+                    "amount": 15000,
+                    "wallet_id": "43a2b75e-5c59-429e-872a-2a54c7b17e37"
+                  }
+                }
               }
             }
           }
@@ -7839,6 +8004,197 @@
           }
         }
       }
+    },
+    "/v1/cards/types": {
+      "get": {
+        "summary": "List card types",
+        "description": "The virtual card types your business can create for its customers, with what each is for, its limits, its fee and whether it can be created now, plus `max_active`: how many active virtual cards one customer may hold.\n\nOnly virtual card types that are switched on are listed. Pass an `id` as `card_type` to [Create card](/api-reference/cards/create). Read only.",
+        "operationId": "listCardTypes",
+        "tags": [
+          "Card"
+        ],
+        "parameters": [
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "description": "The currency of the wallet you pay from, for `fee`. Defaults to `usd`.",
+            "example": "usd",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "for": {
+                          "type": "string",
+                          "description": "`customer` with an API key."
+                        },
+                        "max_active": {
+                          "type": "integer",
+                          "description": "The most active virtual cards one customer may hold."
+                        },
+                        "types": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "Send this as `card_type` on Create card."
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "The name to show your customer."
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "network": {
+                                "type": "string",
+                                "description": "The card network, e.g. `visa` or `mastercard`."
+                              },
+                              "provider": {
+                                "type": "string",
+                                "description": "The issuer, for your records. Don't show it to your customers."
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "best_for": {
+                                "type": "string"
+                              },
+                              "limits": {
+                                "type": "string",
+                                "description": "The card's limits, in plain words."
+                              },
+                              "recommended": {
+                                "type": "boolean"
+                              },
+                              "available": {
+                                "type": "boolean",
+                                "description": "Whether a card of this type can be created now. When `false`, Create card answers `card_type_unavailable`."
+                              },
+                              "unavailable_reason": {
+                                "type": "string",
+                                "description": "Why not, as a sentence; empty when available."
+                              },
+                              "fee": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "description": "What creating this card costs on the smallest first load, in `currency`; `null` when not priced for your business. The fee charged is always the server's.",
+                                "properties": {
+                                  "currency": {
+                                    "type": "string"
+                                  },
+                                  "creation": {
+                                    "type": "number",
+                                    "description": "The creation fee."
+                                  },
+                                  "min_amount": {
+                                    "type": "number",
+                                    "description": "The least a creation may load."
+                                  },
+                                  "max_amount": {
+                                    "type": "number",
+                                    "description": "The most a creation may load."
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {}
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": true,
+                  "data": {
+                    "for": "customer",
+                    "max_active": 3,
+                    "types": [
+                      {
+                        "id": "visa-global",
+                        "name": "Visa Global",
+                        "brand": "visa",
+                        "network": "visa",
+                        "provider": "miden",
+                        "description": "A USD Visa card for online payments.",
+                        "best_for": "Subscriptions and online shopping",
+                        "limits": "Up to $5,000 a month",
+                        "recommended": true,
+                        "available": true,
+                        "unavailable_reason": "",
+                        "fee": {
+                          "currency": "usd",
+                          "creation": 5,
+                          "min_amount": 5,
+                          "max_amount": 1000
+                        }
+                      },
+                      {
+                        "id": "mastercard",
+                        "name": "Mastercard",
+                        "brand": "mastercard",
+                        "network": "mastercard",
+                        "provider": "hostcap",
+                        "description": "",
+                        "best_for": "",
+                        "limits": "",
+                        "recommended": false,
+                        "available": false,
+                        "unavailable_reason": "This card isn't available right now.",
+                        "fee": null
+                      }
+                    ]
+                  },
+                  "error": [],
+                  "message": "operation was successful"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The list couldn't be read. Try again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "status": false,
+                  "data": {},
+                  "error": [],
+                  "message": "We couldn't load the cards right now. Please try again."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8203,10 +8559,23 @@
             "enum": [
               "nombank",
               "rex",
-              "paga"
+              "paga",
+              "safehaven"
             ],
             "description": "NGN. Leave out (recommended): the account opens at Nombank MFB, or at the next bank we offer your business (Rex Microfinance Bank, then Paga) when Nombank already holds two accounts for the customer's BVN or NIN. `nombank` allows Nombank only (`nomba_identity_limit` at the limit). `rex` opens at Rex Microfinance Bank (`090449`) only.",
             "example": "nombank"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "bridge",
+              "nombank",
+              "paga",
+              "safehaven",
+              "rex"
+            ],
+            "description": "Optional. Who opens the account: `bridge` for USD, or a naira bank (`nombank`, `paga`, `safehaven`, `rex`), the same names as `bank`. **Leave it out to keep today's behaviour**: your business's default for the currency. A customer holds at most one account per provider per currency. Only providers your business offers in that currency are accepted (`400` `bank_not_offered` otherwise). `nuvion` is a valid name but is not offered for customer accounts yet, so it answers `bank_not_offered`. Sending both `provider` and `bank` is allowed only when they name the same bank; otherwise `400` `invalid_bank`.",
+            "example": "bridge"
           },
           "customer_name": {
             "type": "string",
@@ -8386,7 +8755,7 @@
           },
           "brand": {
             "type": "string",
-            "description": "Card brand (e.g. mastercard)"
+            "description": "Card brand (e.g. `mastercard`), as before. Ignored when you send `card_type`. Send `card_type` or `brand`."
           },
           "amount": {
             "type": "integer",
@@ -8395,6 +8764,11 @@
           "wallet_id": {
             "type": "string",
             "description": "Wallet ID to fund from"
+          },
+          "card_type": {
+            "type": "string",
+            "description": "Optional. The `id` of a card type from [List card types](/api-reference/cards/types). The card type decides the issuer and the network; `brand` is then ignored. **Leave it out to keep today's behaviour**: `brand` works as before.",
+            "example": "visa-global"
           }
         }
       },

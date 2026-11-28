@@ -6,3 +6,5 @@ openapi: "POST /v1/cards/create"
 ## Overview
 
 Create a USD virtual card for a customer. This endpoint allows you to issue a new virtual card with a specified currency, brand, and initial funding amount. A wallet_id and amount can be optionally specified to change the default currency funding wallet and initial amount in the card respectively. The card will be linked to the customer's account and can be used for online and in-store purchases.
+
+Choose the card with `card_type`, an `id` from [List Card Types](/api-reference/cards/types). Leaving `card_type` out keeps today's behaviour: `brand` chooses the card as before. A customer can hold up to `max_active` active virtual cards (3 unless your business has its own limit); past it the answer is `409` `card_limit_reached`. A type that can't be issued answers `422` `card_type_unavailable`. Nothing is charged in either case. See [Card types](/card/overview#card-types).
