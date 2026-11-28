@@ -90,7 +90,7 @@ Add `reference` to name the account by your own reference. A customer holds **on
 |---|---|---|
 | `400` | `duplicate_reference` | The `reference` belongs to another account of your business (another customer or currency) |
 | `400` | `invalid_reference` | The `reference` breaks the format |
-| `400` | `invalid_bank` | `bank` or `provider` is not a name we know, `provider` and `bank` name different banks, or `bank` disagrees with `codes` |
+| `400` | `invalid_bank` | `bank` or `provider` is not a name we know, `provider` and `bank` name different banks, or `bank` disagrees with `codes`. `data.field` is `provider` or `bank`, whichever to fix |
 | `400` | `bank_not_offered` | Your business doesn't open customer accounts at that bank or provider in this currency (`nuvion` always answers this for now). Leave `bank` and `provider` out, or contact support |
 | `400` | — | `customer was not found`; both `customer_id` and `customer_reference` sent; BVN missing, not found or not verified; USD settlement wallet missing or short |
 | `409` | `reference_in_progress` | The first request with this `reference` is still opening the account. Retry shortly |

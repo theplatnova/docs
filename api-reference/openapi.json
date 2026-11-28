@@ -1151,10 +1151,10 @@
                       "status": false,
                       "data": {
                         "code": "invalid_bank",
-                        "field": "bank"
+                        "field": "provider"
                       },
                       "error": [],
-                      "message": "bank: send \"paga\", \"nombank\", \"safehaven\" or \"bridge\", or leave it out for your default bank."
+                      "message": "provider: send \"paga\", \"nombank\", \"safehaven\", \"rex\" or \"bridge\" (the same bank as `bank` when both are sent), or leave it out for your default bank."
                     }
                   },
                   "bank_not_offered": {
@@ -8574,7 +8574,7 @@
               "safehaven",
               "rex"
             ],
-            "description": "Optional. Who opens the account: `bridge` for USD, or a naira bank (`nombank`, `paga`, `safehaven`, `rex`), the same names as `bank`. **Leave it out to keep today's behaviour**: your business's default for the currency. A customer holds at most one account per provider per currency. Only providers your business offers in that currency are accepted (`400` `bank_not_offered` otherwise). `nuvion` is a valid name but is not offered for customer accounts yet, so it answers `bank_not_offered`. Sending both `provider` and `bank` is allowed only when they name the same bank; otherwise `400` `invalid_bank`.",
+            "description": "Optional. Who opens the account: `bridge` for USD, or a naira bank (`nombank`, `paga`, `safehaven`, `rex`), the same names as `bank`. **Leave it out to keep today's behaviour**: your business's default for the currency. A customer holds at most one account per provider per currency. Only providers your business offers in that currency are accepted (`400` `bank_not_offered` otherwise). `nuvion` is a valid name but is not offered for customer accounts yet, so it answers `bank_not_offered`. Sending both `provider` and `bank` is allowed only when they name the same bank; otherwise `400` `invalid_bank` with `data.field` `provider`.",
             "example": "bridge"
           },
           "customer_name": {
