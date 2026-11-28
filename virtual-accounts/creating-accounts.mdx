@@ -34,6 +34,7 @@ For a customer you haven't created yet, send your own id with their details in t
 - **Reference** - Your own reference for this account (see [One account per loan or order](#one-account-per-loan-or-order))
 - **ID number** - For NGN accounts, the customer's BVN in `id_number`. In live it is required unless the customer already has a BVN on file, and it is verified before the account is opened
 - **Bank** - For NGN accounts, `nombank` or leave it out (see [The Bank](#the-bank-ngn-accounts) below)
+- **Provider** - Who opens the account: `bridge` for USD, or a naira bank. Leave it out for your default (see [Choosing a provider](#choosing-a-provider))
 - **Codes** - The older way to choose: an array of bank codes
 
 ## The Bank (NGN Accounts)
@@ -55,6 +56,42 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
     "bank": "nombank"
   }'
 ```
+
+## Choosing a provider
+
+`provider` chooses who opens the account. It is optional: **leave it out and nothing changes**. The account opens at your business's default for the currency, exactly as before.
+
+| Currency | `provider` |
+|---|---|
+| USD | `bridge` |
+| NGN | `nombank`, `paga`, `safehaven` or `rex` (the same names as `bank`) |
+
+```bash
+curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
+  -H "X-API-KEY: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "CUST-10293",
+    "currency": "USD",
+    "provider": "bridge"
+  }'
+```
+
+- **One account per provider per currency.** A customer can hold accounts at two providers in one currency, but never two at the same provider. A second request for a provider where the customer already holds an account in that currency doesn't open another one.
+- You can choose only providers your business offers in that currency. Any other answers `400` `bank_not_offered`; leave `provider` out, or contact support to have it offered.
+- `nuvion` is a valid name, but it does not open customer accounts yet, so it answers `400` `bank_not_offered`.
+- `provider` and `bank` name the same choice. Send either one. If you send both, they must name the same bank; otherwise the answer is `400` `invalid_bank` with `data.field` `provider`, as it is for a provider name we don't know.
+
+Each account in the response names its `provider`. Show your customers the `bank_name`, not the provider.
+
+### Pending accounts
+
+Some providers open an account only after they have reviewed the customer (USD accounts at `bridge`, for example). Each entry in `accounts` has a `status`:
+
+- `active`: the account has its number and receives payments.
+- `pending`: the bank is still opening it. The number fields are empty. You receive the [`account.pending`](/webhooks/overview#account-pending) webhook now, then either [`account.issued`](/webhooks/overview#account-issued) with the details or [`account.rejected`](/webhooks/overview#account-rejected) with the reason and what to do next.
+
+Don't give your customer a pending account. Wait for `account.issued`. In [`GET /v1/virtual-accounts`](/api-reference/virtual-accounts/list), each account has a `provider` and a `state`: `open`, `pending` or `refused`.
 
 ## Account Response
 
@@ -78,7 +115,9 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
         "account_name": "Ada Obi",
         "bank_name": "Example Bank",
         "bank_code": "000000",
-        "reference": "LOAN-2026-0042"
+        "reference": "LOAN-2026-0042",
+        "provider": "nombank",
+        "status": "active"
       }
     ]
   },
@@ -87,7 +126,7 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
 }
 ```
 
-`customer_id` is our id for the customer; `customer_reference` is yours, when set. Each entry in `accounts` carries its `id` and, when you opened it with one, your `reference`. USD accounts also carry `ach_routing_number`, `rtp_routing_number`, `wire_routing_number`, `swift_code` and `bank_address`.
+`customer_id` is our id for the customer; `customer_reference` is yours, when set. Each entry in `accounts` carries its `id`, its `provider`, its `status` (`active` or `pending`, see [Pending accounts](#pending-accounts)) and, when you opened it with one, your `reference`. USD accounts also carry `ach_routing_number`, `rtp_routing_number`, `wire_routing_number`, `swift_code` and `bank_address`.
 
 ## Use your own customer ids
 
@@ -186,7 +225,7 @@ The account type is determined automatically based on currency and provider capa
 
 ## Multiple Accounts
 
-Customers can have multiple virtual accounts in different currencies, and several in one currency when each has its own `reference` (see [One account per loan or order](#one-account-per-loan-or-order)). Each account operates independently with its own account number and routing information.
+Customers can have multiple virtual accounts in different currencies, one per provider in the same currency (see [Choosing a provider](#choosing-a-provider)), and several in one currency when each has its own `reference` (see [One account per loan or order](#one-account-per-loan-or-order)). Each account operates independently with its own account number and routing information.
 
 ## Listing Accounts
 
