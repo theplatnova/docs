@@ -69,7 +69,7 @@ NGN customer accounts open at **Nombank MFB** (`bank_code` `090645`) or **Rex Mi
 
 `provider` is optional. **Leave it out and nothing changes**: the account opens at your default for the currency. Send `bridge` for USD, or a naira bank (`nombank`, `paga`, `safehaven`, `rex`, the same names as `bank`).
 
-- A customer holds at most **one account per provider per currency**. Accounts at two providers in one currency credit the same balance.
+- A customer holds at most **one account per provider per currency**; accounts at two different providers in one currency are allowed.
 - Only providers your business offers in that currency are accepted; any other answers `400` `bank_not_offered`. `nuvion` does not open customer accounts yet and answers the same.
 - `provider` and `bank` name the same choice. Send both only when they name the same bank; otherwise `400` `invalid_bank`.
 - Each entry in `accounts` names its `provider` and its `status`: `active`, or `pending` while the bank reviews the customer. A pending account has no number yet. You receive `account.pending`, then `account.issued` with the details or `account.rejected` with the reason (see [Pending accounts](/virtual-accounts/creating-accounts#pending-accounts)).

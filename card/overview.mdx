@@ -79,13 +79,13 @@ curl -X POST https://api.platnova.com/v1/cards/create \
 - **`card_type` is optional. Leave it out and nothing changes**: `brand` works exactly as before.
 - With `card_type`, the card type decides the issuer and the network, and `brand` is ignored.
 - The response and the [`card.created`](/webhooks/overview#card-created) webhook name the card's `card_type` and its `provider` (the issuer). `provider` is for your records; show your customers the type's `name`.
-- A type that isn't listed, is switched off, or can't be issued now answers `422` `card_type_unavailable`. Nothing is charged. Choose another type from the list.
+- A type that isn't listed, is switched off, or can't be issued now answers `422` `card_type_unavailable`. Nothing is charged. Choose another type from the list. The same applies when you send a `brand` whose card type has been switched off.
 
 ## Active card limit
 
 One customer can hold at most `max_active` active virtual cards: 3, unless your business has agreed its own limit. `GET /v1/cards/types` returns the number that applies to you. Every virtual card counts until it is terminated, frozen cards and cards still being made included; a card refused at issue does not count.
 
-At the limit, Create Card answers `409` `card_limit_reached` with `data.max_active`, and nothing is charged. [Terminate](/api-reference/cards/terminate) a card the customer no longer uses, then create the new one.
+The limit applies however the card is chosen, by `card_type` or by `brand`. At the limit, Create Card answers `409` `card_limit_reached` with `data.max_active`, and nothing is charged. [Terminate](/api-reference/cards/terminate) a card the customer no longer uses, then create the new one.
 
 ## Card Information
 

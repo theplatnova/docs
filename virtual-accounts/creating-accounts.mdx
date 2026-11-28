@@ -77,7 +77,7 @@ curl -X POST https://api.platnova.com/v1/virtual-accounts/create \
   }'
 ```
 
-- **One account per provider per currency.** A customer can hold accounts at two providers in one currency, and both credit the same balance. Asking again for a provider where the customer already holds an account answers that account, as for `bank`.
+- **One account per provider per currency.** A customer can hold accounts at two providers in one currency, but never two at the same provider. A second request for a provider where the customer already holds an account in that currency doesn't open another one.
 - You can choose only providers your business offers in that currency. Any other answers `400` `bank_not_offered`; leave `provider` out, or contact support to have it offered.
 - `nuvion` is a valid name, but it does not open customer accounts yet, so it answers `400` `bank_not_offered`.
 - `provider` and `bank` name the same choice. Send either one. If you send both, they must name the same bank; otherwise the answer is `400` `invalid_bank`, as it is for a name we don't know.
